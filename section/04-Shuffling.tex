@@ -1,0 +1,27 @@
+%!TEX root = ../Main.tex
+\clearpage{}
+\section{Every day I'm shufflin'}
+
+
+\begin{figure}
+\begin{code}
+deal_o       :: (Int -> a -> m ()) 
+             -> Sinks Int m a         -> m (Sinks () m (Array a))
+
+distribute_o :: (Int -> Array a -> m ())
+             -> Sinks Int m (Array a) -> m (Sinks () m (Array (Int, a)))
+
+shuffleP     :: Sources Int IO (Array (Int, a))
+             -> Sinks   Int IO (Array a)
+             -> IO ()
+\end{code}
+\caption{Deal, Distribute and Shuffle}
+\end{figure}
+
+
+
+\begin{itemize}
+\item Also Sieve function, like shuffle but to disk.
+      This is our main synchronisation barrier.
+\item Then fromTable :: Sources Int IO ...
+\end{itemize}

@@ -1,24 +1,49 @@
-\documentclass{llncs}
 
-% -----------------------------------------------------------------------------
+\documentclass[preprint]{sigplanconf}
+\usepackage{pdf14}
+\usepackage{style/code}
+
+% % -----------------------------------------------------------------------------
 \begin{document}
-\title          {Data Parallel Data Flow with Datum \\
-                        System Demonstration }
-\author         {Ben Lippmeier and Fil Mackay}
-\institute      { Vertigo Technology \\
-                  \email{ \{benl, fil\}@vergo.co }}
+\title          {Data Parallel Data Flow}
+ 
+% \authorinfo     
+% {Ben Lippmeier and Fil Mackay}
+% { Vertigo Technology 
+%   \email{ \{benl, fil\}@vergo.co }}
+
+\authorinfo
+{       Ben Lippmeier and Fil Mackay  }
+{ \shortstack
+  {     Vertigo Technology \\
+        \textsf{\{benl,fil\}@vergo.co}
+  }
+}
+
 \maketitle
 
-
-% -----------------------------------------------------------------------------
+% ---------------------------------------------------------------
 \begin{abstract}
-Repa Flow is a library for data parallel data flow programming in Haskell. A flow is a bundle of independent streams, and the library provides operators such as map, fold and filter that apply to all streams in a bundle. Data parallelism is introduced by evaluating each stream in a separate thread on a multi-core machine. Like a souped-up version of the Haskell conduit or pipes library, Repa Flow adds support for efficient chunked streams of unboxed data; bucketed files; and analytic operators such as the SQL-like groupBy and the Hadoop-like shuffle. Repa Flow uses three separate array fusion methods to gain good numeric performance, all while maintaining a pleasant user-facing API.
+Repa Flow is a library for data parallel data flow programming in Haskell. A  flow is a bundle of independent streams, and the library provides operat ors s uch  as map, fold and filter that apply to all streams in a bundle. Data para lleli sm is introduced by evaluating each stream in a separate thread on a multi- core machine. Like a souped-up version of the Haskell conduit or pipes library, Repa Flow adds support for efficient chunked streams of unboxed data; bucketed files; and analytic operators such as the SQL-like groupBy and the Hadoop-like shuffle. Repa Flow uses three separate array fusion methods to gain good numeric performance, all while maintaining a pleasant user-facing API.
 \end{abstract}
 
 
 % -----------------------------------------------------------------------------
 \input{section/01-Introduction.tex}
+\input{section/02-Streams.tex}
+\input{section/03-Chunked.tex}
+\input{section/04-Shuffling.tex}
+\input{section/05-Benchmarks.tex}
+\input{section/06-Datum.tex}
+\input{section/07-Related.tex}
+
+
+% -----------------------------------------------------------------------------
+% \paragraph{Acknowledgements}
+% Thanks to peeps.
+% 
+% \bibliographystyle{plain}
+% \bibliography{Main}
 
 
 \end{document}
-
