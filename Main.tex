@@ -2,21 +2,34 @@
 \documentclass[preprint]{sigplanconf}
 \usepackage{pdf14}
 \usepackage{style/code}
+\usepackage{style/utils}
 
 % % -----------------------------------------------------------------------------
 \begin{document}
-\title          {Data Parallel Data Flow}
+\title
+{       Data Parallel Data Flow}
  
-% \authorinfo     
-% {Ben Lippmeier and Fil Mackay}
-% { Vertigo Technology 
-%   \email{ \{benl, fil\}@vergo.co }}
-
 \authorinfo
-{       Ben Lippmeier and Fil Mackay  }
-{ \shortstack
-  {     Vertigo Technology \\
-        \textsf{\{benl,fil\}@vergo.co}
+{       Ben Lippmeier$^\alpha$ \and 
+        Amos Robinson$^\beta$  \and
+        Fil Mackay$^\gamma$
+}
+{ 
+  \vspace{5pt}
+  \shortstack{
+    $^\alpha$UNSW Australia \\
+    \\[2pt]
+    \textsf{amosr,benl@cse.unsw.edu.au}
+  }
+  \shortstack{
+    $^\beta$Ambiata \\
+    \\[2pt]
+    ~~~ \textsf{amos.robinson@ambiata.com}
+  }
+  \shortstack{
+    $^\gamma$Vertigo Technology \\
+    \\[2pt]
+    ~~\textsf{e\{benl,fil\}@vergo.co}
   }
 }
 
@@ -25,7 +38,7 @@
 
 % ---------------------------------------------------------------
 \begin{abstract}
-Repa Flow is a library for data parallel data flow programming in Haskell. A  flow is a bundle of independent streams, and the library provides operat ors s uch  as map, fold and filter that apply to all streams in a bundle. Data para lleli sm is introduced by evaluating each stream in a separate thread on a multi- core machine. Like a souped-up version of the Haskell conduit or pipes library, Repa Flow adds support for efficient chunked streams of unboxed data; bucketed files; and analytic operators such as the SQL-like groupBy and the Hadoop-like shuffle. Repa Flow uses three separate array fusion methods to gain good numeric performance, all while maintaining a pleasant user-facing API.
+We present an approach to writing fused parallel data flow programs, where the library API guarantees that programs run in constant space. We support branching data flows which allow multiple independent aggregates to be computed over the same stream without hand fusing the aggregation code, as well as a Hadoop-like shuffle operator to exchange data between independent data parallel streams. Our approach is embodied in the Repa Flow Haskell library, and we provide production examples that demonstrate our technique produces code efficient enough to saturate the IO system of a current multicore machine.
 \end{abstract}
 
 

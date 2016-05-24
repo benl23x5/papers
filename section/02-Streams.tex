@@ -1,4 +1,6 @@
 %!TEX root = ../Main.tex
+
+\clearpage
 \section{Streams and Flows}
 
 Our library is based around polarised streams. A stream is the usual list like structure which allows the next element to be taken from the front, but does not support random access of other elements. We imagine a stream as an array where the indexing dimension is time --- as each element is read it exists only for a moment, then is gone. In the library we manipulate stream endpoints rather than the streams themselves. The endpoints are polarised, meaning that we push (write) data in to stream sinks, but pull (read) data from stream sources. We name a \emph{bundle} several related streams a \emph{flow}. Typically, a flow consists of streams that carry separate partitions of a single large data set. Fig \ref{f:GenericFlows} shows the types we use to represent the the bundle of stream endpoints for an overall flow.
