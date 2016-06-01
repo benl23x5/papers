@@ -3,50 +3,91 @@
 \clearpage
 \section{Streams and Flows}
 
-Our library is based around polarised streams. A stream is the usual list like structure which allows the next element to be taken from the front, but does not support random access of other elements. We imagine a stream as an array where the indexing dimension is time --- as each element is read it exists only for a moment, then is gone. In the library we manipulate stream endpoints rather than the streams themselves. The endpoints are polarised, meaning that we push (write) data in to stream sinks, but pull (read) data from stream sources. We name a \emph{bundle} several related streams a \emph{flow}. Typically, a flow consists of streams that carry separate partitions of a single large data set. Fig \ref{f:GenericFlows} shows the types we use to represent the the bundle of stream endpoints for an overall flow.
+A \emph{stream} is an array of elements where the indexing dimension is time. As each element is read from the stream it is available only in that moment, and if the consumer wants to re-use the element at a later time it must save it itself. A \emph{flow} is a bundle of related streams, where each stream typically carries data from a single partition of a larger data set --- we might create a flow consisting of 8 streams where each stream carries data from a 1GB partition of a 8GB data set.
 
-In the type @Sources i m e@, the @i@ parameter stands for type that indexes the individual streams, @m@ is a monadic constructor that sets the computational fabric, and @e@ is the type of elements pushed to or pulled from the endpoints. The paramters of the @Sinks@ constructor are similar. 
+In our API we manipulate flow endpoints rather than the flows themselves. We use the following data types:
+
+\begin{code}
+data Sources i m e 
+   = Sources
+   { arity :: i
+   , pull  :: i -> (e -> m ()) -> m () -> m () }
+
+data Sinks   i m e 
+   = Sinks   
+   { arity :: i
+   , push  :: i -> e -> m ()
+   , eject :: i -> m () }
+\end{code}
+
+Type @Sources i m e@ classifies flow sources which can produce elements of type @e@, using some monad @m@, where the individual streams in the bundle are indexed by values of type @i@. Likewise @Sinks i m e@ classifies flow sinks which can consume elements of type @e@.
+
+In the @Sources@ type, field @arity@ stores the number of individual streams in the bundle. To receive data from a flow producer we use the function in the @pull@ field, passing the index of type @i@ for the desired stream, an \emph{eat} function of type @(e -> m ())@ to consume an element if one is available, and an \emph{eject} function of type @(m ())@ which will be called when no more elements will ever be available for the specified stream. The pull function will then perform an @(m ())@ computation before either calling our eat or eject function, depending on whether data is available from the source.
+
+In the @Sinks type@, field @arity@ stores the number of individual streams as before. To send data to a flow consumer we call the @push@ function, passing the stream index of type @i@, and the element of type @e@. The @push@ function will then perform an @(m ())@ computation to consume the provided element. If no more data is available we instead call the @eject@ function, passing the stream index of type @i@, and this function will perform an @(m ())@ computation to shut down the flow sink --- possibly closing files or disconnecting network sockets.
+
+Consuming data from a @Source@ and producing data to a @Sink@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
+
+\subsection{Draining}
+
+\begin{figure}
+\begin{code}
+sourceFs :: [FilePath] -> IO (Sources Int IO Char)
+sourceFs names = do
+ hs <- mapM (\n -> openFile n ReadMode) names
+ let pulls i ieat ieject
+      = do let h = hs !! i
+           eof <- hIsEOF h
+           if eof then hClose   h >> ieject
+                  else hGetChar h >>= ieat
+ return $ Sources (length names) pulls
+
+sinkFs  :: [FilePath] -> IO (Sinks Int IO Char)
+sinkFs names = do
+ hs <- mapM (\n -> openFile n WriteMode) names
+ let pushs  i e = hPutChar (hs !! i) e
+ let ejects i   = hClose   (hs !! i)
+ return $ Sinks (length names) pushs ejects
+\end{code}
+\end{figure}
+
+\subsection{Mapping and Co-mapping}
+
+
+\subsection{Data Parallelism}
+
+\subsection{Flows vs Iteratees and Enumerators}
+
+\begin{itemize}
+\item Once being ejected all subsequent pulls will eject.
+\item Compare conduit @await@ and @yield@ functions.
+\end{itemize}
 
 Mention conduit and pipes, manpiulates whole streams.
 
-\begin{figure}
-\begin{code}
-data Sources i m e 
-   = Sources { arity :: i
-             , pull  :: i -> (e -> m ()) -> m () 
-                                         -> m () }
-data Sinks   i m e 
-   = Sinks   { arity :: i
-             , push  :: i -> e -> m ()
-             , eject :: i -> m () }
-\end{code}
-\label{f:GenericFlows}
-\caption{Generic Flow definitions and conversions}
-\end{figure}
+% \begin{figure}
+% \begin{code}
+% zipWith_ii :: Monad m => (a -> b -> c)
+%            -> Sources i m a -> Sources i m b -> m (Sources i m c)
+% zipWith_ii f (Sources nA pullA) (Sources nB pullB)
+%  = return \$ Sources (min nA nB) pullC
+%  where  pullC i eatC ejectC
+%          = pullA i eatA ejectC
+%          where  eatA xA = pullB i eatB ejectC
+%                  where  eatB xB = eatC (f xA xB)
 
-\begin{figure}
-\begin{code}
-zipWith_ii :: Monad m => (a -> b -> c)
-           -> Sources i m a -> Sources i m b -> m (Sources i m c)
-zipWith_ii f (Sources nA pullA) (Sources nB pullB)
- = return \$ Sources (min nA nB) pullC
- where  pullC i eatC ejectC
-         = pullA i eatA ejectC
-         where  eatA xA = pullB i eatB ejectC
-                 where  eatB xB = eatC (f xA xB)
-
-zipWith_io :: (Ord i, Monad m) => (a -> b -> c)
-           -> Sinks i m c -> Sources i m a -> m (Sinks i m b)
-zipWith_io f (Sinks nC pushC ejectC) (Sources nA pullA)
- = return \$ Sinks nB pushB ejectC
- where  nB = min nC nA
-        pushB i xB 
-         | i > nB       = return ()
-         | otherwise    = pullA i eatA (ejectC i)
-         where  eatA xA = pushC i (f xA xB)
-\end{code}
-\caption{Continuation style implementation of zipWith functions}
-\end{figure}
+% zipWith_io :: (Ord i, Monad m) => (a -> b -> c)
+%            -> Sinks i m c -> Sources i m a -> m (Sinks i m b)
+% zipWith_io f (Sinks nC pushC ejectC) (Sources nA pullA)
+%  = return \$ Sinks nB pushB ejectC
+%  where  nB = min nC nA
+%         pushB i xB 
+%          | i > nB       = return ()
+%          | otherwise    = pullA i eatA (ejectC i)
+%          where  eatA xA = pushC i (f xA xB)
+% \end{code}
+% \caption{Continuation style implementation of zipWith functions}
+% \end{figure}
 
 \begin
 {figure*}
