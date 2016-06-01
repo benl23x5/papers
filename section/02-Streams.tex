@@ -40,7 +40,7 @@ The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Si
  copySetP :: [FilePath] -> [FilePath] -> IO ()
  copySetP srcs dsts
   = do  ss <- sourceFs srcs
-        sk <- sinksFs  dsts
+        sk <- sinkFs   dsts
         drainP ss sk
 \end{code}
 
@@ -109,68 +109,85 @@ This cannot work, nor should it. The @Sinks@ endpoint created by @sourceFs@ is a
 Each of the drain computations is performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first one. To copy the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the data read from the files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data read from the flow source so that we can write it one set of files, then another, does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
 
 \begin{code}
- dup_oo :: Ord i 
-        => Sink i m a -> Sink i m a -> Sinks i m a
- dup_oo (Sinks n1 push1 eject1) 
+dup_ooo :: (Ord i, Monad m)
+       => Sinks i m a -> Sinks i m a -> Sinks i m a
+dup_ooo (Sinks n1 push1 eject1) 
         (Sinks n2 push2 eject2)
-  = let pushs  i x = push1 i x >> push2 i x
-        ejects i   = eject1 i  >> eject2 i
-    in  Sinks (min n1 n2) pushs ejects
+ = let pushs  i x = push1 i x >> push2 i x
+       ejects i   = eject1 i  >> eject2 i
+   in  Sinks (min n1 n2) pushs ejects
 \end{code}
 
-The @dup_oo@ combinator takes two separate sinks and creates a new one. When we push an element to the new sink it will push that element to the two original sinks. Likewise, when we eject the new sink it will eject the two original sinks. We can use this new combinator to write a working @copyMultiple@ function:
+The @dup_ooo@ combinator takes two separate sinks and creates a new one. When we push an element to the new sink it will push that element to the two original sinks. Likewise, when we eject the new sink it will eject the two original sinks. We can use this new combinator to write a working @copyMultiple@ function:
 
 \begin{code}
- copyMultiple 
-  :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
- copyMultiple srcs dsts1 dsts2
-  = do  ss  <- sourceFs srcs
-        sk1 <- sinkFs   dsts1
-        sk2 <- sinkFs   dsts2 
-        drainP ss (dup_oo sk1 sk2)
+copyMultipleP 
+ :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
+copyMultipleP srcs dsts1 dsts2
+ = do  ss  <- sourceFs srcs
+       sk1 <- sinkFs   dsts1
+       sk2 <- sinkFs   dsts2 
+       drainP ss (dup_oo sk1 sk2)
 \end{code}
 
-Here we use our new @dup_oo@ combinator to write @copyMultiple@ using a single drain. This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, note that in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where compuations in the IO monad such as @sourceFs@, @sinkFs@ and @dup_oo@ create nodes in the graph, and the use-def relation of variables connects the nodes with edges.
-
-
+This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, note that in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where the functions @sourceFs@, @sinkFs@ and @dup_ooo@ create nodes in the graph, and the use-def relation of variables connects the nodes with edges.
 
 
 % ---------------------------------------------------------
-\subsection{Polarity}
+\subsection{Polarity and buffering}
+In the previous section, @dup_ooo@ branches a flow by taking two existing sinks and produces a new one. The @_ooo@ suffix stands for ``output, output, output'', referring to the three sinks. It turns out that the converse @dup_iii@ combinator is not implementable without requiring unbounded buffering. Such a combinator would have the following type:
+\begin{code}
+ dup_iii :: (Ord i, Monad m)
+         =>  Sources i m a 
+         -> (Sources i m a, Source i m a)
+\end{code}
+
+Consider how this would work. The @dup_iii@ combinator takes an argument source and produces two result sources. Now suppose we pull data from the left result source. The combinator would need to pull from its argument source to retrieve this data, then when we pull from the right result source we want the same data. The problem is that there is nothing stopping us from pulling the entire stream via the left result source before pulling any elements from the right result source, so @dup_iii@ would need to introduce an unbounded buffer to store all the elements in the interim.
+
+Interestingly, although @dup_iii@ cannot work without an unbounded buffer, a hybrid combinator @dup_ioi@ can. This combinator has the following definition:
+\begin{code}
+dup_ioi :: (Ord i, Monad m)
+        => Sources i m a -> Sinks i m a 
+        -> Sources i m a
+dup_ioi (Sources n1 pull1) (Sinks n2 push2 eject2)
+ = let pull3 i eat3 eject3
+        = pull1 i eat1 eject1
+        where eat1   x = eat3 x >> push2  i x
+              eject1   = eject3 >> eject2 i
+   in  Sources (min n1 n2) pull3
+\end{code}
+
+The @dup_ioi@ combinator takes an argument flow source, an argument flow sink, and returns a result flow source. When we pull data from the result source the combiantor pulls from its argument source and then \emph{pushes} the same data to the argument sink. Similarly to @dup_ooo@, we can use @dup_ioi@ to introduce a branch into the data flow graph \emph{without} requiring unbounded buffering of the input flow. Actually, the same approach works for any number of argument sinks, for example:
+\begin{code}
+dup_iooi
+ :: (Ord i, Monad m)
+ => Sources i m a -> Sinks i m a -> Sinks i m a
+ -> Sources i m a
+\end{code}
+
+With @dup_iooi@ when we pull from the result source the combinators pulls from its argument source and pushes the same data to its argument sinks. 
+
+Figure~\ref{f:Polarity} the various options for assigning polarities to the argument and result endpoints of a flow duplication combinator. Sources are indicated with a $\bullet$ and Sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the greyed out diagrams are for polarity assignments that would require unbounded buffering, while the solid ones require no buffering.
+
+\begin{figure}
+\includegraphics[scale=0.7]{figures/polarity.pdf}
+
+\caption{Possible polarities for the flow duplication combinator}
+\label{f:Polarity}
+\end{figure}
+
+In the right of Figure~\ref{f:Polarity} we have also included the corresponding polarity diagram for the @drainP@ combinator from Figure~\ref{f:Draining}. The @drainP@ combinator requires no buffering because all data pulled from the source is immediately pushed to the sink. On the other hand, if we invert the polarities of @drainP@ we arrive at the natural assignment for a primitive buffering combinator. A combinator that consumes data via a single argument sink and produces the same data via a result source \emph{must} introduce a buffer as there is no guarantee that new elements are pushed to the sink at the same rate they are pulled from the source. 
+
+Repa library makes it easy to guarantee that data flow programs written with it run in constant space, by only providing combinators with the polarity assignments that do so. This guarantee also requires that variables bound to sources and sinks are used linearly, which alas we cannot check with Haskell as it does not support linear types. However, linearity is an easy constraint to understand and check manually, so for now we we leave the job of enforcing it to the client programmer.
+
+In future work would be interesting to implement a system to take a data flow graph without a polarity assignment, and assign polarities to the combinators such that the entire graph can be executed without buffering (if possible). However, so far the largest programs we have written using the library have included only 10-15 combinators in a single function, and assigning the polarities has not been a burden. In practice there is usually a natural distinction between the \emph{input network} written using sources and the \emph{output network} using sinks, and hybrid combinators such as @dup_iio@ are used infrequently.
 
 
-\subsection{Flows vs Iteratees and Enumerators}
+% ---------------------------------------------------------
+\subsection{Mapping, Folding and Grouping}
+Map and co-map, folding, grouping and other basic combinators. Given an example that folds the input stream while passing it through to another combinator.
 
-\begin{itemize}
-\item Once being ejected all subsequent pulls will eject.
-\item Compare conduit @await@ and @yield@ functions.
-\end{itemize}
-
-Mention conduit and pipes, manpiulates whole streams.
-
-% \begin{figure}
-% \begin{code}
-% zipWith_ii :: Monad m => (a -> b -> c)
-%            -> Sources i m a -> Sources i m b -> m (Sources i m c)
-% zipWith_ii f (Sources nA pullA) (Sources nB pullB)
-%  = return \$ Sources (min nA nB) pullC
-%  where  pullC i eatC ejectC
-%          = pullA i eatA ejectC
-%          where  eatA xA = pullB i eatB ejectC
-%                  where  eatB xB = eatC (f xA xB)
-
-% zipWith_io :: (Ord i, Monad m) => (a -> b -> c)
-%            -> Sinks i m c -> Sources i m a -> m (Sinks i m b)
-% zipWith_io f (Sinks nC pushC ejectC) (Sources nA pullA)
-%  = return \$ Sinks nB pushB ejectC
-%  where  nB = min nC nA
-%         pushB i xB 
-%          | i > nB       = return ()
-%          | otherwise    = pullA i eatA (ejectC i)
-%          where  eatA xA = pushC i (f xA xB)
-% \end{code}
-% \caption{Continuation style implementation of zipWith functions}
-% \end{figure}
+\subsection{Stream projection and funneling}
 
 \begin
 {figure*}

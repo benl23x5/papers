@@ -1,6 +1,11 @@
 %!TEX root = ../Main.tex
-\section{Chunked streams}
+\section{Chunked streams and Fusion}
 
 \begin{itemize}
 \item Chunked streams to reduce overhead.
+\item Show how chunked streams can be implemented with generic streams.
+\item Using the linearity contraint, leftovers for a combinator like @head@ are handled by returning a new stream that has buffered the leftovers.
+\item Linearity contraint means we can safely INLINE all the code while avoiding code explosion.
+
+
 \end{itemize}
