@@ -24,7 +24,7 @@ sourceFs names = do
            eof <- hIsEOF h
            if eof then hClose   h >> ieject
                   else hGetChar h >>= ieat
- return $ Sources (length names) pulls
+ return (Sources (length names) pulls)
 
 
 sinkFs  :: [FilePath] -> IO (Sinks Int IO Char)
@@ -32,7 +32,7 @@ sinkFs names = do
  hs <- mapM (\n -> openFile n WriteMode) names
  let pushs  i e = hPutChar (hs !! i) e
  let ejects i   = hClose   (hs !! i)
- return $ Sinks (length names) pushs ejects
+ return (Sinks (length names) pushs ejects)
 
 
 drainP :: Sources Int IO a -> Sinks Int IO a -> IO ()
@@ -50,6 +50,14 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject) = do
 
  mvs <- mapM makeDrainer [0 .. min i1 i2]
  mapM_ readMVar mvs
+
+
+example1 = do
+ ss <- sourceFs ["i-file1", "i-file2", "i-file3", "i-file4"]
+ sk <- sinkFs   ["o-file1", "o-file2", "o-file3", "o-file4"]
+ drainP ss sk
+
+
 
 
 

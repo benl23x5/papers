@@ -1,6 +1,7 @@
 %!TEX root = ../Main.tex
 
 \clearpage
+% ---------------------------------------------------------
 \section{Streams and Flows}
 
 A \emph{stream} is an array of elements where the indexing dimension is time. As each element is read from the stream it is available only in that moment, and if the consumer wants to re-use the element at a later time it must save it itself. A \emph{flow} is a bundle of related streams, where each stream typically carries data from a single partition of a larger data set --- we might create a flow consisting of 8 streams where each stream carries data from a 1GB partition of a 8GB data set.
@@ -26,9 +27,23 @@ In the @Sources@ type, field @arity@ stores the number of individual streams in 
 
 In the @Sinks type@, field @arity@ stores the number of individual streams as before. To send data to a flow consumer we call the @push@ function, passing the stream index of type @i@, and the element of type @e@. The @push@ function will then perform an @(m ())@ computation to consume the provided element. If no more data is available we instead call the @eject@ function, passing the stream index of type @i@, and this function will perform an @(m ())@ computation to shut down the flow sink --- possibly closing files or disconnecting network sockets.
 
-Consuming data from a @Source@ and producing data to a @Sink@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
+Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
 
-\subsection{Draining}
+\subsection{Sourcing, Sinking and Draining}
+Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files, as well as @drainP@ which pulls data from a flow source and pushes it to a sink. 
+
+Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of one of the files we eject the correponding stream. In @sinkFs@ the @push@ function from the stream simply writes the provded element to the corredponding file, and the @eject@ function closes it.
+
+The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use intermediate Haskell MVars to communicate between the worker threads and the main threads, so after forking all the workers the main threads waits until they are all finished. Now that we have the @drainP@ function, we can copy a partitioned data set from one set of files to another, in parallel:
+
+\begin{code}
+ copySetP :: [FilePath] -> [FilePath] -> IO ()
+ copySetP srcs dsts
+  = do  ss <- sourceFs srcs
+        sk <- sinksFs  dsts
+        drainP ss sk
+\end{code}
+
 
 \begin{figure}
 \begin{code}
@@ -40,21 +55,89 @@ sourceFs names = do
            eof <- hIsEOF h
            if eof then hClose   h >> ieject
                   else hGetChar h >>= ieat
- return $ Sources (length names) pulls
+ return (Sources (length names) pulls)
 
 sinkFs  :: [FilePath] -> IO (Sinks Int IO Char)
 sinkFs names = do
  hs <- mapM (\n -> openFile n WriteMode) names
  let pushs  i e = hPutChar (hs !! i) e
  let ejects i   = hClose   (hs !! i)
- return $ Sinks (length names) pushs ejects
+ return (Sinks (length names) pushs ejects)
+
+drainP :: Sources Int IO a -> Sinks Int IO a -> IO ()
+drainP (Sources i1 ipull) 
+       (Sinks   i2 opush oeject) = do
+ let drainStream i
+      = ipull i eats ejects 
+      where eats   v = opush  i v >> drainStream i
+            ejects   = oeject i
+ let makeDrainer i = do
+        mv <- newEmptyMVar 
+        forkFinally (drainStream i) 
+                    (\_ -> putMVar mv ())
+        return mv 
+ mvs <- mapM makeDrainer [0 .. min i1 i2]
+ mapM_ readMVar mvs
 \end{code}
+
+\caption{Sourcing, Sinking and Draining}
+\label{f:Draining}
 \end{figure}
 
-\subsection{Mapping and Co-mapping}
+
+% ---------------------------------------------------------
+\subsection{Stateful Streams, Branching and Linearity}
+
+Suppose we wish to copy our set of files to \emph{two} different destination sets instead of a single one. Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. 
+
+\eject 
+We might try something like:
+
+\begin{code}
+ badCopyMultiple 
+  :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
+ badCopyMultiple srcs dsts1 dsts2
+  = do  ss  <- sourceFs srcs
+        sk1 <- sinksFs  dsts1
+        sk2 <- sinksFs  dsts2
+        drainP ss sk1
+        drainP ss sk2
+\end{code}
+
+This cannot work, nor should it. The @Sinks@ endpoint created by @sourceFs@ is a stateful object -- it represents the current position in each of the source files being read. After we have applied the first @drainP@, we have already finished reading through all the source files, so draining the associated flow again does not yield more data. 
+
+Each of the drain computations is performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first one. To copy the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the data read from the files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data read from the flow source so that we can write it one set of files, then another, does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
+
+\begin{code}
+ dup_oo :: Ord i 
+        => Sink i m a -> Sink i m a -> Sinks i m a
+ dup_oo (Sinks n1 push1 eject1) 
+        (Sinks n2 push2 eject2)
+  = let pushs  i x = push1 i x >> push2 i x
+        ejects i   = eject1 i  >> eject2 i
+    in  Sinks (min n1 n2) pushs ejects
+\end{code}
+
+The @dup_oo@ combinator takes two separate sinks and creates a new one. When we push an element to the new sink it will push that element to the two original sinks. Likewise, when we eject the new sink it will eject the two original sinks. We can use this new combinator to write a working @copyMultiple@ function:
+
+\begin{code}
+ copyMultiple 
+  :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
+ copyMultiple srcs dsts1 dsts2
+  = do  ss  <- sourceFs srcs
+        sk1 <- sinkFs   dsts1
+        sk2 <- sinkFs   dsts2 
+        drainP ss (dup_oo sk1 sk2)
+\end{code}
+
+Here we use our new @dup_oo@ combinator to write @copyMultiple@ using a single drain. This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, note that in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where compuations in the IO monad such as @sourceFs@, @sinkFs@ and @dup_oo@ create nodes in the graph, and the use-def relation of variables connects the nodes with edges.
 
 
-\subsection{Data Parallelism}
+
+
+% ---------------------------------------------------------
+\subsection{Polarity}
+
 
 \subsection{Flows vs Iteratees and Enumerators}
 
