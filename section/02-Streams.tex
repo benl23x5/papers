@@ -1,11 +1,11 @@
 %!TEX root = ../Main.tex
 
-\clearpage
 % ---------------------------------------------------------
 \section{Streams and Flows}
 
 A \emph{stream} is an array of elements where the indexing dimension is time. As each element is read from the stream it is available only in that moment, and if the consumer wants to re-use the element at a later time it must save it itself. A \emph{flow} is a bundle of related streams, where each stream typically carries data from a single partition of a larger data set --- we might create a flow consisting of 8 streams where each stream carries data from a 1GB partition of a 8GB data set.
 
+\eject
 In our API we manipulate flow endpoints rather than the flows themselves. We use the following data types:
 
 \begin{code}
@@ -29,6 +29,8 @@ In the @Sinks type@, field @arity@ stores the number of individual streams as be
 
 Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
 
+
+% ---------------------------------------------------------
 \subsection{Sourcing, Sinking and Draining}
 Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files, as well as @drainP@ which pulls data from a flow source and pushes it to a sink. 
 
@@ -44,6 +46,7 @@ The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Si
         drainP ss sk
 \end{code}
 
+In our concrete implementation we also include a @drainS@ function so that the same process could be evaluated sequentially if desired. The definition of @drainS@ is similar to @drainP@, except that we evaluate each stream in turn rather than concurrently.
 
 \begin{figure}
 \begin{code}
@@ -90,7 +93,6 @@ drainP (Sources i1 ipull)
 
 Suppose we wish to copy our set of files to \emph{two} different destination sets instead of a single one. Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. 
 
-\eject 
 We might try something like:
 
 \begin{code}
@@ -180,56 +182,115 @@ In the right of Figure~\ref{f:Polarity} we have also included the corresponding 
 
 Repa library makes it easy to guarantee that data flow programs written with it run in constant space, by only providing combinators with the polarity assignments that do so. This guarantee also requires that variables bound to sources and sinks are used linearly, which alas we cannot check with Haskell as it does not support linear types. However, linearity is an easy constraint to understand and check manually, so for now we we leave the job of enforcing it to the client programmer.
 
-In future work would be interesting to implement a system to take a data flow graph without a polarity assignment, and assign polarities to the combinators such that the entire graph can be executed without buffering (if possible). However, so far the largest programs we have written using the library have included only 10-15 combinators in a single function, and assigning the polarities has not been a burden. In practice there is usually a natural distinction between the \emph{input network} written using sources and the \emph{output network} using sinks, and hybrid combinators such as @dup_iio@ are used infrequently.
+In future work would be interesting to implement a system to take a data flow graph without a polarity assignment, and assign polarities to the combinators such that the entire graph can be executed without buffering (if possible). However, so far the largest programs we have written using the library have included only 10-15 combinators in a single function, and so far assigning the polarities has not been a burden. In practice there is usually a natural distinction between the \emph{input network} written using sources and the \emph{output network} using sinks, and hybrid combinators such as @dup_iio@ are used infrequently.
+
 
 
 % ---------------------------------------------------------
-\subsection{Mapping, Folding and Grouping}
-Map and co-map, folding, grouping and other basic combinators. Given an example that folds the input stream while passing it through to another combinator.
+\subsection{Mapping}
+In Repa Flow, the @map@ operator comes in two forms:
+\begin{code}
+map_i :: (a -> b) -> Sources i m a -> Sources i m b
+map_o :: (b -> a) -> Sinks   i m b -> Sinks   i m a
+\end{code}
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.8]{figures/maps.pdf}
+\end{center}
+\vspace{-0.5em}
+\caption{Polarities for \texttt{map} and \texttt{folds}}
+\label{f:Map}
+\end{figure}
+
+The first form is a source transformer, taking a source of elements of type @a@ and returning a source of elements of type @b@. The second form is a sink transformer, taking a sink of elements of type @b@ and returning a sink of elements of type @a@. The polarity diagram for both forms is given in Figure~\ref{f:Map}. Note that in both cases the elements have type @a@ and the output elements have type @b@.
+
+The definition of @map_i@ is as follows. We have written this definition using separate let-bindings for each intermediate function, rather than with a single inline lambda abstraction for two reasons:
+\begin{code}
+map_i :: (a -> b) -> Sources i m a -> Sources i m b
+map_i f (Sources n pullsA)
+ = Sources n pullsB
+ where  pullsB i eatB ejectB
+         = pullsA i eatA ejectA
+         where  eatA v = eatB (f v)
+                ejectA = ejectB
+\end{code}
+
+\begin{enumerate}
+\item When writing larger functions using contination passing style we begin to feel worringly inside-out. Using intermediate bindings allows us to name each function with the type it expects, which makes the code easier to follow.
+\item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}
+\end{enumerate}
+
+Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow supports data parallelism, but parallelism is introduced by the singular @drainP@ function. No other combinator library need be concerned about it. In this respect Repa Flow operates similarly to the delayed arrays approach of our original Repa library \CITE, except that parallelism is introduced on a per-stream level rather than a per-element level.
+
+
+% ---------------------------------------------------------
+\subsection{Folding}
+Figure~\ref{f:Map} also includes polarity diagrams for three forms of segmented fold. The first one, @folds_iii@ has the following type:
+\begin{code}
+folds_iii :: (Ord i, Monad m) => (b -> a -> b) -> b
+          -> Sources i m Int  -> Sources i m a 
+          -> Sources i m b
+\end{code}
+
+The @folds_iii@ combinator takes a flow of segment lengths, a flow of elements, and uses the provided combining function and neutral value to fold segments from each stream in the flow. For example, writing flows of streams of elements using nested list syntax we have:
+\begin{code}
+folds_iii (+) 0 
+   [ [3 2 1] [2 2] [4] ] 
+   [ [1 2 3 1 1 5] [3 3 4 4] [4 3 2 1] ]
+ = [ [6 2 5] [6 8] [10] ]
+\end{code}
+
+So for the first stream the segment lengths are @[3 2 1]@ and the elements are @[1 2 3 1 1 5]@, we sum up the first three elements, then the next two, then the next one, yielding @[6 2 5]@ for that stream. When @drainP@ from Figure~\ref{f:Draining} is applied to the result source then each of the individual streams in the flow is folded in parallel. We include the definition of @folds_iii@ and the types and definition of the other versions in the appendix.
+
+With @folds_iii@ we assume that both the segment lengths and elements are available as sources. When this is true, evaluation of @folds_iii@ requires no buffering. When we pull a fold result from the result source, the combinator can pull the corresponding segment length from its argument source, then pull the corresponding number of elements from the element source, folding them in the process. 
+
+As per Figure~\ref{f:Map} it is possible to assign polarities to @folds@ in two other ways that allow the combinator to execute without buffering. 
+
+With @folds_ioo@ we push elements to the element sink (on the right). As needed, the combinator pulls segment lengths from the segment length source (on the left), which instruct it how many of the consecutive elements to fold. As each segment is completed it pushes the result to the result sink (on the bottom).
+
+With @folds_oio@ we push segment lengths to the segment length sink (on the left). As needed, the combinator pulls the corresponding number of elements from the element source (on the right) and folds them. As each segment is completed it pushes the result to the result sink (on the bottom). 
+
+One might wonder if @folds_iii@, @folds_ioo@ and @folds_oio@ are the only versions that can execute without buffering. There are a total of 8 ways of assigning polarities to a 3-leg process such as @folds@. Case analysis reveals that there is one special version, which we draw below:
+
+\vspace{-0.5em}
+\begin{center}
+\includegraphics[scale=0.8]{figures/folds-drain.pdf}
+\end{center}
+\vspace{-1em}
+The @folds_iio@ version can execute without buffering, because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks.
+
+In our concrete library we provide only the combinator versions that execute without buffering, and the only active combinators are @drainS@ and @drainP@. This restriction ensures that it is easy for the client programmer to reason about when computation happens, as well as ensuring that the programs execute in constant space.
+
 
 \subsection{Stream projection and funneling}
 
-\begin
-{figure*}
 \begin{code}
--- Conversion
-fromList   :: i -> [a] -> m (Sources i m a)
-toList1    :: i -> Sources i m a -> m [a]
-
-fromLists  :: [[a]] -> m (Sources Int m a)
-toLists    :: Sources Int m a -> m [[a]]
-
--- Computation
-drainS     :: Sources i   m  a -> Sinks i   m  a -> m  ()
-drainP     :: Sources Int IO a -> Sinks Int IO a -> IO ()
-
--- Mapping
-map_i      :: (a -> b) -> Sources i m a  -> m (Sources i m b)
-map_o      :: (b -> a) -> Sinks   i m b  -> m (Sinks   i m a)
-
-zipWith_ii ::  (a -> b -> c) 
-                  -> Sources i m a -> Sources i m b -> m (Sources i m c)
-zipWith_io :: ... -> Sources i m a -> Sinks   i m c -> m (Sinks   i m b)
-zipWith_oi :: ... -> Sinks   i m a -> Sources i m b -> m (Sinks   i m a)
-
--- Connection
-dup_oo     ::        Sinks   i m a -> Sinks   i m a -> m (Sinks   i m a)
-dup_io     ::        Sources i m a -> Sinks   i m a -> m (Sinks   i m a)
-dup_oi     ::        Sinks   i m a -> Sources i m a -> m (Sinks   i m a)
-
-connect_i  ::        Sources i m a -> m (Sources i m a, Sources i m a)
-
--- Projection
 project_i  :: i ->   Sources i m a -> m (Sources () m a)
 project_o  :: i ->   Sinks   i m a -> m (Sinks   () m a)
 
--- Funneling
 funnel_i   ::        Sources i m a -> m (Sources () m a)
 funnel_o   ::        Sinks  () m a -> m (Sinks   i  m a)
-
--- Elided constraints: (Monad m, States i m) => ...
 \end{code}
-\caption{Generic Flow operators}
-\end{figure*}
 
+
+\subsection{Every day I'm shufflin'}
+
+
+\begin{code}
+deal_o       
+ :: (Int -> a -> m ()) 
+ -> Sinks Int m a
+ -> m (Sinks () m (Array a))
+
+distribute_o 
+ :: (Int -> Array a -> m ())
+ -> Sinks Int m (Array a) 
+ -> m (Sinks () m (Array (Int, a)))
+
+shuffleP
+ :: Sources Int IO (Array (Int, a))
+ -> Sinks   Int IO (Array a)
+             -> IO ()
+\end{code}
 
