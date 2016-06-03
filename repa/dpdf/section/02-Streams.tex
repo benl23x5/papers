@@ -151,8 +151,8 @@ dup_ioi :: (Ord i, Monad m)
 dup_ioi (Sources n1 pull1) (Sinks n2 push2 eject2)
  = let pull3 i eat3 eject3
         = pull1 i eat1 eject1
-        where eat1   x = eat3 x >> push2  i x
-              eject1   = eject3 >> eject2 i
+        where eat1 x = eat3 x >> push2  i x
+              eject1 = eject3 >> eject2 i
    in  Sources (min n1 n2) pull3
 \end{code}
 
