@@ -21,22 +21,24 @@ data Sinks   i m e
    , eject :: i -> m () }
 \end{code}
 
-Type @Sources i m e@ classifies flow sources which can produce elements of type @e@, using some monad @m@, where the individual streams in the bundle are indexed by values of type @i@. Likewise @Sinks i m e@ classifies flow sinks which can consume elements of type @e@.
+Type @Sources i m e@ classifies flow sources which produce elements of type @e@, using some monad @m@, where the streams in the bundle are indexed by values of type @i@. Likewise @Sinks i m e@ classifies flow sinks which consume elements of type @e@.
 
 In the @Sources@ type, field @arity@ stores the number of individual streams in the bundle. To receive data from a flow producer we use the function in the @pull@ field, passing the index of type @i@ for the desired stream, an \emph{eat} function of type @(e -> m ())@ to consume an element if one is available, and an \emph{eject} function of type @(m ())@ which will be called when no more elements will ever be available for the specified stream. The pull function will then perform an @(m ())@ computation before either calling our eat or eject function, depending on whether data is available from the source.
 
-In the @Sinks type@, field @arity@ stores the number of individual streams as before. To send data to a flow consumer we call the @push@ function, passing the stream index of type @i@, and the element of type @e@. The @push@ function will then perform an @(m ())@ computation to consume the provided element. If no more data is available we instead call the @eject@ function, passing the stream index of type @i@, and this function will perform an @(m ())@ computation to shut down the flow sink --- possibly closing files or disconnecting network sockets.
+In the @Sinks type@, field @arity@ stores the number of individual streams as before. To send data to a flow consumer we call the @push@ function, passing the stream index of type @i@, and the element of type @e@. The @push@ function will perform an @(m ())@ computation to consume the provided element. If no more data is available we instead call the @eject@ function, passing the stream index of type @i@, and this function will perform an @(m ())@ computation to shut down the sink --- possibly closing files or disconnecting sockets.
 
-Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
+Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). In itself the duality between source and sink, push and pull, is folklore, and has previously been used for code generation in array processing languages~\cite{Claessen:ExpressiveArray} and XML processing pipelines~\cite{Kay:YouPull}. However, we are not aware of an existing stream processing library based around the simple data types above.
+
+Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
 
 
 % ---------------------------------------------------------
 \subsection{Sourcing, Sinking and Draining}
 Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files, as well as @drainP@ which pulls data from a flow source and pushes it to a sink. 
 
-Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of one of the files we eject the correponding stream. In @sinkFs@ the @push@ function from the stream simply writes the provded element to the corredponding file, and the @eject@ function closes it.
+Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the correponding stream. In @sinkFs@, the @push@ function for a stream simply writes the provided element to the corredponding file, and the @eject@ function closes it.
 
-The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use intermediate Haskell MVars to communicate between the worker threads and the main threads, so after forking all the workers the main threads waits until they are all finished. Now that we have the @drainP@ function, we can copy a partitioned data set from one set of files to another, in parallel:
+The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use intermediate Haskell MVars to communicate between the worker threads and the main threads. After forking all the workers the main threads waits until they are all finished. Now that we have the @drainP@ function, we can copy a partitioned data set from one set of files to another, in parallel:
 
 \begin{code}
  copySetP :: [FilePath] -> [FilePath] -> IO ()
@@ -46,41 +48,39 @@ The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Si
         drainP ss sk
 \end{code}
 
-In our concrete implementation we also include a @drainS@ function so that the same process could be evaluated sequentially if desired. The definition of @drainS@ is similar to @drainP@, except that we evaluate each stream in turn rather than concurrently.
-
+In our concrete implementation we also include a @drainS@ (sequential) which evaluates each stream in turn rather than concurrently.
 \begin{figure}
 \begin{code}
 sourceFs :: [FilePath] -> IO (Sources Int IO Char)
-sourceFs names = do
- hs <- mapM (\n -> openFile n ReadMode) names
- let pulls i ieat ieject
-      = do let h = hs !! i
-           eof <- hIsEOF h
-           if eof then hClose   h >> ieject
-                  else hGetChar h >>= ieat
- return (Sources (length names) pulls)
+sourceFs names 
+ = do hs <- mapM (\n -> openFile n ReadMode) names
+      let pulls i ieat ieject
+          = do let h = hs !! i
+               eof <- hIsEOF h
+               if eof then hClose   h >> ieject
+                      else hGetChar h >>= ieat
+      return (Sources (length names) pulls)
 
 sinkFs  :: [FilePath] -> IO (Sinks Int IO Char)
-sinkFs names = do
- hs <- mapM (\n -> openFile n WriteMode) names
- let pushs  i e = hPutChar (hs !! i) e
- let ejects i   = hClose   (hs !! i)
- return (Sinks (length names) pushs ejects)
+sinkFs names 
+ = do hs <- mapM (\n -> openFile n WriteMode) names
+      let pushs  i e = hPutChar (hs !! i) e
+      let ejects i   = hClose   (hs !! i)
+      return (Sinks (length names) pushs ejects)
 
 drainP :: Sources Int IO a -> Sinks Int IO a -> IO ()
-drainP (Sources i1 ipull) 
-       (Sinks   i2 opush oeject) = do
- let drainStream i
-      = ipull i eats ejects 
-      where eats   v = opush  i v >> drainStream i
-            ejects   = oeject i
- let makeDrainer i = do
-        mv <- newEmptyMVar 
-        forkFinally (drainStream i) 
-                    (\_ -> putMVar mv ())
-        return mv 
- mvs <- mapM makeDrainer [0 .. min i1 i2]
- mapM_ readMVar mvs
+drainP (Sources i1 ipull) (Sinks i2 opush oeject) 
+ = do let drainStream i
+          = ipull i eats ejects 
+          where eats v = opush i v >> drainStream i
+                ejects = oeject i
+      let makeDrainer i 
+          = do mv <- newEmptyMVar 
+               forkFinally (drainStream i) 
+                           (\_ -> putMVar mv ())
+               return mv 
+      mvs <- mapM makeDrainer [0 .. min i1 i2]
+      mapM_ readMVar mvs
 \end{code}
 
 \caption{Sourcing, Sinking and Draining}
@@ -90,10 +90,7 @@ drainP (Sources i1 ipull)
 
 % ---------------------------------------------------------
 \subsection{Stateful Streams, Branching and Linearity}
-
-Suppose we wish to copy our set of files to \emph{two} different destination sets instead of a single one. Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. 
-
-We might try something like:
+Suppose we wish to copy our set of files to \emph{two} different destination sets instead of a single one. Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. We might try something like:
 
 \begin{code}
  badCopyMultiple 
@@ -106,7 +103,7 @@ We might try something like:
         drainP ss sk2
 \end{code}
 
-This cannot work, nor should it. The @Sinks@ endpoint created by @sourceFs@ is a stateful object -- it represents the current position in each of the source files being read. After we have applied the first @drainP@, we have already finished reading through all the source files, so draining the associated flow again does not yield more data. 
+This cannot work. The @Sinks@ endpoint created by @sourceFs@ is a stateful object -- it represents the current position in each of the source files being read. After we have applied the first @drainP@, we have already finished reading through all the source files, so draining the associated flow again does not yield more data. 
 
 Each of the drain computations is performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first one. To copy the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the data read from the files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data read from the flow source so that we can write it one set of files, then another, does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
 
@@ -132,7 +129,7 @@ copyMultipleP srcs dsts1 dsts2
        drainP ss (dup_oo sk1 sk2)
 \end{code}
 
-This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, note that in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where the functions @sourceFs@, @sinkFs@ and @dup_ooo@ create nodes in the graph, and the use-def relation of variables connects the nodes with edges.
+This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where the functions @sourceFs@, @sinkFs@ and @dup_ooo@ create nodes in the graph, and the use-def relation of variables defines the edges.
 
 
 % ---------------------------------------------------------
@@ -144,7 +141,7 @@ In the previous section, @dup_ooo@ branches a flow by taking two existing sinks 
          -> (Sources i m a, Source i m a)
 \end{code}
 
-Consider how this would work. The @dup_iii@ combinator takes an argument source and produces two result sources. Now suppose we pull data from the left result source. The combinator would need to pull from its argument source to retrieve this data, then when we pull from the right result source we want the same data. The problem is that there is nothing stopping us from pulling the entire stream via the left result source before pulling any elements from the right result source, so @dup_iii@ would need to introduce an unbounded buffer to store all the elements in the interim.
+Consider how this would work. The @dup_iii@ combinator takes an argument source and produces two result sources. Now suppose we pull data from the left result source. The combinator would need to pull from its argument source to retrieve this data, then when we pull from the right result source we want the same data. The problem is that there is nothing stopping us from pulling the entire stream via the left result source before pulling any elements from the right result source, so @dup_iii@ would need to introduce an unbounded buffer to store all elements in the interim.
 
 Interestingly, although @dup_iii@ cannot work without an unbounded buffer, a hybrid combinator @dup_ioi@ can. This combinator has the following definition:
 \begin{code}
@@ -159,7 +156,7 @@ dup_ioi (Sources n1 pull1) (Sinks n2 push2 eject2)
    in  Sources (min n1 n2) pull3
 \end{code}
 
-The @dup_ioi@ combinator takes an argument flow source, an argument flow sink, and returns a result flow source. When we pull data from the result source the combiantor pulls from its argument source and then \emph{pushes} the same data to the argument sink. Similarly to @dup_ooo@, we can use @dup_ioi@ to introduce a branch into the data flow graph \emph{without} requiring unbounded buffering of the input flow. Actually, the same approach works for any number of argument sinks, for example:
+The @dup_ioi@ combinator takes an argument flow source, an argument flow sink, and returns a result flow source. When we pull data from the result source the combinator pulls from its argument source and then \emph{pushes} the same data to the argument sink. Similarly to @dup_ooo@, we can use @dup_ioi@ to introduce a branch into the data flow graph \emph{without} requiring unbounded buffering of the input flow. This fact was also noticed in the draft paper~\cite{Bernardy:Duality}, though not explained in detail. The same approach works for any number of argument sinks, for example:
 \begin{code}
 dup_iooi
  :: (Ord i, Monad m)
@@ -169,7 +166,7 @@ dup_iooi
 
 With @dup_iooi@ when we pull from the result source the combinators pulls from its argument source and pushes the same data to its argument sinks. 
 
-Figure~\ref{f:Polarity} the various options for assigning polarities to the argument and result endpoints of a flow duplication combinator. Sources are indicated with a $\bullet$ and Sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the greyed out diagrams are for polarity assignments that would require unbounded buffering, while the solid ones require no buffering.
+Figure~\ref{f:Polarity} the various options for assigning polarities to the argument and result endpoints of a flow duplication combinator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the greyed out diagrams are for polarity assignments that would require unbounded buffering, while the solid ones require no buffering.
 
 \begin{figure}
 \includegraphics[scale=0.7]{figures/polarity.pdf}
@@ -180,10 +177,7 @@ Figure~\ref{f:Polarity} the various options for assigning polarities to the argu
 
 In the right of Figure~\ref{f:Polarity} we have also included the corresponding polarity diagram for the @drainP@ combinator from Figure~\ref{f:Draining}. The @drainP@ combinator requires no buffering because all data pulled from the source is immediately pushed to the sink. On the other hand, if we invert the polarities of @drainP@ we arrive at the natural assignment for a primitive buffering combinator. A combinator that consumes data via a single argument sink and produces the same data via a result source \emph{must} introduce a buffer as there is no guarantee that new elements are pushed to the sink at the same rate they are pulled from the source. 
 
-Repa library makes it easy to guarantee that data flow programs written with it run in constant space, by only providing combinators with the polarity assignments that do so. This guarantee also requires that variables bound to sources and sinks are used linearly, which alas we cannot check with Haskell as it does not support linear types. However, linearity is an easy constraint to understand and check manually, so for now we we leave the job of enforcing it to the client programmer.
-
-In future work would be interesting to implement a system to take a data flow graph without a polarity assignment, and assign polarities to the combinators such that the entire graph can be executed without buffering (if possible). However, so far the largest programs we have written using the library have included only 10-15 combinators in a single function, and so far assigning the polarities has not been a burden. In practice there is usually a natural distinction between the \emph{input network} written using sources and the \emph{output network} using sinks, and hybrid combinators such as @dup_iio@ are used infrequently.
-
+Repa library makes it easy to guarantee that data flow programs written with it run in constant space, by only providing combinators with the polarity assignments that do so. This guarantee requires that variables bound to sources and sinks are used linearly, which alas we cannot check with Haskell as it does not support linear types. However, linearity is an easy constraint to understand and check manually, so for now we we leave the job of enforcing it to the client programmer.
 
 
 % ---------------------------------------------------------
@@ -203,9 +197,7 @@ map_o :: (b -> a) -> Sinks   i m b -> Sinks   i m a
 \label{f:Map}
 \end{figure}
 
-The first form is a source transformer, taking a source of elements of type @a@ and returning a source of elements of type @b@. The second form is a sink transformer, taking a sink of elements of type @b@ and returning a sink of elements of type @a@. The polarity diagram for both forms is given in Figure~\ref{f:Map}. Note that in both cases the elements have type @a@ and the output elements have type @b@.
-
-The definition of @map_i@ is as follows. We have written this definition using separate let-bindings for each intermediate function, rather than with a single inline lambda abstraction for two reasons:
+The first form is a source transformer, taking a source of elements of type @a@ and returning a source of elements of type @b@. The second form is a sink transformer, taking a sink of elements of type @b@ and returning a sink of elements of type @a@. The polarity diagram for both forms is given in Figure~\ref{f:Map}. In both cases the elements have type @a@ and the output elements have type @b@. The definition of @map_i@ is as follows. 
 \begin{code}
 map_i :: (a -> b) -> Sources i m a -> Sources i m b
 map_i f (Sources n pullsA)
@@ -216,12 +208,14 @@ map_i f (Sources n pullsA)
                 ejectA = ejectB
 \end{code}
 
+We have written this definition using separate let-bindings for each intermediate function, rather than with a single inline lambda abstraction for two reasons:
+
 \begin{enumerate}
 \item When writing larger functions using contination passing style we begin to feel worringly inside-out. Using intermediate bindings allows us to name each function with the type it expects, which makes the code easier to follow.
-\item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}
+\item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}.
 \end{enumerate}
 
-Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow supports data parallelism, but parallelism is introduced by the singular @drainP@ function. No other combinator library need be concerned about it. In this respect Repa Flow operates similarly to the delayed arrays approach of our original Repa library \CITE, except that parallelism is introduced on a per-stream level rather than a per-element level.
+Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow supports data parallelism, but parallelism is introduced by the singular @drainP@ function. No other combinator library need be concerned with it. This aspect is similar to the delayed arrays of our original Repa library \cite{Lippmeier:Guiding}, except that parallelism is introduced on a per-stream level rather than a per-element level.
 
 
 % ---------------------------------------------------------
@@ -241,9 +235,9 @@ folds_iii (+) 0
  = [ [6 2 5] [6 8] [10] ]
 \end{code}
 
-So for the first stream the segment lengths are @[3 2 1]@ and the elements are @[1 2 3 1 1 5]@, we sum up the first three elements, then the next two, then the next one, yielding @[6 2 5]@ for that stream. When @drainP@ from Figure~\ref{f:Draining} is applied to the result source then each of the individual streams in the flow is folded in parallel. We include the definition of @folds_iii@ and the types and definition of the other versions in the appendix.
+For the first stream the segment lengths are @[3 2 1]@ and the elements are @[1 2 3 1 1 5]@, we sum up the first three elements, then the next two, then the next one, yielding @[6 2 5]@ for that stream. When @drainP@ from Figure~\ref{f:Draining} is applied to the result source, each of the individual streams in the flow is folded in parallel. We include the definition of @folds_iii@ and the types and definition of the other versions in the appendix.
 
-With @folds_iii@ we assume that both the segment lengths and elements are available as sources. When this is true, evaluation of @folds_iii@ requires no buffering. When we pull a fold result from the result source, the combinator can pull the corresponding segment length from its argument source, then pull the corresponding number of elements from the element source, folding them in the process. 
+With @folds_iii@ we assume that both the segment lengths and elements are available as sources. When this is true, evaluation of @folds_iii@ requires no buffering. When we pull a fold result from the result source, the combinator can pull the segment length from its argument source, then the corresponding elements from the element source, folding them in the process. 
 
 As per Figure~\ref{f:Map} it is possible to assign polarities to @folds@ in two other ways that allow the combinator to execute without buffering. 
 
@@ -258,11 +252,11 @@ One might wonder if @folds_iii@, @folds_ioo@ and @folds_oio@ are the only versio
 \includegraphics[scale=0.8]{figures/folds-drain.pdf}
 \end{center}
 \vspace{-1em}
-The @folds_iio@ version can execute without buffering, because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks.
+The @folds_iio@ version can execute without buffering because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a combinator version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks.
 
 In our concrete library we provide only the combinator versions that execute without buffering, and the only active combinators are @drainS@ and @drainP@. This restriction ensures that it is easy for the client programmer to reason about when computation happens, as well as ensuring that the programs execute in constant space.
 
-
+\eject
 \subsection{Stream projection and funneling}
 
 \begin{code}

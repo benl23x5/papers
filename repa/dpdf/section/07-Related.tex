@@ -1,6 +1,10 @@
 %!TEX root = ../Main.tex
 \section{Related Work}
 
+In future work would be interesting to implement a system to take a data flow graph without a polarity assignment, and assign polarities to the combinators such that the entire graph can be executed without buffering (if possible). However, so far the largest programs we have written using the library have included only 10-15 combinators in a single function, and so far assigning the polarities has not been a burden. 
+
+In practice there is usually a natural distinction between the \emph{input network} written using sources and the \emph{output network} using sinks, and hybrid combinators such as @dup_iio@ are used infrequently.
+
 \begin{itemize}
 \item Iteratee~\cite{Kiselyov:iteratee}
 \item Enumerator~\cite{hackage:enumerator}
@@ -11,12 +15,15 @@
 \item Spark~\cite{Zaharia:RDDs}.
 \item Google Tensorflow
 \item Lucy~\cite{Mandel:Lucy}.
+\item On the polarity of pipelines~\cite{Kay:YouPull}.
 \item Kahn networks.
 \item StreamIt, Brook.
 \item Scalaz streams library~\cite{github:scalaz-streams}
 \item FRP libraries, eg reflex.
-\item Obsidian / Svenningsson has Pull and Push arrays
-\item On the duality of streams paper mentions linear types.
+\item Obsidian~\cite{Claessen:ExpressiveArray}.
+\item Composable Efficient Array Computations~\cite{Bernardy:Composable}. Core language for array fusion transformations where the fusion process is guaranteed not to increase the runtime of the program. 
+\item On the duality of streams paper~\cite{Bernardy:Duality} mentions linear types.
+\item You pull~\cite{Kay:YouPull}
 \end{itemize}
 
 
