@@ -3,7 +3,7 @@
 % ---------------------------------------------------------
 \section{Streams and Flows}
 
-A \emph{stream} is an array of elements where the indexing dimension is time. As each element is read from the stream it is available only in that moment, and if the consumer wants to re-use the element at a later time it must save it itself. A \emph{flow} is a bundle of related streams, where each stream typically carries data from a single partition of a larger data set --- we might create a flow consisting of 8 streams where each stream carries data from a 1GB partition of a 8GB data set.
+A \emph{stream} is an array of elements where the indexing dimension is time. As each element is read from the stream it is available only in that moment, and if the consumer wants to re-use the element at a later time it must save it itself. A \emph{flow} is a bundle of related streams, where each stream carries data from a single partition of a larger data set --- we might create a flow consisting of 8 streams where each one carries data from a 1GB partition of a 8GB data set.
 
 \eject
 In our API we manipulate flow endpoints rather than the flows themselves. We use the following data types:
