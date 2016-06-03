@@ -158,10 +158,10 @@ dup_ioi (Sources n1 pull1) (Sinks n2 push2 eject2)
 
 The @dup_ioi@ combinator takes an argument flow source, an argument flow sink, and returns a result flow source. When we pull data from the result source the combinator pulls from its argument source and then \emph{pushes} the same data to the argument sink. Similarly to @dup_ooo@, we can use @dup_ioi@ to introduce a branch into the data flow graph \emph{without} requiring unbounded buffering of the input flow. This fact was also noticed in the draft paper~\cite{Bernardy:Duality}, though not explained in detail. The same approach works for any number of argument sinks, for example:
 \begin{code}
-dup_iooi
- :: (Ord i, Monad m)
- => Sources i m a -> Sinks i m a -> Sinks i m a
- -> Sources i m a
+ dup_iooi
+  :: (Ord i, Monad m)
+  => Sources i m a -> Sinks i m a -> Sinks i m a
+  -> Sources i m a
 \end{code}
 
 With @dup_iooi@ when we pull from the result source the combinators pulls from its argument source and pushes the same data to its argument sinks. 
@@ -208,12 +208,11 @@ map_i f (Sources n pullsA)
                 ejectA = ejectB
 \end{code}
 
-We have written this definition using separate let-bindings for each intermediate function, rather than with a single inline lambda abstraction for two reasons:
-
-\begin{enumerate}
-\item When writing larger functions using contination passing style we begin to feel worringly inside-out. Using intermediate bindings allows us to name each function with the type it expects, which makes the code easier to follow.
-\item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}.
-\end{enumerate}
+% We have written this definition using separate let-bindings for each intermediate function, rather than with a single inline lambda abstraction for two reasons:
+% \begin{enumerate}
+% \item When writing larger functions using contination passing style we begin to feel worringly inside-out. Using intermediate bindings allows us to name each function with the type it expects, which makes the code easier to follow.
+% \item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}.
+% \end{enumerate}
 
 Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow supports data parallelism, but parallelism is introduced by the singular @drainP@ function. No other combinator library need be concerned with it. This aspect is similar to the delayed arrays of our original Repa library \cite{Lippmeier:Guiding}, except that parallelism is introduced on a per-stream level rather than a per-element level.
 
@@ -245,46 +244,55 @@ With @folds_ioo@ we push elements to the element sink (on the right). As needed,
 
 With @folds_oio@ we push segment lengths to the segment length sink (on the left). As needed, the combinator pulls the corresponding number of elements from the element source (on the right) and folds them. As each segment is completed it pushes the result to the result sink (on the bottom). 
 
-One might wonder if @folds_iii@, @folds_ioo@ and @folds_oio@ are the only versions that can execute without buffering. There are a total of 8 ways of assigning polarities to a 3-leg process such as @folds@. Case analysis reveals that there is one special version, which we draw below:
-
-\vspace{-0.5em}
+One might wonder if @folds_iii@, @folds_ioo@ and @folds_oio@ are the only versions that can execute without buffering. There are a total of 8 ways of assigning polarities to a 3-leg process such as @folds@. Case analysis reveals that there is one special version:
 \begin{center}
 \includegraphics[scale=0.8]{figures/folds-drain.pdf}
 \end{center}
-\vspace{-1em}
+
 The @folds_iio@ version can execute without buffering because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a combinator version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks.
 
 In our concrete library we provide only the combinator versions that execute without buffering, and the only active combinators are @drainS@ and @drainP@. This restriction ensures that it is easy for the client programmer to reason about when computation happens, as well as ensuring that the programs execute in constant space.
 
+
+% ---------------------------------------------------------
+\subsection{Stream projection, funneling, and fattening}
+So far the combinators we have discussed have all performed the same operation on each stream of a flow. There are four basic combinators that allow us to convert a flows consisting of several streams into a \emph{singleton} flow, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
+\begin{code}
+ project_i :: i -> Sources i m a -> Sources () m a
+ project_o :: i -> Sinks   i m a -> Sinks   () m a
+
+ funnel_i  :: Sources i m a ->     Sources () m a
+ funnel_o  :: Sinks  () m a -> IO (Sinks   i  m a)
+\end{code}
+
+The @project@ combinators take a stream index, an endpoint for a flow of several streams, and return a singleton flow containing only data for the specified stream. The @project_i@ combinator takes a source of a flow of several streams, and returns a flow source that selects only the specified stream. The @project_o@ combinator takes a sink for a flow of several streams and returns a sink that discards data for all streams expect the specified stream.
+
+The @funnel@ combinators take an endpoint for a flow of several streams, and return a singleton flow containing data for \emph{all} streams in the argument flow. These combinators expose a duality in the inversion of control associated with such a stream combinator library. 
+
+With @funnel_i@ the order in which the argument streams are processed is under the control of the \emph{combinator} and is \emph{deterministic} when viewed by the consumer of the result source. In our implementation the default order is to present the data from each of the argument streams from the lowest index to highest. Other orders are possible, such as a round-robin process that produces a single element from each non-empty stream in turn. 
+
+In contrast, with @funnel_o@ the order in which argument streams are processed controlled by the \emph{context} and is \emph{non-deterministic} when viewed by the consumer attached to the argument sink. Now, recall that in the implementation of @drainP@ from Figure~\ref{f:Draining} we forked a thread to evaluate each source stream. As each of these threads pushes to its corresponding sink concurrently, if these sinks are then funneled then the order in which elements appear in the output may vary from run to run. As the sink may be attached to a shared resource such as a file, this is also the place in the library where we must introduce locks to manage contention, which is the reason the creation of the result sink must be in the @IO@ monad. Other combinators such as @map@ and @folds@ are lock free, as although they are applied to flow endpoints that conceptually process several streams at once, at runtime there is no communication between threads that evaluate each of these streams.
+
+The fact that @funnel_o@ is more complex to implement than @funnel_i@ stems from the ``central dogma'' of data flow programming: information flows from inputs to outputs, and when information arrives all at once it's harder to deal with. It also suggests a natural program transformation, which we call \emph{drain fattening}:
+\begin{alltt}
+        (let s' = funnel_i s in drainP s' k )
+     => (funnel_o k >>= \(\lambda\)k'.    drainP s' k')
+\end{alltt}
+
+Which is better expressed as a picture:
+\begin{center}
+\includegraphics[scale=0.8]{figures/drain-fatten.pdf}
+\end{center}
+
+This is valid provided the consumer of the final result source @k@ performs a commutative reduction, or is otherwise insensitive to the order in which elements arrive. By exchanging the order of the @drainP@ and @funnel@ we allow parallel evaluation of multiple streams in the flow, at the expense of introducing non-determinism in the order in which elements are pushed to the sink.
+
+In future work it would be interesting to add a phantom type parameter to our @Sinks@ data type to represent the fact that a particular sink is insensitive to the order in which elements arrive. This would enable us to fatten our drains automatically, but for now the transformation must be performed by hand.
+
+Although fattening can only be applied when a @funnel_i@ is syntactically close to a @drainP@, the fact that our combinators come in a variety of polarized versions allows us to pull many of them through a @drainP@ to bring them closer, for example:
+\begin{alltt}
+  drainP (map_i f s) k  =  drainP s (map_o f k)
+\end{alltt}
+
+
 \eject
-\subsection{Stream projection and funneling}
-
-\begin{code}
-project_i  :: i ->   Sources i m a -> m (Sources () m a)
-project_o  :: i ->   Sinks   i m a -> m (Sinks   () m a)
-
-funnel_i   ::        Sources i m a -> m (Sources () m a)
-funnel_o   ::        Sinks  () m a -> m (Sinks   i  m a)
-\end{code}
-
-
-\subsection{Every day I'm shufflin'}
-
-
-\begin{code}
-deal_o       
- :: (Int -> a -> m ()) 
- -> Sinks Int m a
- -> m (Sinks () m (Array a))
-
-distribute_o 
- :: (Int -> Array a -> m ())
- -> Sinks Int m (Array a) 
- -> m (Sinks () m (Array (Int, a)))
-
-shuffleP
- :: Sources Int IO (Array (Int, a))
- -> Sinks   Int IO (Array a)
-             -> IO ()
-\end{code}
 
