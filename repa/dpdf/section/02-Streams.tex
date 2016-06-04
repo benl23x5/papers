@@ -8,6 +8,16 @@ A \emph{stream} is an array of elements where the indexing dimension is time. As
 \eject
 In our API we manipulate flow endpoints rather than the flows themselves. We use the following data types:
 
+\AMOS{
+  Motivate why index @i@ is polymorphic, since they're always @Int@ until page 5.
+  Specialising to @IO@ would remove some noise.
+}
+
+\AMOS{
+  Is there ever any reason to pass different functions to pull for different indices, or to pull from one index and not another?
+  It is strange that @Sources@ and @Sinks@ are almost but not quite opposite to each other.
+}
+
 \begin{code}
 data Sources i m e 
    = Sources
@@ -23,11 +33,11 @@ data Sinks   i m e
 
 Type @Sources i m e@ classifies flow sources which produce elements of type @e@, using some monad @m@, where the streams in the bundle are indexed by values of type @i@. Likewise @Sinks i m e@ classifies flow sinks which consume elements of type @e@.
 
-In the @Sources@ type, field @arity@ stores the number of individual streams in the bundle. To receive data from a flow producer we use the function in the @pull@ field, passing the index of type @i@ for the desired stream, an \emph{eat} function of type @(e -> m ())@ to consume an element if one is available, and an \emph{eject} function of type @(m ())@ which will be called when no more elements will ever be available for the specified stream. The pull function will then perform an @(m ())@ computation before either calling our eat or eject function, depending on whether data is available from the source.
+In the @Sources@ type, field @arity@ stores the number of individual streams in the bundle. To receive data from a flow producer we use the function in the @pull@ field, passing the index of type @i@ for the desired stream, an \emph{eat} function of type @(e -> m ())@ to consume an element if one is available, and an \emph{eject} function of type @(m ())@ which will be called when no more elements will ever be available for the specified stream. The pull function will then perform an @(m ())@ computation \AMOS{what computation and why?} before either calling our eat or eject function, depending on whether data is available from the source.
 
-In the @Sinks type@, field @arity@ stores the number of individual streams as before. To send data to a flow consumer we call the @push@ function, passing the stream index of type @i@, and the element of type @e@. The @push@ function will perform an @(m ())@ computation to consume the provided element. If no more data is available we instead call the @eject@ function, passing the stream index of type @i@, and this function will perform an @(m ())@ computation to shut down the sink --- possibly closing files or disconnecting sockets.
+In the @Sinks@ type, field @arity@ stores the number of individual streams as before. To send data to a flow consumer we call the @push@ function, passing the stream index of type @i@, and the element of type @e@. The @push@ function will perform an @(m ())@ computation to consume the provided element. If we have no more data to send we instead call the @eject@ function, passing the stream index of type @i@, and this function will perform an @(m ())@ computation to shut down the sink --- possibly closing files or disconnecting sockets.
 
-Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, meaning that at runtime the computation will block until either an is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). In itself the duality between source and sink, push and pull, is folklore, and has previously been used for code generation in array processing languages~\cite{Claessen:ExpressiveArray} and XML processing pipelines~\cite{Kay:YouPull}. However, we are not aware of an existing stream processing library based around the simple data types above.
+Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, meaning that at runtime the computation will block until either an element is produced or no more elements are available (when consuming); or an element is consumed or the endpoint is shut down (when producing). In itself the duality between source and sink, push and pull, is folklore, and has previously been used for code generation in array processing languages~\cite{Claessen:ExpressiveArray} and XML processing pipelines~\cite{Kay:YouPull}. However, we are not aware of an existing stream processing library based around the simple data types above.
 
 Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ type are associated with a single stream only. If our flow consists of 8 streams attached to 8 separate files then ejecting a single stream will close a single file.
 
@@ -166,7 +176,7 @@ The @dup_ioi@ combinator takes an argument flow source, an argument flow sink, a
 
 With @dup_iooi@ when we pull from the result source the combinators pulls from its argument source and pushes the same data to its argument sinks. 
 
-Figure~\ref{f:Polarity} the various options for assigning polarities to the argument and result endpoints of a flow duplication combinator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the greyed out diagrams are for polarity assignments that would require unbounded buffering, while the solid ones require no buffering.
+Figure~\ref{f:Polarity} shows the various options for assigning polarities to the argument and result endpoints of a flow duplication combinator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the greyed out diagrams are for polarity assignments that would require unbounded buffering, while the solid ones require no buffering.
 
 \begin{figure}
 \includegraphics[scale=0.7]{figures/polarity.pdf}
@@ -177,7 +187,7 @@ Figure~\ref{f:Polarity} the various options for assigning polarities to the argu
 
 In the right of Figure~\ref{f:Polarity} we have also included the corresponding polarity diagram for the @drainP@ combinator from Figure~\ref{f:Draining}. The @drainP@ combinator requires no buffering because all data pulled from the source is immediately pushed to the sink. On the other hand, if we invert the polarities of @drainP@ we arrive at the natural assignment for a primitive buffering combinator. A combinator that consumes data via a single argument sink and produces the same data via a result source \emph{must} introduce a buffer as there is no guarantee that new elements are pushed to the sink at the same rate they are pulled from the source. 
 
-Repa library makes it easy to guarantee that data flow programs written with it run in constant space, by only providing combinators with the polarity assignments that do so. This guarantee requires that variables bound to sources and sinks are used linearly, which alas we cannot check with Haskell as it does not support linear types. However, linearity is an easy constraint to understand and check manually, so for now we we leave the job of enforcing it to the client programmer.
+Repa Flow makes it easy to guarantee that data flow programs written with it run in constant space, by only providing combinators with the polarity assignments that do so. This guarantee requires that variables bound to sources and sinks are used linearly, which alas we cannot check with Haskell as it does not support linear types. However, linearity is an easy constraint to understand and check manually, so for now we leave the job of enforcing it to the client programmer.
 
 
 % ---------------------------------------------------------
@@ -185,7 +195,7 @@ Repa library makes it easy to guarantee that data flow programs written with it 
 In Repa Flow, the @map@ operator comes in two forms:
 \begin{code}
 map_i :: (a -> b) -> Sources i m a -> Sources i m b
-map_o :: (b -> a) -> Sinks   i m b -> Sinks   i m a
+map_o :: (a -> b) -> Sinks   i m b -> Sinks   i m a
 \end{code}
 
 \begin{figure}
@@ -214,7 +224,7 @@ map_i f (Sources n pullsA)
 % \item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}.
 % \end{enumerate}
 
-Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow supports data parallelism, but parallelism is introduced by the singular @drainP@ function. No other combinator library need be concerned with it. This aspect is similar to the delayed arrays of our original Repa library \cite{Lippmeier:Guiding}, except that parallelism is introduced on a per-stream level rather than a per-element level.
+Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow supports data parallelism, but parallelism is introduced by the singular @drainP@ function. No other combinator in the library need be concerned with it. This aspect is similar to the delayed arrays of our original Repa library \cite{Lippmeier:Guiding}, except that parallelism is introduced on a per-stream level rather than a per-element level.
 
 
 % ---------------------------------------------------------
@@ -229,10 +239,11 @@ folds_iii :: (Ord i, Monad m) => (b -> a -> b) -> b
 The @folds_iii@ combinator takes a flow of segment lengths, a flow of elements, and uses the provided combining function and neutral value to fold segments from each stream in the flow. For example, writing flows of streams of elements using nested list syntax we have:
 \begin{code}
 folds_iii (+) 0 
-   [ [3 2 1] [2 2] [4] ] 
+   [ [3     2   1] [2   2  ] [4      ] ] 
    [ [1 2 3 1 1 5] [3 3 4 4] [4 3 2 1] ]
- = [ [6 2 5] [6 8] [10] ]
+ = [ [6     2   5] [6   8  ] [10     ] ]
 \end{code}
+% laying them out might make it more immediately obvious which elements belong to which segments
 
 For the first stream the segment lengths are @[3 2 1]@ and the elements are @[1 2 3 1 1 5]@, we sum up the first three elements, then the next two, then the next one, yielding @[6 2 5]@ for that stream. When @drainP@ from Figure~\ref{f:Draining} is applied to the result source, each of the individual streams in the flow is folded in parallel. We include the definition of @folds_iii@ and the types and definition of the other versions in the appendix.
 
@@ -249,6 +260,12 @@ One might wonder if @folds_iii@, @folds_ioo@ and @folds_oio@ are the only versio
 \includegraphics[scale=0.8]{figures/folds-drain.pdf}
 \end{center}
 
+\AMOS{
+  Question: do different representations of segmented streams support different polarities?
+  For example, where the segment descriptors are Bools denoting the end of segment.
+  It probably also depends whether they are paired together as a single @(Bool,a)@ stream, or two separate streams.
+}
+
 The @folds_iio@ version can execute without buffering because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a combinator version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks.
 
 In our concrete library we provide only the combinator versions that execute without buffering, and the only active combinators are @drainS@ and @drainP@. This restriction ensures that it is easy for the client programmer to reason about when computation happens, as well as ensuring that the programs execute in constant space.
@@ -256,7 +273,7 @@ In our concrete library we provide only the combinator versions that execute wit
 
 % ---------------------------------------------------------
 \subsection{Stream projection, funneling, and fattening}
-So far the combinators we have discussed have all performed the same operation on each stream of a flow. There are four basic combinators that allow us to convert a flows consisting of several streams into a \emph{singleton} flow, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
+So far the combinators we have discussed have all performed the same operation on each stream of a flow. There are four basic combinators that allow us to convert flows consisting of several streams into a \emph{singleton} flow, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
 \begin{code}
  project_i :: i -> Sources i m a -> Sources () m a
  project_o :: i -> Sinks   i m a -> Sinks   () m a
@@ -264,6 +281,7 @@ So far the combinators we have discussed have all performed the same operation o
  funnel_i  :: Sources i m a ->     Sources () m a
  funnel_o  :: Sinks  () m a -> IO (Sinks   i  m a)
 \end{code}
+\AMOS{Are these types right? I think @funnel\_o@ should have return index ().}
 
 The @project@ combinators take a stream index, an endpoint for a flow of several streams, and return a singleton flow containing only data for the specified stream. The @project_i@ combinator takes a source of a flow of several streams, and returns a flow source that selects only the specified stream. The @project_o@ combinator takes a sink for a flow of several streams and returns a sink that discards data for all streams expect the specified stream.
 
@@ -272,6 +290,8 @@ The @funnel@ combinators take an endpoint for a flow of several streams, and ret
 With @funnel_i@ the order in which the argument streams are processed is under the control of the \emph{combinator} and is \emph{deterministic} when viewed by the consumer of the result source. In our implementation the default order is to present the data from each of the argument streams from the lowest index to highest. Other orders are possible, such as a round-robin process that produces a single element from each non-empty stream in turn. 
 
 In contrast, with @funnel_o@ the order in which argument streams are processed controlled by the \emph{context} and is \emph{non-deterministic} when viewed by the consumer attached to the argument sink. Now, recall that in the implementation of @drainP@ from Figure~\ref{f:Draining} we forked a thread to evaluate each source stream. As each of these threads pushes to its corresponding sink concurrently, if these sinks are then funneled then the order in which elements appear in the output may vary from run to run. As the sink may be attached to a shared resource such as a file, this is also the place in the library where we must introduce locks to manage contention, which is the reason the creation of the result sink must be in the @IO@ monad. Other combinators such as @map@ and @folds@ are lock free, as although they are applied to flow endpoints that conceptually process several streams at once, at runtime there is no communication between threads that evaluate each of these streams.
+
+\AMOS{I don't understand the point about central dogma}
 
 The fact that @funnel_o@ is more complex to implement than @funnel_i@ stems from the ``central dogma'' of data flow programming: information flows from inputs to outputs, and when information arrives all at once it's harder to deal with. It also suggests a natural program transformation, which we call \emph{drain fattening}:
 \begin{alltt}
