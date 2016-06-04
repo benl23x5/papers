@@ -245,11 +245,13 @@ With @folds_ioo@ we push elements to the element sink (on the right). As needed,
 With @folds_oio@ we push segment lengths to the segment length sink (on the left). As needed, the combinator pulls the corresponding number of elements from the element source (on the right) and folds them. As each segment is completed it pushes the result to the result sink (on the bottom). 
 
 One might wonder if @folds_iii@, @folds_ioo@ and @folds_oio@ are the only versions that can execute without buffering. There are a total of 8 ways of assigning polarities to a 3-leg process such as @folds@. Case analysis reveals that there is one special version:
+\vspace{-1ex}
 \begin{center}
 \includegraphics[scale=0.8]{figures/folds-drain.pdf}
 \end{center}
 
-The @folds_iio@ version can execute without buffering because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a combinator version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks.
+\vspace{-1ex}
+The @folds_iio@ version can execute without buffering because all the segment lengths and elements in the flow are available as sources, and the result of folding each segment can be pushed directly to the result sink. However, this version is not primitive as it can be expressed as the composition of @folds_iii@ and @drainP@ as shown above. We refer to a combinator version that can be expressed in terms of a composition with @drainP@ as an \emph{active version} because its form implies computation rather than being an \emph{inactive} transformation on sources on sinks. Note that @dup_ioo@ from Figure~\ref{f:Polarity} is also active.
 
 In our concrete library we provide only the combinator versions that execute without buffering, and the only active combinators are @drainS@ and @drainP@. This restriction ensures that it is easy for the client programmer to reason about when computation happens, as well as ensuring that the programs execute in constant space.
 
@@ -276,7 +278,7 @@ In contrast, with @funnel_o@ the order in which argument streams are processed c
 The fact that @funnel_o@ is more complex to implement than @funnel_i@ stems from the ``central dogma'' of data flow programming: information flows from inputs to outputs, and when information arrives all at once it's harder to deal with. It also suggests a natural program transformation, which we call \emph{drain fattening}:
 \begin{alltt}
         (let s' = funnel_i s in drainP s' k )
-     => (funnel_o k >>= \(\lambda\)k'.    drainP s' k')
+     => (funnel_o k >>= \(\lambda\)k'.    drainP s k')
 \end{alltt}
 
 Which is better expressed as a picture:
@@ -288,7 +290,7 @@ This is valid provided the consumer of the final result source @k@ performs a co
 
 In future work it would be interesting to add a phantom type parameter to our @Sinks@ data type to represent the fact that a particular sink is insensitive to the order in which elements arrive. This would enable us to fatten our drains automatically, but for now the transformation must be performed by hand.
 
-Although fattening can only be applied when a @funnel_i@ is syntactically close to a @drainP@, the fact that our combinators come in a variety of polarized versions allows us to pull many of them through a @drainP@ to bring them closer, for example:
+Although fattening can only be applied when a @funnel_i@ is syntactically close to a @drainP@, the fact that our combinators come in a variety of polarized versions allows us to pull many of them through a @drainP@ to bring their arguments closer, for example:
 \begin{alltt}
   drainP (map_i f s) k  =  drainP s (map_o f k)
 \end{alltt}
