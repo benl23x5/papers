@@ -90,6 +90,7 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject)
 
 % ---------------------------------------------------------
 \subsection{Stateful Streams, Branching and Linearity}
+\label{s:Linearity}
 Suppose we wish to copy our set of files to \emph{two} different destination sets instead of a single one. Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. We might try something like:
 
 \begin{code}

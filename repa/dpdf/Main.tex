@@ -41,7 +41,6 @@
 % ---------------------------------------------------------------
 \begin{abstract}
 We present an approach to writing fused parallel data flow programs, where the library API guarantees that programs run in constant space. We support branching data flows which allow multiple independent aggregates to be computed over the same stream without hand fusing the aggregation code, as well as a Hadoop-like shuffle operator to exchange data between independent data parallel streams. Our approach is embodied in the Repa Flow Haskell library, and we provide production examples that demonstrate our technique produces code efficient enough to saturate the IO system of a current multicore machine.
-\TODO{Highlight main contributions are polarisation and parallelism}
 \end{abstract}
 
 
@@ -49,8 +48,6 @@ We present an approach to writing fused parallel data flow programs, where the l
 \input{section/01-Introduction.tex}
 \input{section/02-Streams.tex}
 \input{section/03-Chunked.tex}
-% \input{section/04-Shuffling.tex}
-% \input{section/05-Benchmarks.tex}
 \input{section/07-Related.tex}
 
 
@@ -58,7 +55,6 @@ We present an approach to writing fused parallel data flow programs, where the l
 % \paragraph{Acknowledgements}
 % Thanks to peeps.
 % 
-\eject
 \bibliographystyle{plain}
 \bibliography{Main}
 

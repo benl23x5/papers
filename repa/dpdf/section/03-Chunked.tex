@@ -53,4 +53,12 @@ Suppose we wish to pull some data from is flow source. We would apply the contai
 
 % ---------------------------------------------------------
 \subsection{Leftovers}
+When the elements processed by our flows are organised into chunks it becomes naturally harder to write operators which consume only a few elements at a time, rather than a whole chunk at a time. Stream processing libraries like @conduit@~\cite{hackage:conduit} handle this problem by extending the representation of stream sources with a special constructor that carries an array of leftover elements from a previous chunk, as well as the continuation to pull more chunks from the source. For the system in this paper, we specifically avoid adding more constructors to our @Source@ and @Sink@ data types as moving away from the simple continuation passing style of the @pull@, @eat@ and @eject@ functions makes it harder to perform the program simplications that enable intra-chunk fusion.
+
+Instead operators such as @head@ which split single elements from a chunked stream, produce a new stream where the @pull@ function first produces a chunk containing leftover elements before pulling more chunks from its own source. The @head_i@ operator in our system then has type:
+\begin{code}
+ head_i :: i -> Sources i m a -> (a, Sources i m a)
+\end{code}
+
+This operator takes the index of the stream we desire the head of, the flow source, and returns the first element from the specified stream, and a new flow source. When the function is applied, an entire chunk will be pulled from the argument stream. Pulling from the result source will yield the chunk of leftover elements first, before continuing to pull from the argument stream. The chunk of leftover elements is stored in the closure of the pull function itself, rather than being reified into the representation of the @Source@ data type. We rely on the lineary convention from~\S\ref{s:Linearity} to ensure the argument source is not reused, as applying @head_i@ to the same source would yield the first element in the next chunk, rather than the next element after the one that was previously returned.
 
