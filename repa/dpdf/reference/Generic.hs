@@ -53,7 +53,7 @@ sourceFs names
             {-# INLINE pulls_sourceFs #-}
 
         return (Sources (length names) pulls_sourceFs)
-{-# INLINE sourceFs #-}
+{-# NOINLINE sourceFs #-}
 
 
 -- | Create sinks to some named files.
@@ -66,7 +66,7 @@ sinkFs names
         let ejects_sinkFs i   = hClose   (hs !! i)
             {-# INLINE ejects_sinkFs #-}
         return (Sinks (length names) pushs_sinkFs ejects_sinkFs)
-{-# INLINE sinkFs #-}
+{-# NOINLINE sinkFs #-}
 
 
 -- | Drain elements from a source to a sink.
@@ -85,7 +85,7 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject)
 
         mvs <- mapM makeDrainer (range (min i1 i2))
         mapM_ readMVar mvs
-
+{-# NOINLINE drainP #-}
 
 -------------------------------------------------------------------------------
 -- | Section 2.2: Stateful streams, branching and buffering.
@@ -127,12 +127,12 @@ map_i f (Sources n pullsA)
  where  pullsB_map_i i eatB ejectB
          = pullsA i eatA_map_i ejectA_map_i
          where  eatA_map_i v = eatB (f v)
-                {-# INLINE eatA_map_i #-}
+                {-# INLINE [3] eatA_map_i #-}
 
                 ejectA_map_i = ejectB
-                {-# INLINE ejectA_map_i #-}
-        {-# INLINE pullsB_map_i #-}
-{-# INLINE map_i #-}
+                {-# INLINE [3] ejectA_map_i #-}
+        {-# INLINE [3] pullsB_map_i #-}
+{-# INLINE [4] map_i #-}
 
 
 -- | Like `map_o`, but the worker function is also given the stream index.
@@ -140,11 +140,11 @@ map_o  :: (a -> b) -> Sinks i m b -> Sinks i m a
 map_o f (Sinks n pushB ejectB)
  = Sinks n pushA_map_o ejectA_map_o
  where  pushA_map_o  i a  = pushB  i (f a)
-        {-# INLINE pushA_map_o #-}
+        {-# INLINE [3] pushA_map_o #-}
 
         ejectA_map_o i    = ejectB i
-        {-# INLINE ejectA_map_o #-}
-{-# INLINE map_o #-}
+        {-# INLINE [3] ejectA_map_o #-}
+{-# INLINE [4] map_o #-}
 
 
 -------------------------------------------------------------------------------
@@ -153,24 +153,29 @@ map_o f (Sinks n pushB ejectB)
 folds_iii
         :: (Ord i, Monad m)
         => (b -> a -> b) -> b
-        -> Sources i m Int 
-        -> Sources i m a 
+        -> Sources i m Int -> Sources i m a 
         -> Sources i m b
 
 folds_iii f z (Sources nL pullLen) (Sources nX pullX)
- = Sources (min nL nX) pull_folds
+ = Sources (min nL nX) pull_folds_iii
  where  
-        pull_folds i eat eject
-         = pullLen i eat_len eject_len
+        pull_folds_iii i eat eject
+         = pullLen i eat_len_folds_iii eject_len_folds_iii
          where 
-               eat_len len = loop_folds len z
-               eject_len   = eject
+               eat_len_folds_iii len = loop_folds len z
+               {-# INLINE eat_len_folds_iii #-}
+
+               eject_len_folds_iii   = eject
+               {-# INLINE eject_len_folds_iii #-}
                    
                loop_folds !c !acc
                 | c == 0    = eat acc
                 | otherwise = pullX i eat_x eject_x
                 where eat_x x = loop_folds (c - 1) (f acc x)
                       eject_x = eject
+               {-# INLINE loop_folds #-}
+        {-# INLINE pull_folds_iii #-}
+{-# INLINE folds_iii #-}
 
 
 -------------------------------------------------------------------------------
@@ -201,7 +206,7 @@ project_o i (Sinks n push eject)
 {-# INLINE project_o #-}
 
 
--- | Funnel all sources streams into a single stream.
+-- | Funnel all source streams into a single one.
 funnel_i :: Range i => Sources i IO a -> IO (Sources () IO a)
 funnel_i (Sources n pull)
  = do   refIx   <- newIORef zero
@@ -237,45 +242,8 @@ funnel_i (Sources n pull)
 {-# INLINE funnel_i #-}
 
 
--------------------------------------------------------------------------------
-fsInput   = ["input/file1",   "input/file2",   "input/file3",   "input/file4"]
-fsOutput  = ["output/file1",  "output/file2",  "output/file3",  "output/file4"]
-fsOutputA = ["output/file1a", "output/file2a", "output/file3a", "output/file4a"]
-fsOutputB = ["output/file1b", "output/file2b", "output/file3b", "output/file4b"]
+-- | Funnel all sink streams into a single one.
+funnel_o :: Range i => Sinks () IO a -> IO (Sinks i IO a)
+funnel_o _ = error "finish me"
 
 
-copyMultipleP 
- :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
-copyMultipleP srcs dsts1 dsts2
- = do  ss  <- sourceFs srcs
-       sk1 <- sinkFs   dsts1
-       sk2 <- sinkFs   dsts2 
-       drainP ss (dup_ooo sk1 sk2)
-
-
-copySetP :: [FilePath] -> [FilePath] -> IO ()
-copySetP srcs dsts
- = do  ss <- sourceFs srcs
-       sk <- sinkFs  dsts
-       drainP ss sk
-
-
----------------------------------------------------------------------------------
-example1 
- = do   ss <- sourceFs fsInput
-        sk <- sinkFs   fsOutput
-        drainP ss sk
-
-example2 
- = copyMultipleP fsInput fsOutputA fsOutputB
-
-
-example_funnel_i :: IO ()
-example_funnel_i
- = do   ss      <- sourceFs fsInput
-        s       <- funnel_i ss
-
-        k       <- sinkFs    ["output/merged"]
-        let k'  =  project_o  0 k
-
-        drainP s k'

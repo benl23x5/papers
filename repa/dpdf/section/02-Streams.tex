@@ -260,11 +260,11 @@ In our concrete library we provide only the combinator versions that execute wit
 \subsection{Stream projection, funneling, and fattening}
 So far the combinators we have discussed have all performed the same operation on each stream of a flow. There are four basic combinators that allow us to convert a flows consisting of several streams into a \emph{singleton} flow, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
 \begin{code}
- project_i :: i -> Sources i m a -> Sources () m a
- project_o :: i -> Sinks   i m a -> Sinks   () m a
+project_i :: i -> Sources i m a -> Sources () m a
+project_o :: i -> Sinks   i m a -> Sinks   () m a
 
- funnel_i  :: Sources i m a ->     Sources () m a
- funnel_o  :: Sinks  () m a -> IO (Sinks   i  m a)
+funnel_i  :: Sources i IO a -> IO (Sources () IO a)
+funnel_o  :: Sinks  () IO a -> IO (Sinks   i  IO a)
 \end{code}
 
 The @project@ combinators take a stream index, an endpoint for a flow of several streams, and return a singleton flow containing only data for the specified stream. The @project_i@ combinator takes a source of a flow of several streams, and returns a flow source that selects only the specified stream. The @project_o@ combinator takes a sink for a flow of several streams and returns a sink that discards data for all streams expect the specified stream.
@@ -277,8 +277,8 @@ In contrast, with @funnel_o@ the order in which argument streams are processed c
 
 The fact that @funnel_o@ is more complex to implement than @funnel_i@ stems from the ``central dogma'' of data flow programming: information flows from inputs to outputs, and when information arrives all at once it's harder to deal with. It also suggests a natural program transformation, which we call \emph{drain fattening}:
 \begin{alltt}
-        (let s' = funnel_i s in drainP s' k )
-     => (funnel_o k >>= \(\lambda\)k'.    drainP s k')
+        (funnel_i s >>= \(\lambda\)s'. drainP s' k)
+     => (funnel_o k >>= \(\lambda\)k'. drainP s  k')
 \end{alltt}
 
 Which is better expressed as a picture:
