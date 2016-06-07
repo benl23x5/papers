@@ -2,6 +2,7 @@
 module Example where
 import qualified Generic as G
 import qualified Chunked as C
+import qualified Debug   as D
 
 import Data.IORef
 
@@ -31,6 +32,23 @@ example_copyCountP srcs dsts
 
        count    <- readIORef ref
        putStrLn ("Bytes copied: " ++ show count)
+
+
+example_copyCountP' :: [FilePath] -> [FilePath] -> IO ()
+example_copyCountP' srcs dsts
+ = do  ss       <- G.sourceFs srcs
+       sk       <- G.sinkFs   dsts
+
+       (fk,ref) <- G.fold_o (+) 0 (G.iarity ss)
+       let fk'   = G.map_o  (const 1) fk
+       fk''     <- D.debug_loud_sink fk'
+       let ss'   = G.dup_ioi ss fk''
+
+       G.drainP ss' sk
+
+       count    <- readIORef ref
+       putStrLn ("Bytes copied: " ++ show count)
+
 
 
 example_copyMultipleP :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
