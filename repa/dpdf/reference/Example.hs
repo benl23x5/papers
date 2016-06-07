@@ -15,8 +15,22 @@ fsOutputB = ["output/file1b", "output/file2b", "output/file3b", "output/file4b"]
 example_copySetP :: [FilePath] -> [FilePath] -> IO ()
 example_copySetP srcs dsts
  = do  ss <- G.sourceFs srcs
-       sk <- G.sinkFs  dsts
+       sk <- G.sinkFs   dsts
        G.drainP ss sk
+
+
+example_copyCountP :: [FilePath] -> [FilePath] -> IO ()
+example_copyCountP srcs dsts
+ = do  ss       <- G.sourceFs srcs
+       sk       <- G.sinkFs   dsts
+
+       (fk,ref) <- G.fold_o (+) 0 (G.iarity ss)
+       let fk'   = G.map_o  (const 1) fk
+
+       G.drainP ss (G.dup_ooo sk fk')
+
+       count    <- readIORef ref
+       putStrLn ("Bytes copied: " ++ show count)
 
 
 example_copyMultipleP :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
