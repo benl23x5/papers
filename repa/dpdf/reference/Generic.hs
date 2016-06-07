@@ -75,9 +75,15 @@ sinkFs names
 drainP :: Range i => Sources i IO a -> Sinks i IO a -> IO ()
 drainP (Sources i1 ipull) (Sinks i2 opush oeject) 
  = do   let drainStream i
-             = ipull i eats ejects 
-             where eats   v = opush  i v >> drainStream i
-                   ejects   = oeject i
+             = newIORef True >>= drain' i
+
+            drain' i running
+             = do r <- readIORef running
+                  case r of
+                   True  -> ipull i eats ejects >> drain' i running
+                   False -> return ()
+             where eats   v = opush  i v
+                   ejects   = oeject i >> writeIORef running False
 
         let makeDrainer i = do
                mv <- newEmptyMVar 
