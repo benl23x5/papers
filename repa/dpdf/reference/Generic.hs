@@ -210,7 +210,7 @@ fold_o f z arity1
            = do let ref = refmap Map.! i
                 acc <- readIORef ref
                 let update v = (f v acc, ())
-                atomicModifyIORef val update
+                atomicModifyIORef' val update
           {-# INLINE eject' #-}
 
       return (Sinks arity1 push' eject', val)
@@ -293,7 +293,7 @@ funnel_o arity1 (Sinks _ push1 eject1)
           {-# INLINE push' #-}
 
       let eject' _
-           = do fin <- atomicModifyIORef fins (\o -> (next o, next o))
+           = do fin <- atomicModifyIORef' fins (\o -> (next o, next o))
                 case fin == arity1 of
                  True  -> eject1 ()
                  False -> return ()
