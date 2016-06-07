@@ -3,7 +3,9 @@
 module Generic where
 import System.IO
 import Control.Concurrent
+import Control.Exception (bracket_)
 import Data.IORef
+import qualified Data.Map as Map
 
 -------------------------------------------------------------------------------
 -- Section 2: Streams and Flows.
@@ -178,6 +180,43 @@ folds_iii f z (Sources nL pullLen) (Sources nX pullX)
 {-# INLINE folds_iii #-}
 
 
+-- | Non-segmented fold.
+-- Performs fold for each part of bundle, then merges at the end.
+fold_o  :: Range i
+        => (a -> a -> a)  -- ^ fold function
+        -> a              -- ^ seed
+        -> i              -- ^ arity: number of sinks to return
+        -> IO (Sinks i IO a, IORef a)
+fold_o f z arity1
+ = do -- Construct an IORef for each sink
+      refs <- mapM (\_ -> newIORef z) (range arity1)
+      let refmap = Map.fromList (range arity1 `zip` refs)
+
+      -- Push just updates each local IORef at each stage
+      -- No synchronisation is required here because the index is local
+      let push' i e
+           = do let ref = refmap Map.! i
+                acc <- readIORef ref
+                writeIORef ref (f acc e)
+          {-# INLINE push' #-}
+
+      -- We need an IORef for the final merged value
+      val  <- newIORef z
+
+      -- Eject merges the local IORef into the final ref
+      -- This needs to be atomic, because multiple ejects could be happening
+      -- and modifying the same final value.
+      let eject' i
+           = do let ref = refmap Map.! i
+                acc <- readIORef ref
+                let update v = (f v acc, ())
+                atomicModifyIORef val update
+          {-# INLINE eject' #-}
+
+      return (Sinks arity1 push' eject', val)
+{-# INLINE fold_o #-}
+
+
 -------------------------------------------------------------------------------
 -- Section 2.6: Stream projection, funneling and fattening.
 
@@ -242,8 +281,25 @@ funnel_i (Sources n pull)
 {-# INLINE funnel_i #-}
 
 
--- | Funnel all sink streams into a single one.
-funnel_o :: Range i => Sinks () IO a -> IO (Sinks i IO a)
-funnel_o _ = error "finish me"
+-- | Non-deterministically funnel all sink streams into a single one.
+funnel_o :: Range i => i -> Sinks () IO a -> IO (Sinks i IO a)
+funnel_o arity1 (Sinks _ push1 eject1)
+ = do lock <- newQSem 1
+      fins <- newIORef zero
+
+      let push' _ e
+           = bracket_ (waitQSem lock) (signalQSem lock)
+           $ push1 () e
+          {-# INLINE push' #-}
+
+      let eject' _
+           = do fin <- atomicModifyIORef fins (\o -> (next o, next o))
+                case fin == arity1 of
+                 True  -> eject1 ()
+                 False -> return ()
+          {-# INLINE eject' #-}
+
+      return (Sinks arity1 push' eject')
+{-# INLINE funnel_o #-}
 
 

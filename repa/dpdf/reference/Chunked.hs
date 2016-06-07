@@ -52,7 +52,7 @@ funnel_i  = G.funnel_i
 {-# INLINE funnel_i #-}
 
 
-funnel_o :: G.Range i => Sinks () IO a -> IO (Sinks i IO a)
+funnel_o :: G.Range i => i -> Sinks () IO a -> IO (Sinks i IO a)
 funnel_o  = G.funnel_o
 {-# INLINE funnel_o #-}
 

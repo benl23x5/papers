@@ -3,6 +3,8 @@ module Example where
 import qualified Generic as G
 import qualified Chunked as C
 
+import Data.IORef
+
 
 fsInput   = ["input/file1",   "input/file2",   "input/file3",   "input/file4"]
 fsOutput  = ["output/file1",  "output/file2",  "output/file3",  "output/file4"]
@@ -29,7 +31,7 @@ example_copyMultipleP srcs dsts1 dsts2
 rule_drainFatten :: G.Range i => G.Sources i IO a -> G.Sinks () IO a -> IO ()
 rule_drainFatten s k
  = do   G.funnel_i s >>= \s' -> G.drainP s' k
-        G.funnel_o k >>= \k' -> G.drainP s  k'
+        G.funnel_o (G.iarity s) k >>= \k' -> G.drainP s  k'
 
 
 -- | Example concatenating several input files.
@@ -43,6 +45,42 @@ example_funnel_i
         let k'  =  G.project_o  0 k
 
         G.drainP s k'
+
+-- | Non-deterministic merging multiple files
+--   This will take the characters from each file and intersperse them together in strange ways
+example_funnel_o :: IO ()
+example_funnel_o
+ = do   ss      <- G.sourceFs fsInput
+
+        k       <- G.sinkFs    ["output/merged"]
+        let k'  =  G.project_o  0 k
+        kf      <- G.funnel_o (G.iarity ss) k'
+
+        G.drainP ss kf
+
+
+-- | Non-deterministic merging multiple files
+--   This will take the characters from each file and intersperse them together in strange ways
+example_fold_o :: IO ()
+example_fold_o
+ = do   ss      <- G.sourceFs fsInput
+        let ones = G.map_i (\_ -> 1) ss
+
+        -- Parallel fold
+        (foldP,refP) <- G.fold_o (+) 0 (G.iarity ones)
+
+        -- Single fold after funnel
+        (foldS,refS) <- G.fold_o (+) 0 ()
+        foldS'       <- G.funnel_o (G.iarity ones) foldS
+
+        G.drainP ones (G.dup_ooo foldP foldS')
+
+        valP    <- readIORef refP
+        putStrLn ("Count par: " ++ show valP)
+        valS    <- readIORef refS
+        putStrLn ("Count seq: " ++ show valS)
+
+
 
 
 -- Example which fuses across chunks.
