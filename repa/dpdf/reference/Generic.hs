@@ -4,6 +4,7 @@ module Generic where
 import System.IO
 import Control.Concurrent
 import Control.Exception (bracket_)
+import Control.Monad     (when)
 import Data.IORef
 import qualified Data.Map as Map
 
@@ -73,26 +74,25 @@ sinkFs names
 
 -- | Drain elements from a source to a sink.
 drainP :: Range i => Sources i IO a -> Sinks i IO a -> IO ()
-drainP (Sources i1 ipull) (Sinks i2 opush oeject) 
- = do   let drainStream i
-             = newIORef True >>= drain' i
+drainP (Sources i1 ipull) (Sinks i2 opush oeject)
+ = do mvs <- mapM makeDrainer (range (min i1 i2))
+      mapM_ readMVar mvs
+ where
+  makeDrainer i
+   = do mv <- newEmptyMVar
+        forkFinally (newIORef True >>= drainStream i)
+                    (\_ -> putMVar mv ())
+        return mv
 
-            drain' i running
-             = do r <- readIORef running
-                  case r of
-                   True  -> ipull i eats ejects >> drain' i running
-                   False -> return ()
-             where eats   v = opush  i v
-                   ejects   = oeject i >> writeIORef running False
+  drainStream i loop
+   = let eats v = opush i v
+         ejects = oeject i >> writeIORef loop False
+     in  while (readIORef loop) (ipull i eats ejects)
 
-        let makeDrainer i = do
-               mv <- newEmptyMVar 
-               forkFinally (drainStream i) 
-                           (\_ -> putMVar mv ())
-               return mv 
-
-        mvs <- mapM makeDrainer (range (min i1 i2))
-        mapM_ readMVar mvs
+  while p v
+   = do b <- p
+        if b then v >> while p v
+             else return ()
 {-# NOINLINE drainP #-}
 
 -------------------------------------------------------------------------------

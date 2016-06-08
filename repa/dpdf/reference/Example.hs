@@ -41,8 +41,7 @@ example_copyCountP' srcs dsts
 
        (fk,ref) <- G.fold_o (+) 0 (G.iarity ss)
        let fk'   = G.map_o  (const 1) fk
-       fk''     <- D.debug_loud_sink fk'
-       let ss'   = G.dup_ioi ss fk''
+       let ss'   = G.dup_ioi ss fk'
 
        G.drainP ss' sk
 
