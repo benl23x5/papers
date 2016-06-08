@@ -4,7 +4,6 @@ module Generic where
 import System.IO
 import Control.Concurrent
 import Control.Exception (bracket_)
-import Control.Monad     (when)
 import Data.IORef
 import qualified Data.Map as Map
 
