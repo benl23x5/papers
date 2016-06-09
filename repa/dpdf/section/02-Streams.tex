@@ -49,6 +49,7 @@ The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Si
 \end{code}
 
 In our concrete implementation we also include a @drainS@ (sequential) which evaluates each stream in turn rather than concurrently.
+
 \begin{figure}
 \begin{code}
 sourceFs :: [FilePath] -> IO (Sources Int IO Char)
@@ -94,22 +95,31 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject)
 % ---------------------------------------------------------
 \subsection{Stateful Streams, Branching and Linearity}
 \label{s:Linearity}
-Suppose we wish to copy our set of files to \emph{two} different destination sets instead of a single one. Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. We might try something like:
+Suppose we wish to copy our set of files while counting the number of characters.
+To compute the count we map each character to its individual count --- one --- using @map_o@, described in \S\ref{s:Mapping}.
+We sum these with @fold_o (+) 0@, which returns a sink to push the individual counts into and an @IORef@ where the final value will be stored, and takes the arity of the sinks as an argument.
 
 \begin{code}
- badCopyMultiple 
-  :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
- badCopyMultiple srcs dsts1 dsts2
-  = do  ss  <- sourceFs srcs
-        sk1 <- sinksFs  dsts1
-        sk2 <- sinksFs  dsts2
-        drainP ss sk1
-        drainP ss sk2
+fold_o :: Ord i => (a -> a -> a) -> a -> i
+                -> IO (Sinks i IO a, IORef a)
+\end{code}
+
+Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. We might try something like:
+
+\begin{code}
+badCopyCount :: [FilePath] -> [FilePath] -> IO Int
+badCopyCount srcs dsts
+ = do  ss      <- sourceFs srcs
+       sk1     <- sinksFs  dsts
+       drainP ss sk1
+       (sk2,r) <- fold_o (+) 0 (arity ss)
+       drainP ss (map_o (const 1) sk2)
+       readIORef r
 \end{code}
 
 This cannot work. The @Sinks@ endpoint created by @sourceFs@ is a stateful object -- it represents the current position in each of the source files being read. After we have applied the first @drainP@, we have already finished reading through all the source files, so draining the associated flow again does not yield more data. 
 
-Each of the drain computations is performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first one. To copy the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the data read from the files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data read from the flow source so that we can write it one set of files, then another, does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
+Each of the drain computations is performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first one. To copy and count the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the data read from the files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data read from the flow source so that we can write the output files and then count does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
 
 \begin{code}
 dup_ooo :: (Ord i, Monad m)
@@ -124,16 +134,16 @@ dup_ooo (Sinks n1 push1 eject1)
 The @dup_ooo@ combinator takes two separate sinks and creates a new one. When we push an element to the new sink it will push that element to the two original sinks. Likewise, when we eject the new sink it will eject the two original sinks. We can use this new combinator to write a working @copyMultiple@ function:
 
 \begin{code}
-copyMultipleP 
- :: [FilePath] -> [FilePath] -> [FilePath] -> IO ()
-copyMultipleP srcs dsts1 dsts2
- = do  ss  <- sourceFs srcs
-       sk1 <- sinkFs   dsts1
-       sk2 <- sinkFs   dsts2 
-       drainP ss (dup_oo sk1 sk2)
+copyCountP :: [FilePath] -> [FilePath] -> IO Int
+copyCountP srcs dsts
+ = do  ss      <- sourceFs srcs
+       sk1     <- sinkFs   dsts
+       (sk2,r) <- fold_o (+) 0 (arity ss)
+       drainP ss (dup_oo sk1 (map_o (const 1) sk2))
+       readIORef r
 \end{code}
 
-This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where the functions @sourceFs@, @sinkFs@ and @dup_ooo@ create nodes in the graph, and the use-def relation of variables defines the edges.
+This new @copyMultiple@ function runs in constant space, which is the behaviour we wanted. Importantly, in the new function definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph, where the functions @sourceFs@, @sinkFs@, @fold_o@, @map_o@ and @dup_ooo@ create nodes, and the use-def relation of variables defines the edges.
 
 
 % ---------------------------------------------------------
@@ -186,6 +196,7 @@ Repa library makes it easy to guarantee that data flow programs written with it 
 
 % ---------------------------------------------------------
 \subsection{Mapping}
+\label{s:Mapping}
 In Repa Flow, the @map@ operator comes in two forms:
 \begin{code}
 map_i :: (a -> b) -> Sources i m a -> Sources i m b
