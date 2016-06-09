@@ -40,9 +40,10 @@
 
 % -----------------------------------------------------------------------------
 \begin{abstract}
-We present an approach to writing fused data parallel data flow programs where the library API guarantees that the programs run in constant space. We support branching data flows which allow multiple independent aggregates to be computed over the same stream, without hand fusing the aggregation code. Our constant space guarantee is achieved by observing that binary stream operators can be provided in several \emph{polarity versions} which use different combinations of stream sources and sinks, and that some versions allow constant space execution while others do not. Our approach is embodied in the Repa Flow Haskell library, which we are currently using for production workloads.
+We present an approach to writing fused data parallel data flow programs where the library API guarantees that the client programs run in constant space. Our constant space guarantee is achieved by observing that binary stream operators can be provided in several \mbox{\emph{polarity versions}}. Each polarity version uses a different combination of stream sources and sinks, and some versions allow constant space execution while others do not. Our approach is embodied in the Repa Flow Haskell library, which we are currently using for production workloads at Vertigo.
 \end{abstract}
 
+% We support branching data flows which allow multiple independent aggregates to be computed over the same stream, without hand fusing the aggregation code.
 
 % -----------------------------------------------------------------------------
 \input{section/01-Introduction.tex}

@@ -3,26 +3,23 @@
 
 The functional language ecosystem is blessed with a multitude of libraries for writing streaming data flow programs. Stand out examples for Haskell include iteratee \cite{Kiselyov:iteratee}, enumerator~\cite{hackage:enumerator}, conduit~\cite{hackage:conduit} and pipes~\cite{hackage:pipes}. For Scala we have Scalaz-Streams~\cite{github:scalaz-streams} and Akka~\cite{github:akka}.
 
-These libraries are typically used to deal with data sets that do not fit in main memory, as the constant space guarantee ensures that the program will run to completion without suffering an out-of-memory error. However, current computing platforms use multi-core processors, the programming models provided by such streaming libraries do not also provide a notion of \emph{parallelism} to help deal with the implied amount of data. They also lack support for branching data flows where produced streams can be consumed by several consumers without the programmer needing to hand fuse them.
-
-We provide several techniques that increase the scope of programs that can be written in such libraries. Our target applications concern \emph{medium data}, meaning data that is large enough that it does not fit in the main memory of a normal desktop machine, but not so large that we require a cluster of multiple physical machines. For a lesser amount of data one could simply load the data into main memory and use an in-memory array library. For greater data one needs to turn to a distributed system such as Hadoop~\cite{Shvachko:Hadoop}, Spark~\cite{Zaharia:RDDs} and deal with the unreliable network and lack of shared memory. Repa Flow targets the sweet middle ground.
-
-\eject
-We make the following contributions:
+Libraries like Iteratee and Enumerator guarantee that the client programs run in constant space, and are commonly used to deal with data sets that do not fit in main memory. However, the same libraries do not provide a notion of \emph{parallelism} to help deal with the implied amount of data. They also lack support for branching data flows where produced streams are consumed by several consumers without the programmer needing to hand fuse the consumers. We provide several techniques to increase the scope of such stream processing libraries:
 
 \begin{itemize}
-\item Our parallel data flows consist of a bundle of streams, where each stream can process a separate partition of a data set on a separate processor core.
+\item Our parallel data flows consist of a bundle of streams, where each stream can be processed in a separate thread. \S\ref{s:Streams}
 
-\item Our API uses polarised flow endpoints (@Sources@ and @Sinks@) to ensure that programs run in constant space. We demonstrate how this technique can be extended to branching data flows, where produced flows are consumed by multiple consumers.
+\item Our API uses polarised flow endpoints (@Sources@ and @Sinks@) to ensure that programs run in constant space, even when produced flows are consumed by several consumers.
 
-\item The data processed by our streams is chunked so that each operation processes several elements at a time. We show how to design the core API in a generic fashion so that chunk-at-a-time operators can interoperate smoothly with element-at-a-time operators.
+\item We show how to design the core API in a generic fashion so that chunk-at-a-time operators can interoperate smoothly with element-at-a-time operators.
 
-\item We show how to use Continuation Passing Style to provoke the Glasgow Haskell Compiler into applying stream fusion across chunks processed by independent flow operators. For example, the map-map fusion on flows arises naturally from map-map fusion rule on chunks (arrays) of elements.
+
+\item We show how to use Continuation Passing Style to provoke the Glasgow Haskell Compiler into applying stream fusion across chunks processed by independent flow operators. 
+
+% For example, the map-map fusion on flows arises naturally from map-map fusion rule on chunks (arrays) of elements.
+
+% We demonstrate how this technique can be extended to branching data flows, where produced flows are consumed by multiple consumers.
+
 \end{itemize}
 
-Our work is embodied in Repa Flow, which is available on Hackage. Repa Flow is a new layer on top of the existing Repa library for delayed arrays~\cite{Lippmeier:Guiding}, and performs fusion via the GHC simplifier rather than using a custom program transformation based on series expressions~\cite{Lippmeier:DataFlow}.
-
-We use stream processing to deal with large data sets that do not fit in memory. We do not target real-time streams, such as click streams generated from websites. These latter applications are the domain of synchronous data flow languages such as Lucy~\cite{Mandel:Lucy}, and reactive stream processing systems such as Heron~\cite{Kulkarn:Heron} and S4~\cite{Neumeyer:S4}. 
-
-Our system ensures that programs run in constant space, without requiring buffering or backpressure as in Akka and Heron. Our stream programs are fused into nested loops that read the input data from the source files, process it, and write the results immediately without blocking. The only intermediate space required is for aggregators --- for example if we had a stream of text and were counting the number of occurrences of each word we would need a map of words to the number of occurrences. No buffering is required to match differing rates of production and consumption.
+Our target applications concern \emph{medium data}, meaning data that is large enough that it does not fit in the main memory of a normal desktop machine, but not so large that we require a cluster of multiple physical machines. For a lesser amount of data one could simply load the data into main memory and use an in-memory array library. For greater data one needs to turn to a distributed system such as Hadoop~\cite{Shvachko:Hadoop}, Spark~\cite{Zaharia:RDDs} and deal with the unreliable network and lack of shared memory. Repa Flow targets the sweet middle ground.
 
