@@ -38,9 +38,9 @@
 \maketitle
 \makeatactive
 
-% ---------------------------------------------------------------
+% -----------------------------------------------------------------------------
 \begin{abstract}
-We present an approach to writing fused parallel data flow programs, where the library API guarantees that programs run in constant space. We support branching data flows which allow multiple independent aggregates to be computed over the same stream without hand fusing the aggregation code, as well as a Hadoop-like shuffle operator to exchange data between independent data parallel streams. Our approach is embodied in the Repa Flow Haskell library, and we provide production examples that demonstrate our technique produces code efficient enough to saturate the IO system of a current multicore machine.
+We present an approach to writing fused data parallel data flow programs where the library API guarantees that the programs run in constant space. We support branching data flows which allow multiple independent aggregates to be computed over the same stream, without hand fusing the aggregation code. Our constant space guarantee is achieved by observing that binary stream operators can be provided in several \emph{polarity versions} which use different combinations of stream sources and sinks, and that some versions allow constant space execution while others do not. Our approach is embodied in the Repa Flow Haskell library, which we are currently using for production workloads.
 \end{abstract}
 
 
