@@ -36,9 +36,9 @@ Finally, note that the @eject@ functions used in both the @Sources@ and @Sinks@ 
 \subsection{Sourcing, Sinking and Draining}
 Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files, as well as @drainP@ which pulls data from a flow source and pushes it to a sink. 
 
-Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the correponding stream. In @sinkFs@, the @push@ function for a stream simply writes the provided element to the corredponding file, and the @eject@ function closes it.
+Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the correponding stream. In @sinkFs@, the @push@ function writes the provided element to the corresponding file, and @eject@ closes it.
 
-The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use intermediate Haskell MVars to communicate between the worker threads and the main threads. After forking all the workers the main threads waits until they are all finished. Now that we have the @drainP@ function, we can copy a partitioned data set from one set of files to another, in parallel:
+The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use Haskell MVars for communication between threads. After forking the workers, the main thread waits until they are all finished. Now that we have the @drainP@ function, we can copy a partitioned data set from one set of files to another, in parallel:
 
 \begin{code}
  copySetP :: [FilePath] -> [FilePath] -> IO ()
@@ -48,7 +48,8 @@ The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Si
         drainP ss sk
 \end{code}
 
-In our concrete implementation we also include a @drainS@ (sequential) which evaluates each stream in turn rather than concurrently.
+% In our concrete implementation we also include a @drainS@ (sequential) which evaluates each stream in turn rather than concurrently.
+%% trying to remove space, do not think this is necessary
 
 \begin{figure}
 \begin{code}
@@ -96,15 +97,15 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject)
 \subsection{Stateful Streams, Branching and Linearity}
 \label{s:Linearity}
 Suppose we wish to copy our set of files while counting the number of characters.
-To compute the count we map each character to its individual count --- one --- using @map_o@, described in \S\ref{s:Mapping}.
-We sum these with @fold_o (+) 0@, which returns a sink to push the individual counts into and an @IORef@ where the final value will be stored, and takes the arity of the sinks as an argument.
+To compute the count we map each character to the integer one using @map_o@, described in \S\ref{s:Mapping}.
+We sum these with @fold_o (+) 0@, which returns a sink to push into and an @IORef@ where the final value will be stored, and takes the arity of the sinks.
 
 \begin{code}
 fold_o :: Ord i => (a -> a -> a) -> a -> i
                 -> IO (Sinks i IO a, IORef a)
 \end{code}
 
-Trying to drain the source flow into two separate sinks does not work, which is a key part of the design of our system. We might try something like:
+Draining a source into two sinks does not work, which is a key part of the design of our system. We might try something like:
 
 \begin{code}
 badCopyCount :: [FilePath] -> [FilePath] -> IO Int
@@ -119,7 +120,7 @@ badCopyCount srcs dsts
 
 This cannot work. The @Sinks@ endpoint created by @sourceFs@ is a stateful object -- it represents the current position in each of the source files being read. After we have applied the first @drainP@, we have already finished reading through all the source files, so draining the associated flow again does not yield more data. 
 
-Each of the drain computations is performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first one. To copy and count the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the data read from the files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data read from the flow source so that we can write the output files and then count does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
+Both drain computations are performed in the IO monad, which enforces an explicit notion of sequence. The second drain happens after the first. To copy and count the source data using two separate drain stages we would need to either rewind the file handles attached to the sources, or buffer the entire files in memory. Both options are bad. An object of type @Sources@ is an abstract producer of data, and in general it may not be possible to rewind it to a previous state --- suppose it was connected to a stream of sensor readings. On the other hand, buffering all the data does not work when the source contains more data than will fit in memory. Instead, we introduce an explicit combinator which branches our flow:
 
 \begin{code}
 dup_ooo :: (Ord i, Monad m)
