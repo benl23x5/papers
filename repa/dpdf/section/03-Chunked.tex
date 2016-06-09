@@ -7,7 +7,7 @@ The flows we have discussed so far have operated on elements of a generic type @
    type CSinks   i m e = Sinks   i m (Vector e)
 \end{code}
 
-In our Haskell implementation we use the unboxed @Vector@ type from the standard @vector@ library to represent the chunks. For operators that do not inspect the actual elements, such as @drainP@ and @funnel_i@ the chunked versions are defined simply as alias of the generic versions, but with more specific types so that the API documentation is easier to read. Other operators such as for the @folds@ family need separate implementations because their argument functions (of type (@a -> b -> a@) work on single elements rather than chunks. 
+In our Haskell implementation we use the unboxed @Vector@ type from the standard @vector@ library to represent the chunks. For operators that do not inspect the actual elements, such as @drainP@ and @funnel_i@ the chunked versions are defined simply as aliases of the generic versions, but with more specific types so that the API documentation is easier to read. Other operators such as for the @folds@ family need separate implementations because their argument functions (of type (@a -> b -> a@) work on single elements rather than chunks. 
 
 
 % ---------------------------------------------------------
@@ -48,7 +48,7 @@ The two instances of @umap@ are now syntactically adjacent, which allows the fus
      pulls i (\(\lambda\)v. eat (umap (f \(\circ\) g) v)) eject)
 \end{alltt}
 
-Suppose we wish to pull some data from is flow source. We would apply the contained function to the index @i@ of the stream we are interested, as well as our own @eat@ and @eject@ functions to either to consume a chunk or indicate that there is no more data available in stream @i@. The flow source would then apply the @pulls@ function from \emph{its} own parent source to the inner continuation. If a chunk from the parent source is available, the @umap@ function will then apply the fused @f@ and @g@ to each element before passing the result to the original @eat@ function that we provided.
+Suppose we wish to pull some data from this flow source. We would apply the contained function to the index @i@ of the stream we are interested, as well as our own @eat@ and @eject@ functions to either to consume a chunk or indicate that there is no more data available in stream @i@. The flow source would then apply the @pulls@ function from \emph{its} own parent source to the inner continuation. If a chunk from the parent source is available, the @umap@ function will then apply the fused @f@ and @g@ to each element before passing the result to the original @eat@ function that we provided.
 
 
 % ---------------------------------------------------------
