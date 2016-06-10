@@ -277,40 +277,40 @@ In our Repa Flow library we provide only polarity versions that execute without 
 
 % ---------------------------------------------------------
 \subsection{Stream projection, funneling, and fattening}
-So far the combinators we have discussed have all performed the same operation on each stream of a flow. There are four basic combinators that allow us to convert a flows consisting of several streams into a \emph{singleton} flow, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
+So far the operators we have discussed have all performed the same computation each stream in the flow. Here are four basic operators to convert between flows consisting of several streams and \emph{singleton} flows, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
 \begin{code}
 project_i :: i -> Sources i m a -> Sources () m a
 project_o :: i -> Sinks   i m a -> Sinks   () m a
 
-funnel_i  :: Sources i IO a -> IO (Sources () IO a)
-funnel_o  :: Sinks  () IO a -> IO (Sinks   i  IO a)
+funnel_i :: Sources i IO a ->  IO (Sources () IO a)
+funnel_o :: i -> Sinks () IO a -> IO (Sinks i IO a)
 \end{code}
 % the extra index argument to funnel_o messes up layout, and it's such a small implementation detail that I don't think it's worth putting in.
 
-The @project@ combinators take a stream index, an endpoint for a flow of several streams, and return a singleton flow containing only data for the specified stream. The @project_i@ combinator takes a source of a flow of several streams, and returns a flow source that selects only the specified stream. The @project_o@ combinator takes a sink for a flow of several streams and returns a sink that discards data for all streams except the specified stream.
+The @project@ operators each take a stream index, an endpoint for a flow of several streams, and return an endpoint for a singleton flow containing only the specified stream. The @project_i@ operator takes a flow source of several streams, and returns a flow source that selects only the specified stream. The @project_o@ operator takes a flow sink for several streams and returns a sink that discards data in all streams except the specified one.
 
-The @funnel@ combinators take an endpoint for a flow of several streams, and return a singleton flow containing data for \emph{all} streams in the argument flow. These combinators expose a duality in the inversion of control associated with such a stream combinator library. 
+The @funnel@ operators each take an endpoint for a flow of several streams, and return a singleton flow containing \emph{all} data in the argument flow. The @funnel_o@ opeartor also takes the desired arity of the result @Sinks@. These operators expose a duality in the inversion of control associated with a stream combinator library:
 
-With @funnel_i@ the order in which the argument streams are processed is under the control of the \emph{combinator} and is \emph{deterministic} when viewed by the consumer of the result source. In our implementation the default order is to present the data from each of the argument streams from the lowest index to highest. Other orders are possible, such as a round-robin process that produces a single element from each non-empty stream in turn. 
+With @funnel_i@ the order in which the argument streams are processed is under the control of the \emph{operator} and is \emph{deterministic} when viewed by the consumer of the result source. In our implementation the default order is to send data from each argument stream from lowest index to highest. Other orders are possible, such as a round-robin process that produces a single element from each non-empty stream in turn. 
 
-In contrast, with @funnel_o@ the order in which argument streams are processed is controlled by the \emph{context} and is \emph{non-deterministic} when viewed by the consumer attached to the argument sink. Recall that in the implementation of @drainP@ from Figure~\ref{f:Draining} we forked a thread to evaluate each source stream. As each of these threads pushes to its corresponding sink concurrently, if these sinks are then funneled the order in which elements appear in the output may vary from run to run. As the sink may be attached to a shared resource such as a file, this is also the place in the library where we must introduce locks to manage contention, which is the reason the creation of the result sink must be in the @IO@ monad. Other combinators such as @map@ and @folds@ are lock free, as although they are applied to flow endpoints that conceptually process several streams at once, at runtime there is no communication between threads that evaluate each of these streams.
+In contrast, with @funnel_o@ the order in which argument streams are processed is controlled by the \emph{context} and is \emph{non-deterministic} when viewed by the consumer attached to the argument sink. Recall that in the implementation of @drainP@ from Figure~\ref{f:Draining} we forked a thread to evaluate each source stream. As each of these threads pushes to its corresponding sink concurrently, if these sinks are then funneled then the order in which elements appear in the output may vary from run to run. As the sink may be attached to a shared resource such as a file, this is also the place in the library where we must introduce locks to manage contention. Other operators such as @map@ and @folds@ are lock free, as although they are applied to flow endpoints that conceptually carry several streams at once, at runtime there is no communication between the threads that evaluate each of these streams.
 
-The fact that @funnel_o@ is more complex to implement than @funnel_i@ stems from the ``central dogma'' of data flow programming: information flows from inputs to outputs, and when information arrives all at once it's harder to deal with. It also suggests a natural program transformation, which we call \emph{drain fattening}:
+The fact that @funnel_o@ is more complex to implement than @funnel_i@ stems from the ``central dogma'' of data flow programming: information flows from inputs to outputs. If it also flowed the other way then @funnel_i@ would also need locks. The central dogma suggests a natural program transformation, which we name \emph{drain fattening}:
 \begin{alltt}
-        (funnel_i s >>= \(\lambda\)s'. drainP s' k)
-     => (funnel_o k >>= \(\lambda\)k'. drainP s  k')
+    (funnel_i           s >>= \(\lambda\)s'. drainP s' k)
+ => (funnel_o (arity s) k >>= \(\lambda\)k'. drainP s  k')
 \end{alltt}
 
-Which is better expressed as a picture:
+This is better expressed as a picture:
 \begin{center}
 \includegraphics[scale=0.8]{figures/drain-fatten.pdf}
 \end{center}
 
-This is valid provided the consumer of the final result source @k@ performs a commutative reduction, or is otherwise insensitive to the order in which elements arrive. By exchanging the order of the @drainP@ and @funnel@ we allow parallel evaluation of multiple streams in the flow, at the expense of introducing non-determinism in the order in which elements are pushed to the sink.
+Drain fattening is valid provided the consumer of the final result source @k@ performs a commutative reduction, or is otherwise insensitive to the order in which elements arrive. By exchanging the order of @drainP@ and @funnel@ we allow parallel evaluation of multiple streams in the flow, at the expense of introducing non-determinism in the order in which elements are pushed to the sink. Drain fattening expresses the change in computation structure that arises when moving from a process that performs sequential reduction of a data set, to one that performs parallel tree reduction. However, in our case the change in computation structure is separated from the need to actually perform a reduction.
 
-In future work it would be interesting to add a phantom type parameter to our @Sinks@ data type to represent the fact that a particular sink is insensitive to the order in which elements arrive. This would enable us to fatten our drains automatically, but for now the transformation must be performed by hand.
+% In future work it would be interesting to add a phantom type parameter to our @Sinks@ data type to represent the fact that a particular sink is insensitive to the order in which elements arrive. This would enable us to fatten our drains automatically, but for now the transformation must be performed by hand.
 
-Although fattening can only be applied when a @funnel_i@ is syntactically close to a @drainP@, the fact that our combinators come in a variety of polarized versions allows us to pull many of them through a @drainP@ to bring their arguments closer, for example:
+Finally, although the syntactic transform requires @funnel_i@ to be close to @drainP@, the fact that our operators come in a variety of polarity versions allows us to pull many through a @drainP@ to bring their arguments closer, for example:
 \begin{alltt}
   drainP (map_i f s) k  =  drainP s (map_o f k)
 \end{alltt}

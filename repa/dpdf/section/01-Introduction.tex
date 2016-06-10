@@ -1,7 +1,7 @@
 %!TEX root = ../Main.tex
 \section{Introdution}
 
-The functional language ecosystem is blessed with a multitude of libraries for writing streaming data flow programs. Stand out examples for Haskell include iteratee \cite{Kiselyov:iteratee}, enumerator~\cite{hackage:enumerator}, conduit~\cite{hackage:conduit} and pipes~\cite{hackage:pipes}. For Scala we have Scalaz-Streams~\cite{github:scalaz-streams} and Akka~\cite{github:akka}.
+The functional language ecosystem is blessed with a multitude of libraries for writing streaming data flow programs. Stand out examples for Haskell include Iteratee \cite{Kiselyov:iteratee}, Enumerator~\cite{hackage:enumerator}, Conduit~\cite{hackage:conduit} and Pipes~\cite{hackage:pipes}. For Scala we have Scalaz-Streams~\cite{github:scalaz-streams} and Akka~\cite{github:akka}.
 
 Libraries like Iteratee and Enumerator guarantee that the client programs run in constant space, and are commonly used to deal with data sets that do not fit in main memory. However, the same libraries do not provide a notion of \emph{parallelism} to help deal with the implied amount of data. They also lack support for branching data flows where produced streams are consumed by several consumers without the programmer needing to hand fuse the consumers. We provide several techniques to increase the scope of such stream processing libraries:
 
