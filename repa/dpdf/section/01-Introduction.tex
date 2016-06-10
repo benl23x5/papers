@@ -6,14 +6,13 @@ The functional language ecosystem is blessed with a multitude of libraries for w
 Libraries like Iteratee and Enumerator guarantee that the client programs run in constant space, and are commonly used to deal with data sets that do not fit in main memory. However, the same libraries do not provide a notion of \emph{parallelism} to help deal with the implied amount of data. They also lack support for branching data flows where produced streams are consumed by several consumers without the programmer needing to hand fuse the consumers. We provide several techniques to increase the scope of such stream processing libraries:
 
 \begin{itemize}
-\item Our parallel data flows consist of a bundle of streams, where each stream can be processed in a separate thread. \S\ref{s:Streams}
+\item Our parallel data flows consist of a bundle of streams, where each stream can be processed in a separate thread. (\S\ref{s:Streams})
 
-\item Our API uses polarised flow endpoints (@Sources@ and @Sinks@) to ensure that programs run in constant space, even when produced flows are consumed by several consumers.
+\item Our API uses polarised flow endpoints (@Sources@ and @Sinks@) to ensure that programs run in constant space, even when produced flows are consumed by several consumers. (\S\ref{s:Polarity})
 
-\item We show how to design the core API in a generic fashion so that chunk-at-a-time operators can interoperate smoothly with element-at-a-time operators.
+\item We show how to design the core API in a generic fashion so that chunk-at-a-time operators can interoperate smoothly with element-at-a-time operators. (\S\ref{s:Chunked})
 
-
-\item We show how to use Continuation Passing Style to provoke the Glasgow Haskell Compiler into applying stream fusion across chunks processed by independent flow operators. 
+\item We use continuation passing style (CPS) to provoke the Glasgow Haskell Compiler into applying stream fusion across chunks processed by independent flow operators. (\S\ref{s:IntraChunk})
 
 % For example, the map-map fusion on flows arises naturally from map-map fusion rule on chunks (arrays) of elements.
 
@@ -21,5 +20,5 @@ Libraries like Iteratee and Enumerator guarantee that the client programs run in
 
 \end{itemize}
 
-Our target applications concern \emph{medium data}, meaning data that is large enough that it does not fit in the main memory of a normal desktop machine, but not so large that we require a cluster of multiple physical machines. For a lesser amount of data one could simply load the data into main memory and use an in-memory array library. For greater data one needs to turn to a distributed system such as Hadoop~\cite{Shvachko:Hadoop}, Spark~\cite{Zaharia:RDDs} and deal with the unreliable network and lack of shared memory. Repa Flow targets the sweet middle ground.
+Our target applications concern \emph{medium data}, meaning data that is large enough that it does not fit in the main memory of a normal desktop machine, but not so large that we require a cluster of multiple physical machines. For lesser data one could simply load it into main memory and use an in-memory array library. For greater data one needs to turn to a distributed system such as Hadoop~\cite{Shvachko:Hadoop} or Spark~\cite{Zaharia:RDDs} and deal with the unreliable network and lack of shared memory. Repa Flow targets the sweet middle ground.
 

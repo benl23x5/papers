@@ -12,6 +12,7 @@ In our Haskell implementation we use the unboxed @Vector@ type from the standard
 
 % ---------------------------------------------------------
 \subsection{Intra-chunk Fusion}
+\label{s:IntraChunk}
 Happily, the fact that our generic flow operators are written in continuation passing style means that the fusion of operators on chunked streams arises naturally from the array fusion system already implemented in the @vector@ library.
 
 For example, the following is the defininition of the map function for sources of chunked flows. We use the existing @map_i@ operator on generic flows, and the @umap@ operator on unboxed vectors. We suppress type class constraints to save space.
