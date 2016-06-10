@@ -31,7 +31,7 @@ Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, 
 \subsection{Sourcing, Sinking and Draining}
 Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files, as well as @drainP@ which pulls data from a flow source and pushes it to a sink. We elide type class constraints to save space.
 
-Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the correponding stream. In @sinkFs@, the @push@ function writes the provided element to the corresponding file, and @eject@ closes it.
+Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the corresponding stream. In @sinkFs@, the @push@ function writes the provided element to the corresponding file, and @eject@ closes it.
 
 The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use Haskell MVars for communication between threads. After forking the workers, the main thread waits until they are all finished. Now that we have the @drainP@ function, we can write the ``hello world'' of data parallel data flow programming: copy a partitioned data set from one set of files to another:
 
@@ -184,7 +184,7 @@ We can extend @dup_iooi@ to work with any number of argument sinks, for example:
 
 With @dup_ioi@ when we pull from the result source the operator pulls from its argument source and pushes the same data to its argument sinks. 
 
-Figure~\ref{f:Polarity} shows the possible \emph{polarity versions} for the flow duplication operator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the greyed out diagrams are for versions that would require unbounded buffering, while the solid ones require no buffering.
+Figure~\ref{f:Polarity} shows the possible \emph{polarity versions} for the flow duplication operator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the versions in red would require unbounded buffering, while the black ones require no buffering.
 
 \begin{figure}
 \includegraphics[scale=0.7]{figures/polarity.pdf}
