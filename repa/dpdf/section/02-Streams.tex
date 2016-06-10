@@ -276,7 +276,7 @@ In our Repa Flow library we provide only polarity versions that execute without 
 
 
 % ---------------------------------------------------------
-\subsection{Stream projection, funneling, and fattening}
+\subsection{Stream Projection, Funneling, and Fattening}
 So far the operators we have discussed have all performed the same computation each stream in the flow. Here are four basic operators to convert between flows consisting of several streams and \emph{singleton} flows, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
 \begin{code}
 project_i :: i -> Sources i m a -> Sources () m a
