@@ -1,0 +1,201 @@
+
+\clearpage{}
+\begin{flushleft}
+\textbf{Lemma: (Substitution of Types in Types)}
+
+\begin{tabular}{ll}
+ 	If  	& $\kiJudge
+			{\Gamma, \ a : \kappa_3}
+			{\Sigma}
+			{\varphi_1}
+			{\kappa_1}$ 
+	\\
+ 	\ and  	& $\kiJudge
+			{\Gamma}
+			{\Sigma}
+			{\varphi_2}
+			{\kappa_2}$ 
+	\\
+	\ and	& $\kappa_3 \sims \kappa_2$ 
+	\\[1ex]
+	then	& $\kiJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{\varphi_1[\varphi_2/a]}{\kappa_1[\varphi_2/a]}$ 
+	\\
+\end{tabular}
+
+\medskip
+\trb{Proof:} by induction over the derivation of
+		$\kiJudge
+			{\Gamma, \ a : \kappa_3}
+			{\Sigma}
+			{\varphi_1}
+			{\kappa_1}$ 
+
+\medskip
+\begin{tabbing}
+MM \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMMMMMx \= MMMMM  \kill
+\> (IH) 
+	\> Substitution holds for all subterms of $\varphi_1$.
+	\> (assume) 
+\end{tabbing}
+
+\medskip
+% --------------------
+\pCase{$\varphi = a$ / KiVar}
+
+Similarly to Subst Var/Var TyVar case.
+
+\bigskip
+% --------------------
+\pCase{$\varphi = \tyForall{b}{\kappa_1}{\tau}$ / KiAll}
+$$
+\qq	\infer
+	{ (\un{1}) \
+	  \kiJudge
+		{\Gamma, \ a : \kappa_4}
+		{\varphi_1}
+		{\tyForall{b}{\kappa_1}{\tau_1}}
+		{\kappa_2}
+	}
+	{ (4) \ 
+	  \kiJudge
+		{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{\sigma}
+		{\kappa_1}
+	  \quad
+	  (5) \
+	  \kiJudge
+		{\Gamma, \ a : \kappa_4, \ b : \kappa_1}
+		{\Sigma}
+		{\tau_1}
+		{\kappa_2}
+	}
+$$	
+\begin{tabbing}
+MM \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 
+		\> $\kiJudgeGS{\varphi_3}{\kappa_3}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) 
+		\> $\kappa_4 \sims \kappa_3$
+		\> \pby{assume}
+\\[1ex]
+\>	(6) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{\varphi_1[\varphi_3/a]}
+			{\kappa_1[\varphi_3/a]}$
+		\> \pby{IH 4 2 3}
+\\[1ex]
+\>	(7) 	\> $\kiJudge
+			{\Gamma, \ b : \kappa_1}
+			{\Sigma}
+			{\varphi_3}
+			{\kappa_3}$
+		\> \pby{Weak. Type Env 2}
+\\[1ex]
+\>	(8) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a], \ b : \kappa_1[\varphi_3/a]}
+			{\Sigma}
+			{\tau_1[\varphi_3/a]}
+			{\kappa_2[\varphi_3/a]}$
+		\> \pby{IH, Def. Subst 5 7 3}
+\\[1ex]
+\>	(9) 	\> $b \notin \ifv(\Gamma[\varphi_3/a])$
+		\> \pby{Uniqueness of Vars}
+\\[1ex]
+\>	(10) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{(\tyForall{b}{\kappa_1}{\tau_1})[\varphi_3/a]}
+			{\kappa_2[\varphi_3/a]}$
+		\> \pby{KiAll, Def. Sub. 6 8 9}
+\end{tabbing}
+
+\bigskip
+% --------------------
+\pCase{$\varphi = \varphi_1 \ \varphi_2$ / KiApp}
+$$
+\qq	\infer
+	{ (\un{1}) \
+	  \kiJudge
+		{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{\varphi_1 \ \varphi_2}
+		{\kappa_{12} [\varphi_2/a]}
+	}
+	{ (4) \
+	  \kiJudge
+		{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{\varphi_1}
+		{\kiPi{b}{\kappa_{11}}{\kappa_{12}}}
+	  \quad
+	  (5) \
+	  \kiJudge
+		{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{\varphi_2}
+		{\kappa_{11}}
+	}
+$$
+\begin{tabbing}
+MM \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 
+		\> $\kiJudgeGS{\varphi_3}{\kappa_3}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) 
+		\> $\kappa_4 \sims \kappa_3$
+		\> \pby{assume}
+\\[1ex]
+\>	(6) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{\varphi_1[\varphi_3/a]}
+			{\kiPi	{b}
+				{\kappa_{11}[\varphi_3/a]}
+				{(\kappa_{12}[\varphi_3/a])}$
+			}
+		\> \pby{IH, Def. Sub. 4 2 3}
+\\[1ex]
+\>	(7) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{\varphi_2[\varphi_3/a]}
+			{\kappa_{11}[\varphi_3/a]}$
+		\> \pby{IH 5 2 3}
+\\[1ex]
+\>	(8) 	\> ${\Gamma[\varphi_3/a]}
+			\ \vert \ 			{\Sigma}
+			\ \vdash_{\trm{\tiny{T}}} \	{\varphi_1[\varphi_3/a] \ \varphi_2[\varphi_3/a]}$
+\\[0.2ex]
+\>		\> \hspace{12ex} $:: \ \ {(\kappa_{12}[\varphi_3/a])[\varphi_2[\varphi_3/a]/b]}$
+		\> \pby{KiApp 6 7}
+\\[1ex]
+\>	(9) 	\> $b \notin \ifv(\varphi_3)$
+		\> \pby{Uniqueness of Var}
+\\[1ex]
+\>	(10) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{(\varphi_1 \ \varphi_2)[\varphi_3/a]}
+			{(\kappa_{12}[\varphi_2/b])[\varphi_3/a]}$
+		\> \pby{Def. Sub. 8}
+\end{tabbing}
+
+\bigskip
+The remaining cases are similar to the KiApp case.
+
+\end{flushleft}
+
+
+
+
+
+
+

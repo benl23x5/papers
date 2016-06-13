@@ -1,0 +1,26 @@
+% -----
+\chapter{Conclusion}
+
+The work presented in this thesis is embodied in the Disciplined Disciple Compiler (DDC) which can be obtained from the \texttt{haskell.org} website. We have found it invaluable to develop the compiler alongside the source language and type system. Having a real compiler allows us to experiment with example programs that would be impractical to manipulate by hand, and we have been working on DDC since the very start of this project.
+
+DDC is not yet `industrial strength', but it does have enough functionality to compile non-trivial programs. Screenshots from two of our test programs are below. The one on the left is a real-time, 2-dimensional particle collision simulation that uses a quad-tree to determine when two particles are close enough to possibly collide. The second is a simple ray tracer which uses a vector library based on our projection system. 
+
+Developing these programs has given us insight into some of the strengths and weaknesses of our current system. In this chapter we briefly discuss our back-end implementation, identify opportunities for further work, summarise our contributions, and conclude.
+
+\subsubsection{Gratuitous Screenshots}
+
+\begin{tabular}{lll}
+\includegraphics[scale=0.2]{5-Conclusion/Examples/fig/styrene}
+&
+\includegraphics[scale=0.262]{5-Conclusion/Examples/fig/raytracer}
+\end{tabular}
+
+
+
+\input{5-Conclusion/Implementation.tex}
+\input{5-Conclusion/Limitations.tex}
+\input{5-Conclusion/Contributions.tex}
+\input{5-Conclusion/HairShirt.tex}
+\input{5-Conclusion/OnionPeelings.tex}
+
+

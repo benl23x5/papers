@@ -1,0 +1,258 @@
+\clearpage{}
+\section{Constraints and evidence}
+\label{Core:Witnesses}
+
+% ---------------------------------------------------------
+\subsection{Witness passing}
+\label{Core:Witnesses:evidence}
+Consider the Haskell function $\ipairEq$ which tests if the two elements of a pair are equal:
+
+\code{
+	$\ipairEq :: \forall a. \ \iEq \ a \Rightarrow (a, \ a) \rightarrow \iBool$ \\
+	$\ipairEq \ (x, \ y) \ = \ x == y$
+}
+
+In the type signature, the constraint $\iEq \ a$ restricts the types that $a$ can be instantiated with to just those which support equality. This requirement arises because we have used $(==)$ to compare two values of type $a$.
+
+As well as being a type constraint, a Haskell compiler such as GHC would treat $\iEq \ a$ as the type of an extra parameter to $\ipairEq$. In this case, the parameter will include an appropriate function to compare the two elements of the pair. During compilation, the compiler will detect applications of $\ipairEq$ and add an extra argument appropriate to the type it is called at. For example, a GHC style translation of $\ipairEq$ to its core language \cite{hall:type-classes} would yield something similar to:
+
+\code{
+	\mc{2}{$\ipairEq$} \\
+	\ = 	& $\Lambda \ a$		& $: *.$ \\
+		& $\lambda \ \icomp$	& $: (a \to a \to \iBool).$ \\
+		& $\lambda \ \ipair$	& $: (a, \ a).$ \\
+		& \mc{2}{$\kcase \ \ipair \ \kof$} \\
+}
+
+\vspace{-3ex}
+\code{		
+	& & \quad $(x, \ y) \to \icomp \ x \ y$
+}
+
+while an application of this function in the source language:
+
+\code{
+	$\ipairEq \ (2, 3)$
+}
+
+would be translated to:
+
+\code{
+	$\ipairEq \ \iInt \ \iprimIntEq \ (\iPair \ \iInt \ 2 \ 3)$
+}
+
+where $\iprimIntEq$ is the primitive equality function on integers. 
+
+Returning to the translation of $\ipairEq$, the extra parameter $\icomp$ binds \emph{evidence} \cite{jones:qualified-types} that type $a$ really does support the equality operation -- and there is no better evidence than the function which performs it. 
+
+With this in mind, suppose that we were only interested in the fact that $\ipairEq$ requires $a$ to support equality, rather than how to actually evaluate this function at runtime. In the above translation, we managed our evidence at the value level, by explicitly passing around a comparison function. Alternatively, we could manage it at the type level:
+
+\code{
+	\mc{2}{$\ipairEq$} \\
+	\ = 	& $\Lambda \ a$		& $: *.$ \\
+		& $\Lambda \ w$		& $:\iEq \ a.$ \\ 
+		& $\lambda \ \ipair$	& $: (a, \ a).$ \\
+		& \mc{2}{$\kcase \ \ipair \ \kof$} \\
+}
+
+\vspace{-3ex}
+\code{
+	& & \quad $(x, \ y) \rightarrow (==) \ w \ x \ y$
+}
+
+
+\medskip
+In this new translation the extra parameter, $w$, binds a \emph{proof term}. One step removed from value-level evidence, this type-level proof term serves as \emph{witness} that type $a$ really does support equality, and this is recorded in its kind $\iEq \ a$. Now, the application of $(==)$ to the elements of the pair requires type $a$ to support equality, and we satisfy this requirement by passing it our witness to the fact. 
+
+How a particular calling function happens to manufacture its witnesses is of no concern to $\ipairEq$, though they do need to enter the system somehow. In the general case, a caller has three options: require the witness to be passed in by an outer function, combine two witnesses into a third, or construct one explicitly.
+
+For this example, the third option suffices, and we can translate the call as:
+
+\code{
+	$\ipairEq \ \iInt \ (\iMkEq \ \iInt) \ (\iPair \ \iInt \ 2 \ 3)$
+}
+
+The type level function $\iMkEq$ is a \emph{witness constructor} which takes a type, and constructs a witness of kind $Eq \ a$. The expression $(\iMkEq \ \iInt)$ is as an axiom in our proof system, and it is valid to repeat it in the program when required. In contrast, when we discuss witnesses of constancy and mutability in \S\ref{Core:Witnesses:mutability}, their construction will be restricted to certain places in the program, to ensure soundness.
+
+With this plumbing in place we can ensure our code is consistent with respect to which types support equality (or mutability), simply by type checking it in the usual way and then inspecting the way witnesses are constructed.
+
+
+% ---------------------------------------------------------
+\subsection{Dependent kinds}
+
+Dependent kinds are kinds that contain types, and in DDC we use them to describe witness constructors. Dependent kinds were  introduced by the Edinburgh Logical Framework (LF) \cite{avron:edinburgh-lf} which uses them to encode logical rules, and aspects of this framework are present in our core language. Types are viewed as assertions about values, and kinds are viewed as assertions about types. 
+
+Functions that take types to kinds are expressed with the $\Pi$ binder, and we apply such a function by substituting its argument for the bound variable, as usual. For example:
+
+$$	\frac
+		{ \emptyset \judge \iMkEq :: \Pi(a : *). \ \iEq \ a 
+	  	\qq
+	  	\emptyset \judge \iInt :: *
+		}
+		{ \emptyset \judge \iMkEq \ \iInt :: \iEq \ \iInt }
+$$
+
+Note that $\iMkEq \ \iInt$ is a type term, and $\iEq \ \iInt$ is a kind term. In this chapter we use the convention that type constructors starting with ``$\iMk$'' produce witnesses.
+
+
+% ---------------------------------------------------------
+\subsection{Witnesses of mutability}
+\label{Core:Witnesses:mutability}
+When optimising programs involving destructive update, it is of crucial importance that we do not lose track of which regions are mutable and which are supposed to be constant. As mentioned earlier, DDC uses the witness passing mechanism to keep track of this information, both to guide optimisations and as a sanity check on the intermediate code.
+
+Of primary concern are functions that destructively update objects in the store. For example, ignoring effect and closure information, the $\iupdateInt$ function from \S\ref{System:Effect:information-in-types} has type:
+
+\code{
+	$\iupdateInt$
+		$:: \forall r_1 \ r_2. \
+		\iMutable \ r_1 \Rightarrow 
+		\iInt \ r_1 \rightarrow \iInt \ r_2 \rightarrow ()$
+}
+
+Using ideas from \S\ref{Core:Witnesses:evidence}, we treat the region constraint \mbox{$Mutable \ r_1$} as the kind of an extra type parameter to this function. As we are now considering such constraints to also be type \emph{parameters}, we write them in prefix form with $\Rightarrow$ instead of in postfix form with $\rhd$ as we did in the source language.
+
+When we call $\iupdateInt$ we must pass a witness to the fact that $r_1$ is indeed mutable, and we now consider how these witnesses should be constructed. We could perhaps construct them directly at call-sites as per our $\ipairEq$ example. However, unlike the type class situation, the various region class witnesses are not necessarily compatible. For example, there is nothing wrong with  $\iMkEq \ a$ and $\iMkShow \ a$ existing in the same program, but if we have both $\iMkMutable \ r_1$ and $\iMkConst \ r_1$ then something has gone badly wrong.
+
+If we were to allow region witnesses to be constructed anywhere in the intermediate code, then the compiler would need access to the whole program to ensure that multiple incompatible witnesses are not constructed for the same region. This would be impossible to implement with respect to separate compilation.
+
+Instead, we require that all witnesses involving a particular region variable are constructed at the same place in the code, namely the point where the variable itself is introduced. As in \cite{tofte:mlkit-4.3.0}, we use $\kletregion$ to bring region variables into scope. Here is an example program which creates and integer, updates it, and then prints it to the console:
+
+\code{
+	$\iprintMe :: \ () \to ()$ \\
+}
+
+\vspace{-3ex}
+\code{	\mc{3}{$\iprintMe$} \\
+	\ $=$	& $\lambda ().$ \\
+		& $\kletregion \ r_1 \ \kwith \ \{ \ w_1 = \iMkMutable \ r_1 \ \}$	& $\kin$ \\
+		& $\kletregion \ r_2 \ \kwith \ \{ \ w_2 = \iMkConst \ r_2 \ \}$	& $\kin$ \\
+}
+
+\vspace{-3ex}
+\code{
+		& & $\kdo$ \\
+		& & & $x$		& $= \ 5 \ r_1$ \\
+		& & & \mc{2}{$\iupdateInt \ r_1 \ r_2 \ w_1 \ x \ (23 \ r_2)$} \\
+		& & & \mc{2}{$\iprintInt \ r_1 \ x$}
+}
+
+Note that in the core language, literal values such as `$5$' act as constructors that take a region variable and allocate a new object. This gives $x$ the type $\iInt \ r_1$. The only place the constructors $\iMkMutable$ and $\iMkConst$ may be used is in the set of witness bindings associated with a $\kletregion$. In addition, we may only create witnesses for the region variable being introduced, and we cannot create witnesses for mutability and constancy in the same set. This ensures that conflicting region witnesses cannot be created.
+
+To call the $\iupdateInt$ function we \emph{must} have a witness that $r_1$ is mutable. Trying to pass another witness, like the one bound to $w_2$, would result in a type error. With this encoding, it is easy to write code transformations that depend on whether a particular region is mutable or constant. Such a transformation can simply collect the set of region witnesses that are in scope while descending into the abstract syntax tree. We will see an example of this in \S\ref{Core:Optimisation:full-laziness}.
+
+
+% --------------------
+\subsection{Witnesses of purity}
+\label{Core:Witnesses:purity}
+When translating a program which uses lazy evaluation to the core language, we must also construct witnesses of purity. Recall from \S\ref{System:Effects:purification} that the type of $\isuspend$ is:
+
+\code{
+ 	$\isuspend$ & 
+	$:: \forall a \ b \ e_1. \ \iPure \ e_1 \Rightarrow (a \lfuna{e_1} b) \to a \to b$ \\
+}
+
+$\isuspend$ takes a function of type $a \funa{e_1} b$, its argument of type $a$ and builds a thunk that represents the suspended function application. When the thunk is forced, the function will be applied to its argument yielding a result of type $b$. The $\iPure \ e_1$ constraint ensures that the function application being suspended has no visible side effects, so the value of its result will not depend on when it is forced.
+
+We now consider how witnesses of purity are created in the core language. Consider the following source program:
+
+\code{
+	$\ifun$
+		& $::$		& $\forall a \ r_1\ r_2 \ e_1$ \\
+		& $.$		& $(\iInt \ r_1 \lfuna{e_1} a) \to \iBool \ r_2 \to a$ \\
+		& $\rhd$	& $\iPure \ e_1, \ \iConst \ r_2$
+}
+
+\code{
+	\mc{3}{$\ifun \ f \ b$} \\
+	\ $=$	& $\kdo$	& $g \ x$	& $= \kif \ x \ \kthen \ f \ 5 \ \kelse \ f \ 23$ \\
+		&		& \mc{2}{$\isuspend \ g \ b$}
+}
+
+$\ifun$ causes its first parameter to be applied to either 5 or 23, depending on whether its second is true or false. This is done by an auxiliary function, $g$, and the application of this function is suspended. Because the application of $g$ is suspended it must be pure. Note that the purity of $g$ relies on two separate facts: that $f$ is pure, and that $x$ is constant. 
+
+Here is $\ifun$ converted to the core language:
+
+\hspace{-3em}
+\code{
+	\mc{3}{$\ifun$} \\
+	\ $=$	& \mc{2}{$\Lambda \ a \ r_1 \ r_2 \ e_1.$} \\
+		& $\Lambda \ (w_1$	& $: \iPure \ e_1).$ \\
+		& $\Lambda \ (w_2$	& $: \iConst \ r_2).$ \\
+		& $\lambda \ (f$	& $: \iInt \ r_1 \lfuna{e_1} a).$ \\
+		& $\lambda \ (b$	& $: \iBool \ r_2).$ 
+}	
+
+\vspace{-3ex}
+\hspace{-3em}
+\code{
+	& & $\kdo$ \\
+	& & & $g$	& \mc{2}{$= \lambda (x : \iBool \ r_2). 
+						\ \kif \ x \ \kthen \ f \ (5 \ r_1) \ \kelse \ f \ (23 \ r_1)$} 
+}
+
+\vspace{-2ex}
+\hspace{-3em}
+\code{	
+	& & & & $\isuspend$	& $(\iMkPureJoin \ e_1 \ (\iRead r_2) \ w_1 \ (\iMkPurify \ r_2 \ w_2)$) \\
+	& & & &			& $g \ b$
+}
+
+When we call $\isuspend$, the term $(\iMkPureJoin \ e_1 \ (\iRead r_2) \ w_1 \ (\iMkPurify \ r_2 \ w_2))$ builds a witness to the fact that $g$ is pure. Note that in this chapter we treat $\isuspend$ as a primitive, so we do not need applications for the argument and return types, or the effect of the function. The typing rule for $\isuspend$ takes care of this parameterisation.
+
+The witness to the purity of $g$ is constructed from two simpler witnesses, one showing that $e_1$ is pure, and another showing that the read from $r_2$ is pure. The first is given to us by the calling function, and is bound to $w_1$. 
+
+The second is constructed with the $\iMkPurify$ witness constructor which has kind:
+
+\code{
+	$\iMkPurify :: \Pi(r : \%). \iConst \ r \to \iPure \ (\iRead \ r)$
+}
+
+This kind encodes the rule that if a region is constant, then any reads from it can be considered to be pure. When we apply $\iMkPurify$ to $r_2$, this variable is substituted for both occurrences of $r$ yielding:
+
+\code{
+	$(\iMkPurify \ r_2) :: \iConst \ r_2 \to \iPure \ (\iRead \ r_2)$
+}
+
+From the $\Lambda$-binding at the beginning of the function we have $w_2 :: \iConst \ r_2$, so applying $w_2$ as the final argument gives:
+
+\code{
+	$(\iMkPurify \ r_2 \ w_2) :: \iPure \ (\iRead \ r_2)$
+}
+
+Which shows that a read from $r_2$ is indeed pure.
+
+What remains is to join the two simple witnesses together. This is done with the $\iMkPureJoin$ witness constructor which has kind:
+
+\code{
+	\mc{3}{$\iMkPureJoin$}	\\
+	& $::$	& $\Pi(e_1 :: \ !). \ \Pi(e_2 :: \ !)$ \\
+	& $.$	& $\iPure \ e_1 \to \iPure \ e_2 \to \iPure \ (e_1 \lor e_2)$
+}
+
+Applying the first two arguments gives:
+
+\code{
+	\mc{3}{$(\iMkPureJoin \ e_1 \ (\iRead \ r_2))$} \\
+	& $::$	& $\iPure \ e_1 \to \iPure \ (\iRead \ r_2) \to \iPure \ (e_1 \lor \iRead \ r_2)$
+}
+
+This says that if we have a witness that the effect $e_1$ is pure and a witness that the effect $\iRead \ r_2$ is pure, the combination of these two effects is also pure. Our final witness then becomes:
+
+\code{
+	\mc{3}{$(\iMkPureJoin \ e_1 \ (\iRead \ r_2) \ w_1 \ (\iMkPurify \ r_2 \ w_2))$} \\
+	& $::$	& $\iPure \ (e_1 \lor \iRead \ r_2)$
+}
+
+The effect $e_1 \lor \iRead \ r_2$ is exactly the effect of $g$, so the above witness is sufficient to prove that we can safely suspend a call to it.
+
+Note that we do not need witnesses of \emph{impurity}. The fact that an expression is pure gives us the capability to suspend its evaluation, and by constructing a witness of purity we prove that this capability exists. In contrast, the fact that an expression is impure is not a capability, because it does not allow us to do anything ``extra'' with that expression.
+
+
+
+
+
+
+
+
+
+

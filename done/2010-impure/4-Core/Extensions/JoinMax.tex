@@ -1,0 +1,71 @@
+
+\clearpage{}
+\subsection{Effect joining in value types}
+
+Consider the following source program:
+
+\code{
+	$\ifive$	& $= 5$ \\
+	$f$		& \mc{3}{$= \kif \ ... \ $} \\
+			& & $\kthen$ & $(\lambda (). \ \isucc \ \ifive)$  \\
+			& & $\kelse$ & $(\lambda (). \ \kdo \ \{ \ \iputStr ``\texttt{hello}"; \ \isucc \ \ifive \} )$ 
+}
+
+\quad with
+
+\code{
+	$\iputStr$	
+	& $::$		& $\forall r_1. \iString \ r_1 \lfuna{e_1} ()$	\\
+	& $\rhd$	& $e_1 = \iRead \ r_1 \lor \iConsole$
+}
+
+Note that in the definition of $f$, the two functions in the right of the if-expression have different effects. The first reads the integer bound to $\ifive$, but the second also prints to the console. If we set $\ifive$ to have type $\iInt \ r_5$, then these two expressions have the following types:
+
+\code{
+	\mc{3}{$(\lambda x. \ \isucc \ \ifive)$}  \\
+		& :: 		& $() \lfuna{e_1} \iInt \ r_1$ \\
+		& $\rhd$	& $e_1 = \iRead \ r_5$ \\
+}
+
+\code{
+	\mc{3}{$(\lambda (). \ \kdo \ \{ \ \iputStr ``\texttt{hello}"; \ \isucc \ \ifive \} )$}  \\
+		& :: 		& $() \lfuna{e_2} \iInt \ r_1$ \\
+		& $\rhd$	& $e_2 = \iRead \ r_5 \lor \iConsole$ \\
+}
+
+As it stands, we cannot translate this program directly to our core language, because the typing rule TyIf of \S\ref{Core:Simplified:TypesOfTerms} requires both alternatives to have similar types, inclusive of effect information. We support such programs by extending the definition of $\lor$ to join the effects contained within value types, and use this operator to compute the resulting type of if-expressions. This mirrors what happens during type inference.
+
+\quad
+\begin{tabular}{rll}
+	$(\tau_{1} \lfuna{e_1} \tau_{2}) \lor (\tau_{1} \lfuna{e_2} \tau_{3})$
+		& $\equiv$	& $\tau_{1} \funa{e_1 \lor e_2} (\tau_{2} \lor \tau_{3})$		
+\end{tabular}
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TyIfJoin}
+		{ \begin{aligned}
+			\\
+			\tyJudge	{\Gamma} {\Sigma} {t_1} {\iBool \ \varphi} {\sigma_1}
+		  \end{aligned}
+		  \tspace
+		  \begin{aligned}
+		  	\tyJudge	{\Gamma} {\Sigma&} {t_2} {\tau_2} {\sigma_2} \\
+			\tyJudge	{\Gamma} {\Sigma&} {t_3} {\tau_3} {\sigma_3} 
+		  \end{aligned}
+		  \tspace 
+		  \begin{aligned}
+		  	\\
+			\tau = \tau_2 \lor \tau_3
+		  \end{aligned}
+		}
+		{ \tyJudgeGS	{\teIf {t_1} {t_2} {t_3}} {\tau} 
+				{\sigma_1 \lor \sigma_2 \lor \sigma_3 \lor \iRead \ \varphi}
+		}
+	\end{gather}
+}
+
+\bigskip
+Note that as our type inference algorithm only performs generalisation at let-bindings, the types of alternatives will never contain quantifiers. For this reason we don't need to define $\lor$ over quantified types. Also, as we only strengthen the manifest effects of a function type, the effect annotations on parameters will always be variables. Similarly to \S\ref{Core:Extensions:Bounded}, this guarantees that the effect annotations in function parameters are variables, so we don't have to join them.
+
+An alternate method would be to provide an explicit type annotation for the result of the if-expression, and use the subsumption judgement to check that the types of both alternatives are less than the annotation. This approach was taken in \cite{nielson:from-cml-to-its-process-algebra}, but we avoid it because it increases the volume of annotation.

@@ -1,0 +1,56 @@
+\clearpage{}
+\subsection{Subsumption}
+
+\bigskip
+\ruleBox{
+	\begin{center}
+	\fbox{$\suJudgeGS{\sigma}{\sigma'}$}
+	\end{center}
+	\begin{gather}
+	\ruleI	{SubRefl}
+		{\siJudgeS{\sigma_1}{\sigma_2}}
+		{\suJudgeGS{\sigma_1}{\sigma_2}}
+	\ruleSkip
+	\ruleI	{SubTrans}
+		{ \suJudgeGS{\sigma_1}{\sigma_2}
+		  \tspace 
+		  \suJudgeGS{\sigma_2}{\sigma_3} 
+		}
+		{ \suJudgeGS{\sigma_1}{\sigma_3} }
+	\ruleSkip
+	\ruleI	{SubTop}
+		{ \kiJudgeGS{\sigma}{\ !} }
+		{ \suJudgeGS{\sigma}{\top} }
+	\ruleSkip
+	\ruleI	{SubBot}
+		{ \kiJudgeGS{\sigma}{\ !} }
+		{ \suJudgeGS{\bot}{\sigma} }
+	\ruleSkip
+	\ruleI	{SubJoin1}
+		{ \suJudgeGS{\sigma_1}{\sigma_3}
+		  \tspace	
+	 	  \suJudgeGS{\sigma_2}{\sigma_3}
+		}
+		{ \suJudgeGS{\sigma_1 \lor \sigma_2}{\sigma_3} }
+	\ruleSkip
+	\ruleI	{SubJoin2}
+		{ \suJudgeGS{\sigma_1}{\sigma_2}
+		  \tspace
+		  \kiJudgeGS{\sigma_2 \lor \sigma_3}{\ !}
+		}
+		{ \suJudgeGS{\sigma_1}{\sigma_2 \lor \sigma_3} }
+	\ruleSkip
+	\ruleI	{ SubPurify}
+		{ \kiJudgeGS{\delta}{\iPure \ \sigma} }
+		{ \suJudgeGS{\sigma}{\bot} }
+	\end{gather}
+}
+
+\bigskip
+
+The judgement form $\Gamma \judge \sigma \tle \sigma'$ reads: with environment $\Gamma$ and store typing $\Sigma$, effect $\sigma$ is subsumed by effect $\sigma'$. 
+
+All but the last of these rules are standard. Note that the type environment $\Gamma$ is not used in the premises of these rules. We will make use of it when we discuss bounded quantification in \S\ref{Core:Extensions:Bounded}.
+
+SubPurify says that if we have a $\iPure \ \sigma$ witness, then we can treat $\sigma$ as being pure. This rule is the keystone of our system. It allow us to use the information embodied in a witness to reason that the evaluation of an expression with a read effect cannot interfere with others. The rule is used in the TySuspend case when proving preservation of effects under evaluation in Appendix \ref{proofs}. 
+

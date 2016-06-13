@@ -1,0 +1,85 @@
+\section{Linear and uniqueness typing}
+
+Linear typing is a way to enforce that particular values in a program, like our $\iworld$ token, are used in a single threaded manner. Linear values can be used once, and once only, and cannot be discarded~\cite{wadler:linear-types}. Uniqueness typing combines conventional typing with linear typing so that non-linear values, capable of being shared and discarded, can exist in the same program as linear values~\cite{barendsen:uniqueness}. This can be done by adding sub-typing and coercion constraints between uniqueness variables as in Clean~\cite{barendsen:conventional-and-uniqueness}, or more recently, by using boolean algebra and unification as in Morrow~\cite{vries:uniqueness-typing-simplified}.
+
+With uniqueness typing we can give $\iputStr$ the following type:
+
+\code{
+	$\iputStr :: \iString^\times \lfuna{\times} \iWorld^\bullet \lfuna{\times} \iWorld^\bullet$
+}
+
+The first $\bullet$ annotation indicates that when we apply this function, the world token passed to it must not be shared with any other expression. On the right of the arrow, the $\bullet$ indicates that when the function returns, there will be no other references to the token bar this one. This forces the world token to be used in a single threaded manner, and not duplicated. In contrast, the $\times$ annotation indicates that the $\iString$ and function values may be shared with other parts of the program. 
+
+Using this new type explicitly disallows sharing the world as per the example from the previous section:
+
+\code{
+	\mc{3}{$\klet \ \iprog \ \iworld$} \\
+	\ = &	$(\klet$  & $(x, \_ ) = \iputStr \ ``hello"  \ \iworld$ \\
+    	&		  & $(y, \_ ) = \iputStr \ ``world"  \ \iworld$ \\
+    	&	$\ \kin$  & $\ifun \ x \ y \ \iworld)$ \\
+	\mc{3}{$\kin \ \irunProg \ \iprog$} 
+}
+
+Here, the world token passed to $\iputStr$ is non-unique because there are three separate occurrences of this variable. On an operational level, we can imagine that in a call-by-need implementation, a thunk is created for each of the let bindings, and each of those thunks will hold a pointer to it until they are forced.
+
+Uniqueness typing can also be used to introduce destructive update into a language whilst maintaining the illusion of purity. From this point on we will elide $\times$ annotations on function constructors to make the types clearer.
+
+Using the Morrow~\cite{vries:uniqueness-typing-simplified} system we could define:
+
+\code{
+	$\inewArray$ & $
+		:: \iInt^\times
+		\lfun (\iInt^\times \to a^u) 
+		\lfun \iArray^\bullet \ a^u$
+	\\
+	$\iupdate$ & $
+		:: \iArray^\bullet \ a^u
+		\lfun \iInt^\times
+		\lfuna{\bullet} a^u
+		\lfuna{\bullet} \iArray^\bullet \ a^u$
+}
+
+$\inewArray$ takes the size of the array, a function to create each initial element, and produces a unique array. The $u$ annotation on the type variable $a$ is a uniqueness variable, and indicates that the array elements are polymorphic in uniqueness. The $\iupdate$ function takes an array, the index of the element to be updated, the new element value, and returns the updated array. Notice the uniqueness annotations on the two right most function arrows of $\iupdate$. As we allow partial application we must prevent the possibility of just the array argument being supplied and the resulting function additionally shared. When applying a primitive function like $\iupdate$ to a single argument, many implementations will build a thunk containing a pointer to the argument, along with a pointer to the code for $\iupdate$. If we were to share the thunk then we would also share the argument pointer, violating uniqueness.
+
+Making the array unique forces it to be used in a single threaded manner. This in turn allows the runtime system to use destructive update instead of copy when modifying it. We can do this whilst maintaining purity, as uniqueness ensures that only a single function application will be able to observe the array's state before it is updated. 
+
+To read back an element from the array we can use the select function:
+
+\code{
+	$\iselect 
+		:: \iArray^\bullet \ a^\times
+		\lfun \iInt^\times
+		\lfuna{\bullet} (a^\times, \ \iArray^\bullet \ a^\times)^\bullet$
+}
+
+$\iselect$ takes an array, the index of the element of interest and returns the element and the original array. As the tuple returned by the function contains a unique array it must also be unique. This is known as \emph{uniqueness propagation}\cite{barendsen:conventional-and-uniqueness}. Similarly to the partial application case, if the tuple could be shared by many expressions then each would also have a reference to the array, ruining uniqueness. 
+
+Notice that it is only possible to select \emph{non-unique} elements with this function. After $\iselect$ returns there will always be two references to the element, the one returned directly in the tuple and the one \emph{still in the array}.
+
+One way to work around this problem is to replace the element of interest with a dummy at the same moment we do the selection. Of course, once we have finished with the element we must remember to swap it back into the array. By doing this we can preserve uniqueness, but at the cost of requiring a different style of programming for unique and non-unique elements.
+
+\code{
+	$\ireplace 
+		:: \iArray^\bullet \ a^\bullet 
+		\lfun \iInt^\times 
+		\lfuna{\bullet} \ a^\bullet \
+		\lfuna{\bullet} (a^\bullet, \ \iArray^\bullet a^\bullet)^\bullet$
+}
+
+Uniqueness typing goes a long way towards introducing destructive update into a language, while maintining the benefits of purity. Unfortunately, besides the added complexity to the type system, programs using it can become quite verbose. Having the required data dependencies in one's code is all well and good, but manually plumbing every unique object around the program can become tedious. 
+
+We will take a moment to meditate on the following type signature, from the \texttt{analtypes} module of the Clean 2.2 compiler source code:
+\begin{lstlisting}
+checkKindsOfCommonDefsAndFunctions 
+    :: !Index !Index !NumberSet ![IndexRange] 
+       !{#CommonDefs} !u:{# FunDef} !v:{#DclModule} 
+       !*TypeDefInfos !*ClassDefInfos !*TypeVarHeap 
+       !*ExpressionHeap !*GenericHeap !*ErrorAdmin 
+    -> ( !u:{# FunDef}, !v:{#DclModule},  !*TypeDefInfos
+       , !*TypeVarHeap, !*ExpressionHeap, !*GenericHeap
+       , !*ErrorAdmin)
+\end{lstlisting}
+
+This function has thirteen arguments, and the returned tuple contains 7 components. The \texttt{!}, \texttt{\#} and \texttt{*} are strictness, unboxedness and uniqueness annotations respectively, and \texttt{\{a\}} denotes an array of elements of type \texttt{a}.
+
+Admittedly, we did spend a few minutes looking for a good example, but the verbosity of this signature is not unique among its brethren. We are certainly not implying that the Clean implementer's coding abilities are anything less than first rate. However, we do suggest that the requirement to manually plumb state information around a program must be alleviated before such a language is likely to be adopted by the community at large. With this point in mind, we press on to the next section.

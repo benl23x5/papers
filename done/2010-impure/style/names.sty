@@ -1,0 +1,598 @@
+
+% -- Macros ---------------------------------------------------------------------------------------
+\newcommand{\opit}[1]		{\operatorname{\mathit{#1}}}
+
+% -- Small Caps ------------------------------------------------------------------------------------
+\newcommand{\scProcedure}	{P\textsc{rocedure}}
+\newcommand{\scObserver}	{O\textsc{bserver}}
+\newcommand{\scFunction}	{F\textsc{unction}}
+\newcommand{\scPure}		{P\textsc{ure}}
+
+% -- Meta Names ------------------------------------------------------------------------------------
+\newcommand{\iObserve}		{\opit{Observe}}
+\newcommand{\ifreshen}		{\opit{freshen}}
+\newcommand{\ilink}		{\opit{link}}
+\newcommand{\ilinkm}		{\opit{linkm}}
+\newcommand{\ishapem}		{\opit{shapem}}
+
+
+\newcommand{\rValue}		{ \trm{Value} }
+\newcommand{\rINST}		{ \trm{INST}}
+\newcommand{\rInst}		{ \trm{Inst}}
+\newcommand{\rGEN}		{ \trm{GEN}}
+\newcommand{\rGen}		{ \trm{Gen}}
+\newcommand{\rPROJ}		{ \trm{PROJ}}
+\newcommand{\rLAM}		{ \trm{LAM}}
+\newcommand{\rLET}		{ \trm{LET}}
+\newcommand{\rbSLURP}		{ \textrm{\textbf{SLURP}}}
+\newcommand{\rbSLURPP}		{ \textrm{\textbf{SLURPP}}}
+\newcommand{\rbCase}		{ \textrm{\textbf{Case}}}
+\newcommand{\rbProof}		{ \textrm{\textbf{Proof}}}
+
+\newcommand{\rpropOf}		{ \trm{propOf} }
+
+\newcommand{\iSyntaxTree}	{ \opit{SyntaxTree}}
+\newcommand{\iAnnotSyntaxTree}	{ \opit{AnnotSyntaxTree}}
+\newcommand{\iTypeVar}		{ \opit{TypeVar}}
+\newcommand{\iEffectVar}	{ \opit{EffectVar}}
+\newcommand{\iConstraintTree}	{ \opit{ConstraintTree}}
+
+% -- Keywords --------------------------------------------------------------------------------------
+\newcommand{\kdata}		{\textrm{\textbf{data}}}
+\newcommand{\keffect}		{\textrm{\textbf{effect}}}
+\newcommand{\klet}		{\textrm{\textbf{let}}}
+\newcommand{\kletrec}		{\textrm{\textbf{letrec}}}
+\newcommand{\kin}		{\textrm{\textbf{in}}}
+\newcommand{\kof}		{\textrm{\textbf{of}}}
+\newcommand{\kdo}		{\textrm{\textbf{do}}}
+\newcommand{\kcase}		{\textrm{\textbf{case}}}
+\newcommand{\kletregion}	{\textrm{\textbf{letregion}}}
+\newcommand{\ktype}		{\textrm{\textbf{type}}}
+\newcommand{\knewtype}		{\textrm{\textbf{newtype}}}
+\newcommand{\kfor}		{\textrm{\textbf{for}}}
+\newcommand{\kswitch}		{\textrm{\textbf{switch}}}
+\newcommand{\kclass}		{\textrm{\textbf{class}}}
+\newcommand{\kinstance}		{\textrm{\textbf{instance}}}
+\newcommand{\kwhere}		{\textrm{\textbf{where}}}
+\newcommand{\kwith}		{\textrm{\textbf{with}}}
+\newcommand{\kif}		{\textrm{\textbf{if}}}
+\newcommand{\kthen}		{\textrm{\textbf{then}}}
+\newcommand{\kelse}		{\textrm{\textbf{else}}}
+\newcommand{\kproject}		{\textrm{\textbf{project}}}
+\newcommand{\kconst}		{\textrm{\textbf{const}}}
+\newcommand{\kmutable}		{\textrm{\textbf{mutable}}}
+\newcommand{\kat}		{\textrm{\textbf{at}}}
+\newcommand{\kstruct}		{\textrm{\textbf{struct}}}
+\newcommand{\kregionsUof}	{\textrm{\textbf{regionsUof}}}
+\newcommand{\kpure}		{\textrm{\textbf{pure}}}
+\newcommand{\kreturn}		{\textrm{\textbf{return}}}
+\newcommand{\kclose}		{\textrm{\textbf{close}}}
+\newcommand{\kmask}		{\textrm{\textbf{mask}}}
+
+\newcommand{\rblet}		{\textrm{\textbf{let}}}
+\newcommand{\rbin}		{\textrm{\textbf{in}}}
+\newcommand{\rbletregion}	{\textrm{\textbf{letregion}}}
+\newcommand{\rbif}		{\textrm{\textbf{if}}}
+\newcommand{\rbthen}		{\textrm{\textbf{then}}}
+\newcommand{\rbelse}		{\textrm{\textbf{else}}}
+\newcommand{\rbcase}		{\textrm{\textbf{case}}}
+\newcommand{\rbof}		{\textrm{\textbf{of}}}
+\newcommand{\rbmask}		{\textrm{\textbf{mask}}}
+\newcommand{\rbfn}		{\textrm{\textbf{fn}}}
+\newcommand{\rbfun}		{\textrm{\textbf{fun}}}
+
+
+% -- Witness Kind Constructors --------------------------------------------------------------------
+\newcommand{\rbPure}		{\textrm{\textbf{Pure}}}
+\newcommand{\rbConst}		{\textrm{\textbf{Const}}}
+\newcommand{\rbMutable}		{\textrm{\textbf{Mutable}}}
+\newcommand{\rbDirect}		{\textrm{\textbf{Direct}}}
+\newcommand{\rbLazy}		{\textrm{\textbf{Lazy}}}
+\newcommand{\rbEq}		{\textrm{\textbf{Eq}}}
+
+
+% -- Information Constructors ---------------------------------------------------------------------
+\newcommand{\iIApp}		{\opit{IApp}}
+\newcommand{\iIInst}		{\opit{IInst}}
+\newcommand{\iIVar}		{\opit{IVar}}
+\newcommand{\iIUseDef}		{\opit{IUseDef}}
+\newcommand{\iIPurify}		{\opit{IPurify}}
+\newcommand{\iIPurifyTrans}	{\opit{IPurifyTrans}}
+
+% -- Type Constructors ----------------------------------------------------------------------------
+\newcommand{\iBool}		{\opit{Bool}}
+\newcommand{\iInt}		{\opit{Int}}
+\newcommand{\iList}		{\opit{List}}
+\newcommand{\iSet}		{\opit{Set}}
+\newcommand{\iPair}		{\opit{Pair}}
+\newcommand{\iChar}		{\opit{Char}}
+\newcommand{\iString}		{\opit{String}}
+\newcommand{\iIntVector}	{\opit{IntVector}}
+\newcommand{\iFilePath}		{\opit{FilePath}}
+\newcommand{\iMaybe}		{\opit{Maybe}}
+\newcommand{\iArray}		{\opit{Array}}
+\newcommand{\iIdentity}		{\opit{Identity}}
+\newcommand{\iUnit}		{\opit{Unit}}
+\newcommand{\iDictCopy}		{\opit{DictCopy}}
+\newcommand{\iMkDictCopy}	{\opit{MkDictCopy}}
+\newcommand{\iDictFoo}		{\opit{DictFoo}}
+\newcommand{\iMkDictFoo}	{\opit{MkDictFoo}}
+\newcommand{\iFunThing}		{\opit{FunThing}}
+\newcommand{\iFThing}		{\opit{FThing}}
+\newcommand{\iFInt}		{\opit{FInt}}
+\newcommand{\iFFunX}		{\opit{FFunX}}
+\newcommand{\iTwoThings}	{\opit{TwoThings}}
+\newcommand{\iThingOne}		{\opit{Thing1}}
+\newcommand{\iThingTwo}		{\opit{Thing2}}
+\newcommand{\iTupleTwo}		{\opit{Tuple2}}
+\newcommand{\iIInt}		{\opit{IInt}}
+\newcommand{\iIntFunMixed}	{\opit{IntFunMixed}}
+\newcommand{\iIntFunDiet}	{\opit{IntFunDiet}}
+\newcommand{\iFChar}		{\opit{FChar}}
+\newcommand{\iFFun}		{\opit{FFun}}
+\newcommand{\iRefP}		{\opit{RefP}}
+\newcommand{\iGotInt}		{\opit{GotInt}}
+\newcommand{\iNope}		{\opit{Nope}}
+\newcommand{\iIntThing}		{\opit{IntThing}}
+\newcommand{\iThing}		{\opit{Thing}}
+\newcommand{\iObj}		{\opit{Obj}}
+\newcommand{\iPtr}		{\opit{Ptr}}
+\newcommand{\iShared}		{\opit{Shared}}
+\newcommand{\iSharedT}		{\opit{SharedT}}
+\newcommand{\iSharedC}		{\opit{SharedC}}
+\newcommand{\iMkT}		{\opit{MkT}}
+
+\newcommand{\rBool}		{\textrm{Bool}}
+\newcommand{\rInt}		{\textrm{Int}}
+\newcommand{\rList}		{\textrm{List}}
+
+% -- Effect Constructors --------------------------------------------------------------------------
+\newcommand{\iRead}		{\opit{Read}}
+\newcommand{\iReadH}		{\opit{ReadH}}
+\newcommand{\iReadT}		{\opit{ReadT}}
+\newcommand{\iWrite}		{\opit{Write}}
+\newcommand{\iWriteT}		{\opit{WriteT}}
+
+\newcommand{\iAlloc}		{\opit{Alloc}}
+\newcommand{\iInit}		{\opit{Init}}
+\newcommand{\iConsole}		{\opit{Console}}
+\newcommand{\iFileSystem}	{\opit{FileSystem}}
+\newcommand{\iNetwork}		{\opit{Network}}
+
+\newcommand{\rRead}		{\textrm{Read}}
+\newcommand{\rWrite}		{\textrm{Write}}
+\newcommand{\rInit}		{\textrm{Init}}
+
+\newcommand{\iMotionSensor}	{\opit{MotionSensor}}
+\newcommand{\iRobotArm}		{\opit{RobotArm}}
+\newcommand{\iBlinkyLight}	{\opit{BlinkyLight}}
+
+
+% -- Witness Constructors -------------------------------------------------------------------------
+\newcommand{\iCopy}		{\opit{Copy}}
+\newcommand{\iMutable}		{\opit{Mutable}}
+\newcommand{\iMutableT}		{\opit{MutableT}}
+\newcommand{\iConst}		{\opit{Const}}
+\newcommand{\iConstT}		{\opit{ConstT}}
+\newcommand{\iPure}		{\opit{Pure}}
+\newcommand{\iPureJoin}		{\opit{PureJoin}}
+\newcommand{\iPurify}		{\opit{Purify}}
+\newcommand{\iEmpty}		{\opit{Empty}}
+\newcommand{\iEq}		{\opit{Eq}}
+\newcommand{\iReadable}		{\opit{Readable}}
+\newcommand{\iWritable}		{\opit{Writable}}
+\newcommand{\iShow}		{\opit{Show}}
+\newcommand{\iHasField}		{\opit{HasField}}
+\newcommand{\iHasProj}		{\opit{HasProj}}
+\newcommand{\iShape}		{\opit{Shape}}
+\newcommand{\iShapeOne}		{\opit{Shape1}}
+\newcommand{\iShapeTwo}		{\opit{Shape2}}
+\newcommand{\iShapeThree}	{\opit{Shape3}}
+\newcommand{\iDirect}		{\opit{Direct}}
+\newcommand{\iLazy}		{\opit{Lazy}}
+\newcommand{\iLazyH}		{\opit{LazyH}}
+\newcommand{\iUpdate}		{\opit{Update}}
+\newcommand{\iLifted}		{\opit{Lifted}}
+\newcommand{\iUnlifted}		{\opit{Unlifted}}
+\newcommand{\iElem}		{\opit{Elem}}
+\newcommand{\iLazyToDirect}	{\opit{LazyToDirect}}
+\newcommand{\iMkLazyToDirectConv} {\opit{MkLazyToDirectConv}}
+\newcommand{\iAlias}		{\opit{Alias}}
+\newcommand{\iMkNoAlias}	{\opit{MkNoAlias}}
+
+\newcommand{\iBlocked}		{\opit{Blocked}}
+\newcommand{\iMkMutable}	{\opit{MkMutable}}
+\newcommand{\iMkConst}		{\opit{MkConst}}
+\newcommand{\iMkPure}		{\opit{MkPure}}
+\newcommand{\iMkPurify}		{\opit{MkPurify}}
+\newcommand{\iMkPureJoin}	{\opit{MkPureJoin}}
+\newcommand{\iMkEq}		{\opit{MkEq}}
+\newcommand{\iMkShow}		{\opit{MkShow}}
+\newcommand{\iMkDirect}		{\opit{MkDirect}}
+\newcommand{\iMkLazy}		{\opit{MkLazy}}
+\newcommand{\iMk}		{\opit{Mk}}
+\newcommand{\iNoAlias}		{\opit{NoAlias}}
+
+\newcommand{\rConst}		{\textrm{Const}}
+\newcommand{\rMutable}		{\textrm{Mutable}}
+\newcommand{\rDirect}		{\textrm{Direct}}
+\newcommand{\rLazy}		{\textrm{Lazy}}
+\newcommand{\rEq}		{\textrm{Eq}}
+
+\newcommand{\rPure}		{\textrm{Pure}}
+\newcommand{\rPurify}		{\textrm{Purify}}
+\newcommand{\rPureJoin}		{\textrm{PureJoin}}
+
+
+% -- Witnesses ------------------------------------------------------------------------------------
+\newcommand{\rmutable}		{\textrm{mutable}}
+\newcommand{\rconst}		{\textrm{const}}
+\newcommand{\rpure}		{\textrm{pure}}
+
+
+% -- Values ---------------------------------------------------------------------------------------
+
+% -- Data Constructors
+\newcommand{\iTrue}		{\opit{True}}
+\newcommand{\iFalse}		{\opit{False}}
+\newcommand{\iRef}		{\opit{Ref}}
+\newcommand{\iCons}		{\opit{Cons}}
+\newcommand{\iNil}		{\opit{Nil}}
+\newcommand{\iMkPair}		{\opit{MkPair}}
+\newcommand{\iJust}		{\opit{Just}}
+\newcommand{\iNothing}		{\opit{Nothing}}
+\newcommand{\iParser}		{\opit{Parser}}
+\newcommand{\iIO}		{\opit{IO}}
+\newcommand{\iTheWorld}		{\opit{TheWorld}}
+\newcommand{\iMap}		{\opit{Map}}
+\newcommand{\iData}		{\opit{Data}}
+\newcommand{\iFloat}		{\opit{Float}}
+\newcommand{\iDouble}		{\opit{Double}}
+\newcommand{\iWord}		{\opit{Word}}
+\newcommand{\iReaderT}		{\opit{ReaderT}}
+\newcommand{\iXConf}		{\opit{XConf}}
+\newcommand{\iStateT}		{\opit{StateT}}
+\newcommand{\iXState}		{\opit{XState}}
+\newcommand{\iMonadIO}		{\opit{MonadIO}}
+\newcommand{\iliftIO}		{\opit{liftIO}}
+\newcommand{\iio}		{\opit{io}}
+\newcommand{\iMonad}		{\opit{Monad}}
+\newcommand{\iNest}		{\opit{Nest}}
+\newcommand{\iMkNest}		{\opit{MkNest}}
+\newcommand{\iIndentity}	{\opit{Identity}}
+\newcommand{\iIV}		{\opit{IV}}
+\newcommand{\iIntFun}		{\opit{IntFun}}
+\newcommand{\iSInt}		{\opit{SInt}}
+\newcommand{\iSFun}		{\opit{SFun}}
+\newcommand{\iTone}		{\opit{T1}}
+\newcommand{\iTtwo}		{\opit{T2}}
+\newcommand{\iVecTwo}		{\opit{Vec2}}
+\newcommand{\iVecThree}		{\opit{Vec3}}
+\newcommand{\iFoo}		{\opit{Foo}}
+\newcommand{\iMkFoo}		{\opit{MkFoo}}
+\newcommand{\iMkVecTwo}		{\opit{MkVec2}}
+\newcommand{\iMkVecThree}	{\opit{MkVec3}}
+\newcommand{\iSThingX}		{\opit{SThingX}}
+\newcommand{\iSFunX}		{\opit{SFunX}}
+\newcommand{\iSIntX}		{\opit{SIntX}}
+\newcommand{\iSCharX}		{\opit{SCharX}}
+\newcommand{\iSIntD}		{\opit{SIntD}}
+\newcommand{\iSFunD}		{\opit{SFunD}}
+\newcommand{\iArea}		{\opit{Area}}
+\newcommand{\iFigure}		{\opit{Figure}}
+\newcommand{\iCircle}		{\opit{Circle}}
+\newcommand{\iRectangle}	{\opit{Rectangle}}
+\newcommand{\iTOne}		{\opit{T1}}
+\newcommand{\iTTwo}		{\opit{T2}}
+\newcommand{\iSM}		{\opit{SM}}
+
+% -- Common
+\newcommand{\ixx}		{\opit{xx}}
+\newcommand{\ixs}		{\opit{xs}}
+\newcommand{\irx}		{\opit{rx}}
+\newcommand{\irxs}		{\opit{rxs}}
+\newcommand{\iys}		{\opit{ys}}
+
+% -- Example Variables
+
+% abc
+\newcommand{\iaZero}		{\opit{a0}}
+\newcommand{\iaOne}		{\opit{a1}}
+\newcommand{\iaTwo}		{\opit{a2}}
+\newcommand{\iaThree}		{\opit{a3}}
+\newcommand{\iany}		{\opit{any}}
+\newcommand{\iangle}		{\opit{angle}}
+\newcommand{\iaddT}		{\opit{addT}}
+\newcommand{\iaddFive}		{\opit{addFive}}
+\newcommand{\iaddTwo}		{\opit{addTwo}}
+\newcommand{\iaddShape}		{\opit{addShape}}
+\newcommand{\iactivevars}	{\opit{activevars}}
+\newcommand{\iarg}		{\opit{arg}}
+\newcommand{\iappFive}		{\opit{appFive}}
+\newcommand{\iargs}		{\opit{args}}
+\newcommand{\iadd}		{\opit{add}}
+\newcommand{\ialtOne}		{\opit{alt1}}
+\newcommand{\ialtTwo}		{\opit{alt2}}
+\newcommand{\iarea}		{\opit{area}}
+
+\newcommand{\ibad}		{\opit{bad}}
+\newcommand{\ibadReadThenUpdateInt} {\opit{badReadThenUpdateInt}}
+\newcommand{\ibadDanio}		{\opit{badDanio}}
+\newcommand{\ibadAppFive}	{\opit{badAppFive}}
+\newcommand{\ibadChooseFive}	{\opit{badChooseFive}}
+\newcommand{\ibroken}		{\opit{broken}}
+\newcommand{\ibadDanioChoose}	{\opit{badDanioChoose}}
+\newcommand{\ibind}		{\opit{bind}}
+\newcommand{\ibinds}		{\opit{binds}}
+\newcommand{\ibindIO}		{\opit{bindIO}}
+\newcommand{\ibox}		{\opit{box}}
+\newcommand{\ibindT}		{\opit{bindT}}
+\newcommand{\ibindstmt}		{\opit{bindstmt}}
+\newcommand{\ibstmt}		{\opit{bstmt}}
+
+\newcommand{\ichoose}		{\opit{choose}}
+\newcommand{\ichooseY}		{\opit{chooseY}}
+\newcommand{\ichooseFive}	{\opit{chooseFive}}
+\newcommand{\ichooseSuccFive}	{\opit{chooseSuccFive}}
+\newcommand{\icomp}		{\opit{comp}}
+\newcommand{\iconst}		{\opit{const}}
+\newcommand{\icount}		{\opit{count}}
+\newcommand{\icomplement}	{\opit{complement}}
+\newcommand{\icopyInt}		{\opit{copyInt}}
+\newcommand{\icopyListInt}	{\opit{copyListInt}}
+\newcommand{\icopyIntFun}	{\opit{copyIntFun}}
+\newcommand{\icopy}		{\opit{copy}}
+\newcommand{\iclosAnnot}	{\opit{closAnnot}}
+\newcommand{\icmp}		{\opit{cmp}}
+\newcommand{\ictors}		{\opit{ctors}}
+\newcommand{\ictorTypes}	{\opit{ctorTypes}}
+\newcommand{\icat}		{\opit{cat}}
+
+
+% def
+\newcommand{\idanio}		{\opit{danio}}
+\newcommand{\idanioChooseSucc}	{\opit{danioChooseSucc}}
+\newcommand{\idiscus}		{\opit{discus}}
+\newcommand{\idoubleIO}		{\opit{doubleIO}}
+\newcommand{\idouble}		{\opit{double}}
+\newcommand{\idanioSucc}	{\opit{danioSucc}}
+\newcommand{\idanioChoose}	{\opit{danioChoose}}
+\newcommand{\ideepseq}		{\opit{deepseq}}
+\newcommand{\idecl}		{\opit{decl}}
+\newcommand{\idot}		{\opit{dot}}
+\newcommand{\idest}		{\opit{dest}}
+\newcommand{\idv}		{\opit{dv}}
+\newcommand{\idvsPrimary}	{\opit{dvsPrimary}}
+\newcommand{\idvsCtor}		{\opit{dvsCtor}}
+\newcommand{\idog}		{\opit{dog}}
+
+
+
+\newcommand{\ierror}		{\opit{error}}
+\newcommand{\ieatCake}		{\opit{eatCake}}
+\newcommand{\iexpOne}		{\opit{exp1}}
+\newcommand{\iexpTwo}		{\opit{exp2}}
+\newcommand{\iexp}		{\opit{exp}}
+\newcommand{\ieven}		{\opit{even}}
+\newcommand{\iexpr}		{\opit{expr}}
+\newcommand{\ielts}		{\opit{elts}}
+\newcommand{\ielemList}		{\opit{elemList}}
+
+\newcommand{\ifac}		{\opit{fac}}
+\newcommand{\ifield}		{\opit{field}}
+\newcommand{\ifieldOne}		{\opit{field1}}
+\newcommand{\ifieldTwo}		{\opit{field2}}
+\newcommand{\ifieldThree}	{\opit{field3}}
+\newcommand{\ifun}		{\opit{fun}}
+\newcommand{\ifunOne}		{\opit{fun1}}
+\newcommand{\ifunTwo}		{\opit{fun2}}
+\newcommand{\ifunThree}		{\opit{fun3}}
+\newcommand{\ifunFour}		{\opit{fun4}}
+\newcommand{\ifind}		{\opit{find}}
+\newcommand{\ifv}		{\opit{fv}}
+\newcommand{\ifr}		{\opit{fr}}
+\newcommand{\ifive}		{\opit{five}}
+\newcommand{\ifirst}		{\opit{first}}
+\newcommand{\ifoo}		{\opit{foo}}
+\newcommand{\ifunOfDictFoo}	{\opit{funOfDictFoo}}
+\newcommand{\ifloat}		{\opit{float}}
+\newcommand{\ifold}		{\opit{fold}}
+\newcommand{\ifoldl}		{\opit{foldl}}
+\newcommand{\ifst}		{\opit{fst}}
+\newcommand{\iforce}		{\opit{force}}
+\newcommand{\ifig}		{\opit{fig}}
+\newcommand{\ifalseLate}	{\opit{falseLate}}
+\newcommand{\ifixedLate}	{\opit{fixedLate}}
+
+% ghi
+\newcommand{\iinsertAt}		{\opit{insertAt}}
+\newcommand{\iinsertBefore}	{\opit{insertBefore}}
+\newcommand{\iinTrouble}	{\opit{inTrouble}}
+\newcommand{\iidRef}		{\opit{idRef}}
+\newcommand{\iintPair}		{\opit{intPair}}
+\newcommand{\iindex}		{\opit{index}}
+\newcommand{\iinc}		{\opit{inc}}
+\newcommand{\iid}		{\opit{id}}
+\newcommand{\iintEven}		{\opit{int\_even}}
+\newcommand{\iintOdd}		{\opit{int\_odd}}
+\newcommand{\iisEmpty}		{\opit{isEmpty}}
+\newcommand{\iinst}		{\opit{inst}}
+\newcommand{\iiv}		{\opit{iv}}
+
+\newcommand{\igetChar}		{\opit{getChar}}
+\newcommand{\igetInt}		{\opit{getInt}}
+\newcommand{\iget}		{\opit{get}}
+\newcommand{\igetTwo}		{\opit{get2}}
+\newcommand{\igetset}		{\opit{getset}}
+\newcommand{\igetsetTwo}	{\opit{getset2}}
+
+\newcommand{\ihead}		{\opit{head}}
+
+% jkl
+\newcommand{\ilast}		{\opit{last}}
+\newcommand{\ilaunchMissiles}	{\opit{launchMissiles}}
+\newcommand{\ilength}		{\opit{length}}
+\newcommand{\iloop}		{\opit{loop}}
+\newcommand{\ilistUt}		{\opit{list_t}}
+\newcommand{\ilist}		{\opit{list}}
+\newcommand{\iloc}		{\opit{loc}}
+\newcommand{\ileft}		{\opit{left}}
+\newcommand{\ilateFun}		{\opit{lateFun}}
+
+
+% mno
+\newcommand{\imapSucc}		{\opit{mapSucc}}
+\newcommand{\imain}		{\opit{main}}
+\newcommand{\imapWithKey}	{\opit{mapWithKey}}
+\newcommand{\imapWithKeyM}	{\opit{mapWithKeyM}}
+\newcommand{\imapAccum}		{\opit{mapAccum}}
+\newcommand{\imapAccumM}	{\opit{mapAccumM}}
+\newcommand{\imapAccumL}	{\opit{mapAccumL}}
+\newcommand{\imutable}		{\opit{mutable}}
+\newcommand{\imapL}		{\opit{mapL}}
+\newcommand{\imapLE}		{\opit{mapLE}}
+\newcommand{\imapU}		{\opit{map\_}}
+\newcommand{\imapMU}		{\opit{mapM\_}}
+\newcommand{\imakeFive}		{\opit{makeFive}}
+\newcommand{\imakeFiveUnit}	{\opit{makeFiveUnit}}
+\newcommand{\imap}		{\opit{map}}
+\newcommand{\imapM}		{\opit{mapM}}
+\newcommand{\imagnitude}	{\opit{magnitude}}
+\newcommand{\ivecTwoMagnitude}   {\opit{vec2\_magnitude}}
+\newcommand{\ivecThreeMagnitude} {\opit{vec3\_magnitude}}
+\newcommand{\imutableUpoint}	{\opit{mutable\_point}}
+\newcommand{\imakeGetSet}	{\opit{makeGetSet}}
+\newcommand{\imakeInc}		{\opit{makeInc}}
+\newcommand{\imul}		{\opit{mul}}
+\newcommand{\imv}		{\opit{mv}}
+\newcommand{\imf}		{\opit{mf}}
+
+\newcommand{\inewRef}		{\opit{newRef}}
+\newcommand{\inewArray}		{\opit{newArray}}
+\newcommand{\inot}		{\opit{not}}
+
+\newcommand{\iodd}		{\opit{odd}}
+\newcommand{\iotherwise}	{\opit{otherwise}}
+
+% pqr
+\newcommand{\ipath}		{\opit{path}}
+\newcommand{\ipilchard}		{\opit{pilchard}}
+\newcommand{\ipairs}		{\opit{pairs}}
+\newcommand{\ipairOfFives}	{\opit{pairOfFives}}
+\newcommand{\iperch}		{\opit{perch}}
+\newcommand{\ipairEq}		{\opit{pairEq}}
+\newcommand{\iprimIntEq}	{\opit{primIntEq}}
+\newcommand{\ipair}		{\opit{pair}}
+\newcommand{\iprintMe}		{\opit{printMe}}
+\newcommand{\iprintInt}		{\opit{printInt}}
+\newcommand{\iputChar}		{\opit{putChar}}
+\newcommand{\iprog}		{\opit{prog}}
+\newcommand{\iuuprojVecTwoX}	{\opit{\_\_projVec2\_x}}
+\newcommand{\iuuprojVecTwoY}	{\opit{\_\_projVec2\_y}}
+\newcommand{\iuuprojRefVecTwoX}	{\opit{\_\_projRefVec2\_x}}
+\newcommand{\iuuprojRefVecTwoY}	{\opit{\_\_projRefVec2\_y}}
+\newcommand{\iprint}		{\opit{print}}
+\newcommand{\iputStr}		{\opit{putStr}}
+\newcommand{\ipgm}		{\opit{pgm}}
+\newcommand{\ipull}		{\opit{pull}}
+\newcommand{\ipi}		{\opit{pi}}
+\newcommand{\ipiTwo}		{\opit{pi2}}
+
+\newcommand{\irange}		{\opit{range}}
+\newcommand{\ireadFile}		{\opit{readFile}}
+\newcommand{\ireadRef}		{\opit{readRef}}
+\newcommand{\irunProg}		{\opit{runProg}}
+\newcommand{\irunIO}		{\opit{runIO}}
+\newcommand{\ireplace}		{\opit{replace}}
+\newcommand{\iretFive}		{\opit{retFive}}
+\newcommand{\irunIdentity}	{\opit{runIdentity}}
+\newcommand{\ireturn}		{\opit{return}}
+\newcommand{\ireturnIO}		{\opit{returnIO}}
+\newcommand{\ireturnFive}	{\opit{returnFive}}
+\newcommand{\ireadThenUpdateInt}    {\opit{readThenUpdateInt}}
+\newcommand{\iref}		{\opit{ref}}
+\newcommand{\irest}		{\opit{rest}}
+\newcommand{\iread}		{\opit{read}}
+\newcommand{\ireverse}		{\opit{reverse}}
+\newcommand{\iright}		{\opit{right}}
+\newcommand{\ireturnT}		{\opit{returnT}}
+
+% stu
+\newcommand{\isameInt}		{\opit{sameInt}}
+\newcommand{\isuccDelay}	{\opit{succDelay}}
+\newcommand{\isuccUpdate}	{\opit{succUpdate}}
+\newcommand{\isuccL}		{\opit{succL}}
+\newcommand{\iselect}		{\opit{select}}
+\newcommand{\ishow}		{\opit{show}}
+\newcommand{\ispan}		{\opit{span}}
+\newcommand{\isix}		{\opit{six}}
+\newcommand{\isleep}		{\opit{sleep}}
+\newcommand{\islowSucc}		{\opit{slowSucc}}
+\newcommand{\istr}		{\opit{str}}
+\newcommand{\istate}		{\opit{state}}
+\newcommand{\istartValue}	{\opit{startValue}}
+\newcommand{\isameX}		{\opit{sameX}}
+\newcommand{\iseq}		{\opit{seq}}
+\newcommand{\isucc}		{\opit{succ}}
+\newcommand{\isuccFive}		{\opit{succFive}}
+\newcommand{\isuspendOne}	{\opit{suspend1}}
+\newcommand{\isum}		{\opit{sum}}
+\newcommand{\isomeFive}		{\opit{someFive}}
+\newcommand{\isomeSucc}		{\opit{someSucc}}
+\newcommand{\isomeAdd}		{\opit{someAdd}}
+\newcommand{\isquarelist}	{\opit{squarelist}}
+\newcommand{\isqrt}		{\opit{sqrt}}
+\newcommand{\isquare}		{\opit{square}}
+\newcommand{\isuspend}		{\opit{suspend}}
+\newcommand{\isrc}		{\opit{src}}
+\newcommand{\iset}		{\opit{set}}
+\newcommand{\isetTwo}		{\opit{set2}}
+\newcommand{\isnd}		{\opit{snd}}
+\newcommand{\istrong}		{\opit{strong}}
+\newcommand{\isuccM}		{\opit{succM}}
+\newcommand{\isym}		{\opit{sym}}
+\newcommand{\ismv}		{\opit{smv}}
+\newcommand{\istmt}		{\opit{stmt}}
+
+\newcommand{\itetra}		{\opit{tetra}}
+\newcommand{\itail}		{\opit{tail}}
+\newcommand{\itupleOfVec}	{\opit{tupleOfVec}}
+\newcommand{\itranslate}	{\opit{translate}}
+\newcommand{\itrouble}		{\opit{trouble}}
+\newcommand{\ithing}		{\opit{thing}}
+\newcommand{\itrans}		{\opit{trans}}
+
+\newcommand{\iupdateInt}	{\opit{updateInt}}
+\newcommand{\iupdateChar}	{\opit{updateChar}}
+\newcommand{\iunsafePerformIO}	{\opit{unsafePerformIO}}
+\newcommand{\iunit}		{\opit{unit}}
+\newcommand{\iupdate}		{\opit{update}}
+\newcommand{\iunbox}		{\opit{unbox}}
+\newcommand{\iupdateIntM}	{\opit{updateIntM}}
+
+% vwxyz
+\newcommand{\ivar}		{\opit{var}}
+\newcommand{\ivec}		{\opit{vec}}
+\newcommand{\ivecTwo}		{\opit{vec2}}
+\newcommand{\iwriteRef}		{\opit{writeRef}}
+\newcommand{\iworld}		{\opit{world}}
+\newcommand{\iworldTwo}		{\opit{world2}}
+\newcommand{\iworldThree}	{\opit{world3}}
+\newcommand{\iWorld}		{\opit{World}}
+\newcommand{\iwhen}		{\opit{when}}
+\newcommand{\iworldhello}	{\opit{worldhello}}
+\newcommand{\iwriteFile}	{\opit{writeFile}}
+
+\newcommand{\ixZero}		{\opit{x0}}
+\newcommand{\ixOne}		{\opit{x1}}
+\newcommand{\ixTwo}		{\opit{x2}}
+\newcommand{\iyZero}		{\opit{y0}}
+\newcommand{\iyOne}		{\opit{y1}}
+\newcommand{\iyTwo}		{\opit{y2}}
+
+
+% -- Trash ----------------------------------------------------------------------------------------
+\newcommand{\rfalse}		{\textrm{false}}
+\newcommand{\rtrue}		{\textrm{true}}
+\newcommand{\rupdate}		{\textrm{update}}
+\newcommand{\rsuspend}		{\textrm{suspend}}

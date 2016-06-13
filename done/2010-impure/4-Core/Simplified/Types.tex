@@ -1,0 +1,10 @@
+\bigskip
+\subsection{Types}
+We use $\varphi$ to range over all type-level information including value types, region variables, effects and witnesses. When we wish to be more specific we use $\tau$, $\sigma$ and $\delta$ to refer to value types, effect types and witness types respectively. 
+
+Note that $\top$ and $\bot$ are effect types, and $\lor$ is only applied to effect types.
+
+The types that are underlined, $\un{\rmutable \ \varphi}$, \ $\un{\rconst \ \varphi}$, \ $\un{\rpure \ \sigma}$ \ and $\un{\rho}$ \ are \mbox{``operational''} witnesses and do not appear in the source program. They are constructed by the evaluation of a witness constructor, and we arrange the typing rules so that their construction requires the heap to possess the associated property. The first three we have seen already, and we will discuss region handles $\un{\rho}$ in \S\ref{Core:Language:region-handles}. We use $\Delta$ to refer to witnesses.
+
+Note that although our operational semantics manipulates witness terms, they are not actually needed at runtime. We use witnesses to reason about how our system works, and to track information about the program during optimisation, but they can be erased before code generation, along with all other type information.
+

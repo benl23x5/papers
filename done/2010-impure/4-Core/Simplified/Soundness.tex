@@ -1,0 +1,92 @@
+\clearpage{}
+\subsection{Soundness of typing rules}
+\label{Core:Language:Soundness}
+Our proof of soundness is split into Progress and Preservation (subject reduction) theorems, in the usual way. The bulk of the proof is relegated to the appendix, but we repeat the main theorems below. Note that this proof addresses the soundness of the type system itself. Proving the validity of code transforms, such as the ones presented in \S\ref{Core:Optimisations}, is another matter, but we will touch on it in the next section.
+
+\bigskip
+\bigskip
+\textbf{Theorem: (Progress)} \\
+Suppose we have a state $\heap \with t$ with store $\heap$ and term $t$. 
+Let $\Sigma$ be a store typing which models $\heap$. 
+If $\heap$ is well typed with respect to $\Sigma$, and $t$ is closed and well typed, and $t$ contains no fabricated region witnesses (discussed in \S\ref{Core:Language:Terms}), then either $t$ is a value or $\heap \with t$ can transition to the next state.
+
+\medskip
+\begin{tabular}{ll}
+	If 	& $\tyJudge {\emptyset} {\Sigma} {t} {\tau} {\sigma}$  \\
+	\ and	& $\Sigma \models \heap$ \\
+	\ and	& $\Sigma \vdash  \heap$ \\
+	\ and 	& $\pnofab{t}$  
+	\\[1ex]
+	then	& $t$ $\in$ Value \\
+	\ or 	& {for some $\heap'$, $t'$ we have} \\
+		& \ ($\trEval {\heap} {t} {\heap'} {t'}$ \ and \ $\pnofab{t'}$) 
+\end{tabular}	
+
+\bigskip
+\bigskip
+\textbf{Theorem: (Preservation)} \\
+Suppose we have a state $\heap \with t$ with store $\heap$ and term $t$.
+	Let $\Sigma$ be a store typing which models $\heap$. 
+	If $\heap$ and $t$ are well typed, 
+		and $\heap \with t$ can transition to a new state $\heap' \with t'$
+		then for some $\Sigma'$ which models $\heap'$, 
+		$\heap'$ is well typed, 
+		$t'$ has a similar type to $t$,
+		and the effect $\sigma'$ of $t'$ is no greater than the effect $\sigma$ 
+		of $t$.
+
+
+\medskip
+\begin{tabular}{ll}
+	If	& $\tyJudge{\Gamma}{\Sigma}{t}{\tau}{\sigma}$ \\
+	\ and	& $\trEval{\heap}{t}{\heap'}{t'}$ \\
+	\ and	& $\Sigma \vdash \heap$ \ and \ $\Sigma \models \heap$ 
+	\\[1ex]
+	\multicolumn{2}{l}{then for some $\Sigma'$, $\tau'$, $\sigma'$ we have} \\
+		& $\tyJudge{\Gamma}{\Sigma'}{t'}{\tau'}{\sigma'}$ \\
+	\ and	& $\Sigma' \supseteq \Sigma$ \ \ and \ $\Sigma' \models \heap'$ \ and $\Sigma' \vdash  \heap'$  \\
+	\ and	& $\tau' \sim_{\Sigma'} \tau$ \  and \ $\sigma' \sqsubseteq_{\Sigma'} \sigma$ 
+\end{tabular}
+
+\bigskip
+Note that when a term is evaluated, its effect tends to become smaller, which is expressed as the $\sigma' \sqsubseteq_{\Sigma'} \sigma$ clause in the preservation theorem. For example, although $\iupdate \ \delta \ x \ y$ has the effect of reading $y$ and writing $x$, it is reduced to $()$, which has no intrinsic effect.
+
+Also note that the store typing grows during evaluation, which is expressed as the $\Sigma' \supseteq \Sigma$ clause of the preservation theorem. This means that once a region's constancy is set, it cannot be revoked, or changed during evaluation.
+
+
+\clearpage{}
+% -------------------------------------
+\subsection{Goodness of typing rules}
+When combined, the Progress and Preservation theorems outlined in the previous section guarantee that a reduction of a well typed program does not ``get stuck'', meaning that it can always be reduced to normal form. Although this ``does not get stuck'' is the classic interpretation of Milner's famous mantra ``well typed programs don't go wrong'', anyone who has spent time writing programs will appreciate that there are plenty of ways a program can ``go wrong'' besides failing to reduce to normal form.
+
+The trouble is that ``well typed programs'' can still contain plenty of bugs. For compiler writers, a freshly compiled program failing to reduce to normal form usually manifests as a runtime crash, or as an exception being thrown. This occurrence, in fact, is often followed by a sigh of relief. It is a relief because a program that crashes at the same point, every time, in a predictable way, is usually straightforward to debug. In contrast, one that runs to completion but gives the wrong answer provides no direct clue as to the location of the problem in the original source code.
+
+With this in mind, the fact that a type system is sound is only the first step along the road to goodness. What is equally important, is that a program that would be considered ``buggy'' by its creator also has a high likelihood of being mistyped.
+
+This is the primary reason for using a typed core language in a compiler. As a compiler writer, when you make a mistake you want that mistake to manifest itself as soon as possible. Having a compiled program simply give the wrong answer is always the worst result. Performing optimisations on programs that use mutable data structures doesn't require a complicated type system like ours: with its regions, effects, witness types, dependent kinds and so on. Information concerning what side effects a function has, and which objects are mutable, could equally be stored in tables. However, the benefit of using a typed core language is that this information can also be \emph{checked}.
+
+
+% -------------------------------------
+\subsubsection{The real purpose of witnesses}
+We now come to discuss the real purpose of witnesses in our compiler. We view a witness as a token that gives us permission to perform a particular operation. In particular, the operations that we use them for, namely updating data and suspending computations, are ones that frequently result in hard to diagnose bugs if not handled correctly. Updating an object that was supposed to be constant is not ``unsound'', but it's probably buggy. Likewise, suspending a computation that isn't pure is not ``unsound'', but it's probably buggy.
+
+For the first case, having a witness of kind $\iMutable \ r$ gives us permission to update data in the region named $r$. When a region is created by reducing a $\kletregion$ expression, whether that region is going to be constant or mutable is decided at that point. This is shown in the EvLetRegion rule from \S\ref{Core:Simplified:Transitions}. Now, as discussed in \S\ref{Core:Language:region-handles}, in our semantics this decision results in either a (const $\rho$) or (mutable $\rho$) property being added to the store. At the same moment, we also get a witness as to which option we chose, which serves as a record of the decision.
+
+Later on in the reduction, we may want to update some object in this same region. Of course, this should only be permitted if we decided the region was going to be mutable in the first place. This is why, in EvUpdate3 from  \S\ref{Core:Simplified:Transitions}, the $\iupdate$ operator requires that we supply it with our witnesses of mutability. Also note that in that same rule, there must be a corresponding (mutable $\rho$) property in the store. Now, from our Progress theorem we know that we can always apply this transition rule. This, in turn, means that if we can provide a witness of mutability for some region, then we know that the corresponding property is in the store, and that means we really did decide it was going to be mutable when it was created.
+
+On the other hand, if we decide that a new region is going to be constant, then we get a (const $\rho$) property in the store instead of (mutable $\rho$). We also get a $Const \ r$ witness in the program, which records this decision. Now, unless we enjoy tracking down difficult-to-find bugs, all data read by a suspended function application should be constant. This ensures that we get the same result independent of when the suspension happens to be forced. This is why, in the EvSuspend4 rule from \S\ref{Core:Simplified:Transitions}, we must provide the suspend operator with a witness of purity for the application to be suspended. By inspection of the kinds of witness constructors in \S\ref{Core:Language:KindsOfTypes} the only way such a witness of purity can be produced is by combining witnesses of constancy for the regions that will be (visibly) read. Finally, the fact that we can come up with said witnesses of constancy ensures that witnesses of mutability for those same regions do not exist elsewhere in the program, so they can never be updated. 
+
+
+% -------------------------------------
+\subsubsection{A witness guarantees that something will not be done}
+For another way of thinking about witnesses, note that the utility of a $\iConst \ r$ witness is not so much that it encodes that a region is constant, rather, it guarantees that it will not be updated. In the dual case, the utility of a $\iPure \ e$ witness, is that it guarantees that a function application with effect $e$ will not read from regions that are mutable.
+
+
+
+
+
+
+
+
+
+

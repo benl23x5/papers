@@ -1,0 +1,16 @@
+
+\chapter{Type System}
+
+We have seen that ML style references are clumsy to work with because their use changes the structure of types. This causes mutable values to be type-incompatible with constant values, and invites large re-factorisation efforts when writing code. Could there be a better way? In a traditional imperative language such as C, Pascal or Java, the programmer is free to update data as they see fit, and the type of mutable data is not required to be structurally different from that which remains constant. However, if we were to allow the programmer to update any object in the system, without tracking it carefully, then we would have to assume that \emph{every} object was mutable. This would dramatically limit our ability to perform optimisations on the intermediate code. With this in mind, we first consider the form of update we wish to support, and then seek a way of tracking which objects it is applied to.
+
+We intend this chapter to serve as a gentle introduction to our type system, and to the concepts involved. For this reason we have refrained from starting with a formal description of our language or its typing rules. This information is given in \S\ref{Inference:Language}.
+
+
+\input{2-System/Update}
+\input{2-System/Regions}
+\input{2-System/Effects}
+\input{2-System/PolyUpdate}
+\input{2-System/Closure}
+\input{2-System/TypeClassing}
+\input{2-System/Projections}
+\input{2-System/Comparisons}

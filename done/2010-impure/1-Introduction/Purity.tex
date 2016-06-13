@@ -1,0 +1,276 @@
+\clearpage{}
+\section{What is purity?}
+\label{intro:purity}
+
+Although the word \emph{purity} has many varied meanings, most would agree that the following expression is pure:
+
+\code{
+	$(\lambda x. \idouble x) \ (\isucc 5)$
+}
+
+To reduce this expression call-by-value, we first evaluate the argument and then substitute into the body of the function.
+
+\code{	
+	$(\lambda x. \idouble x) \ (\isucc 5)$ \\
+	$\eto (\lambda x. \idouble x) \ 6$ \\
+	$\eto \idouble \ 6$ \\
+	$\eto 12$
+}
+ 
+When we reduce the same expression call-by-name, we substitute the argument first, yielding the same result.
+
+\code{
+	$(\lambda x. \idouble x) \ (\isucc \ 5)$ \\
+	$\eto \idouble \ (\isucc \ 5)$ \\
+	$\eto \idouble \ 6$ \\
+	$\eto 12$
+}
+
+In the simply typed lambda calculus, the order in which function applications are evaluated does not affect the end result. This behavior is also known as the Church-Rosser property~\cite{rosser:highlights}, or \emph{confluence}. Purity is of tremendous help to compiler writers because it gives us the freedom to reorder function applications during compilation, whilst preserving the meaning of the program. By reordering function applications we can expose many useful compiler optimisations \cite{santos:compilation}, and this well known identity of the $\imap$ function is one such example:
+
+\code{
+	$\imap \ f \ (\imap \ g \ \ixs) \ \equiv \ \imap \ (f \circ g) \ \ixs$
+}
+
+The first expression applies $g$ to each element of the list $xs$ yielding an intermediate list. It then applies $f$ to each element of this list, yielding the result. In the second expression, the composition of $f$ and $g$ is applied to each element directly, without requiring the construction of an intermediate list. As long as we are free to reorder function applications, we can optimise a arbitrary program by rewriting expressions of the first form into the second.
+
+The Glasgow Haskell Compiler includes a myriad of similar optimisations. Simple, frequently invoked rewrites are ``baked-in'' to the compiler proper, whereas more specific identities such the one above are part of the standard libraries, or are defined by the programmer directly. The recent work on stream fusion~\cite{coutts:stream-fusion} is a prime example of library defined rewrites which depend on purity.
+
+In contrast, the following expression is decidedly not pure:
+
+\code{
+	$\ichoose \ (\iinTrouble \ ()) \ (\ilaunchMissiles \ 5) \ (\ieatCake \ 23)$
+}
+
+The end result of this expression depends very much on the order of evaluation.  The intention is for the first argument to execute first, before choosing \emph{one} of the others. This ordering must be preserved in the compiled program, else the meaning of the program will be changed.
+
+The concept of purity can also be applied to a language as a whole. With the Church-Rosser property in mind, Sabry defines a purely functional language to be one that satisfies the following criteria~\cite{sabry:purely}:
+\begin{enumerate}
+\item	it is a conservative extension of the simply typed $\lambda$-calculus.
+\item	it has a well-defined call-by-value, call-by-need, and call-by-name evaluation
+	functions (implementations), and
+\item	all three evaluation functions (implementations) are weakly equivalent.
+\end{enumerate}
+
+We will consider the finer points of these criteria in a moment. Separate from Sabry's definition, the functional programming community generally recognises Haskell to be pure, while SML, Scheme, Fortran and C++ are said to be \emph{impure} languages. However, note that Fortran and C++ are not extensions of the $\lambda$-calculus, so are not functional either.
+
+\subsubsection{\emph{Pure} and \emph{impure} are loaded terms}
+Sabry's definition contains several subtle points, not least of which are the words being defined. The Oxford English Dictionary (OED) gives several meanings for the word ``impure''. In regards to ``a language or style'', the word has the meaning of ``containing foreign idioms or grammatical blemishes''. In this context, the ``foreign idioms'' would include interactions with the outside world such as launching missiles or eating cake. These actions are not part of the formal definition of the lambda calculus, and it is not obvious what the result will be from the function names alone. The other meaning offered by the OED is along the lines of ``not pure ceremonially; unhallowed'', or ``containing some defiling or offensive matter; dirty, unclean".
+
+This is unfortunate terminology. In contrast, mathematical disciplines are sometimes separated into groups labeled pure and \emph{applied}. The intention is that the more pure disciplines have no immediate practical applications, but are considered worthy of study because they increase our understanding of mathematics as a whole. On the other hand, the applied fields focus on using mathematics to achieve goals in other disciplines, such as physics. What was once considered a pure field may become more applied when a concrete application is found. For example, abstract algebra is now an integral part of the error control coding systems that we rely on for electronic communication \cite{lin:error-control-coding}.
+
+\subsubsection{Computational side effects}
+Granted, impure languages can be much harder to reason about, and the bulk of this thesis is about doing just that. Actions which affect the outside world must be implemented in the appropriate order, else the program may not yield the intended result. Other \emph{internal} actions such as destructively updating data and then reading it back must also be sequenced appropriately. 
+
+When the end result of two expressions depends on the order in which they are evaluated, those expressions are said to have \emph{computational effects}, or to \emph{interfere}~\cite{reynolds:interference}.
+
+Computational effects are also known as \emph{side effects}, because an expression can return a value as well as ``doing something else''. This is another unfortunate term. When a pharmaceutical product has a side effect, this is usually taken to be a \emph{bad thing}. A pharmaceutical side effect is an undesirable result, but a computational side effect is often the entire reason for running a program in the first place. 
+
+\subsubsection{Do we really need three implementations?}
+
+We return to Sabry's second and third criteria for a purely functional language:
+\begin{enumerate}
+\item[2. ]	
+	it has a well-defined call-by-value, call-by-need, and call-by-name evaluation
+	functions (implementations)
+
+\item[3. ]
+	all three evaluation functions (implementations) are weakly equivalent.
+\end{enumerate}
+
+At the time of writing, Haskell is call-by-need, and there is no formal definition of its implementation. The Haskell 98 report~\cite{haskell98-report} contains a description of the syntax and English language notes on the intended meaning, but no formal operational or natural semantics. There are formal semantics for fragments such as the lazy lambda calculus~\cite{aramsky:lazy-lambda-calculus, launchbury:lazy}, but not the complete language. Whether this counts as having three ``well defined'' implementations is debatable.
+
+SML has a formal semantics~\cite{milner:sml}, yet it is call-by-value only. There is a lazy version of ML~\cite{augustsson:lml}, but not all features of SML are supported, notably exceptions and mutable references.
+
+On the other hand, Haskell includes the $\iseq$ combinator which can be used to turn a natively call-by-need application into a call-by-value one, within the same implementation. For example, the following application will evaluate call-by-need as default:
+
+\code{
+	$f \ exp...$
+}
+
+However, we can force the argument to be evaluated in an approximately call-by-value manner by writing:
+
+\code{
+	$\klet$		& $x = exp...$ 			\\
+	$\kin$ 		& $\iseq \ x \ (f \ x)$
+	
+}
+
+By binding $exp...$ to the variable $x$ and then passing this as the first argument to $\iseq$, we force it to be reduced to head normal form\footnote{In the STG machine on which GHC is based, function application is between variables and atoms. For this implementation an expression cannot be in \emph{weak} head normal form without also being in head normal form.}~\cite{peyton-jones:implementation, peyton-jones:g-machine} before substitution into $f$. This simulates call-by-value evaluation. However, in a lazy language the definition of ``value'' usually includes expressions that contain redexes, as long as there is no redex at top level. If we desire \emph{hyper-strict} evaluation, where all possible redexes are reduced before application, then we need to make more judicious use of $\iseq$. We will return to this point in \S\ref{intro:lazy}.
+
+\clearpage{}
+\subsubsection{Weak equivalence}
+Consider the following function application, where $\bot$ represents an expression that performs no IO actions, but does not terminate and thus does not yield a value.
+
+\qq\qq
+\begin{tabular}{ll}
+$(\lambda z. \ 5) \ \bot$
+\end{tabular}
+
+When we evaluate this expression call-by-need, the variable $z$ is not present in the body of the function, so we can simply discard the argument. However, if we use call-by-value, or the rewrite using $\iseq$ from the previous section, then the evaluation of this expression will diverge.
+
+Sabry's definition of \emph{weak equivalence} accounts for this:
+
+Let P be a set of programs, B be a set of observables and $eval_1$ and $eval_2$ be two partial functions (implementations) from programs to observables. We say $eval_1$ is weakly equivalent to $eval_2$ when the following conditions hold:
+
+\begin{itemize}
+\item	If $eval_1(P) = B$ then either $eval_2(P) = B$ or $eval_2(P)$ is undefined
+\item	If $eval_2(P) = B$ then either $eval_1(P) = B$ or $eval_1(P)$ is undefined
+\end{itemize}
+
+When discussing the observables of a program we will omit the time taken for it to evaluate. We will consider only the final value returned, and the IO actions performed, as being its ``result''.  If one implementation evaluates more slowly than another, but otherwise returns the same value and performs the same actions, then by the above definition they are still equivalent. If this were \emph{not} the case then most compiler optimisations would change the meaning of the program. In fact, if they \emph{didn't} change its meaning, by making it faster, then they would be useless.
+
+If evaluation time is not observable then, by rights, non-termination should not be observable either. In a practical sense, the only way we could observe that a program did not terminate is by waiting an infinite time for it to complete. For this reason we take non-termination as being part of the ``undefined'' in the definition of weak equivalence. Under this definition, if we evaluate a program with one implementation and it terminates, but in another it does not, the implementations are still weakly equivalent.  As non-termination is not observable, by extension it is also not an action, nor does it correspond to a side effect.
+
+We also take ``undefined'' to mean that the program would not compile due to a type error. Disciple is call-by-value by default, but also supports call-by-need evaluation. We shall see in \S\ref{System:Effects:purification} that if we attempt to suspend a function application that has an observable effect, something that would otherwise change the meaning of the program with respect to the call-by-value case, the compiler will detect this and report a type error. By Sabry's definition we argue that this makes Disciple a purely functional language --- even though arbitrary structures can be destructively updated, and functions can have arbitrary side effects. 
+
+We consider Terauchi and Aiken's system of witnessing side-effects \cite{terauchi:witnessing-side-effects} to be purely functional for the same reason. Like ours, their system supports the update of mutable references at arbitrary points in the program. It also provides a type system to ensure \emph{witness race freedom}, which means there are enough data dependencies in the program to prevent a parallel reduction of it from having an indeterminate result. 
+
+\subsubsection{Expressive power and operational equivalences}
+
+Of course, Sabry's definition of what a purely functional language is may or may not correspond to the informal understanding of it by the functional programming community at large. There is also the question of whether ``purely functional'' should mean the same thing as ``pure'', as in our experience these terms are used interchangeably. 
+
+Whether or not purely functional languages are somehow intrinsically better than impure ones is a moot point. Sabry's discussion of why Haskell is purely functional hinges on the fact that monadic programs can be treated as producing a \emph{description} of the IO actions to be performed, instead of executing them directly. The actual execution only happens when computing the observable result of the description, a process conceptually separate from evaluation. However, as GHC uses monads to support mutable references, and these references can contain lambda terms, the ``evaluation'' and ``observation'' functions would need to be defined as co-routines. As only the evaluation part adheres to Sabry's definition, we feel that the term ``purely functional'', when applied to a language as a whole, is a description of the formalisation of that language, and not of the feature set presented to the user. It is not about the ``lack of side effects'' or ``lack of mutable state'', because Haskell provides both of these. 
+
+On the other hand, the term ``pure'' when applied to a single expression has a more widely accepted meaning. A pure expression has no side effects and its evaluation can be reordered with any other expression without affecting its result. If the evaluation cannot be safely reordered with another then we will call the expression ``impure''. The ability to reorder expressions is an \emph{operational equivalence}. 
+
+In \cite{felleisen:expressive-power} Felleisen notes that: \emph{``an increase in expressive power is related to a decrease in the set of ``natural'' (mathematically appealing) operational equivalences''}. In \S\ref{intro:update} we saw that the omission of destructive update from a language reduces its expressiveness because it means there is no easy way to update shared values contained within data structures. By ``no easy way'' we mean that if we had a program that destructively updated a shared value, and we had to rewrite that program without using update, then we would need to perform far reaching changes to the code. 
+
+Our language, Disciple, is based on Haskell and is extended to support the destructive update of arbitrary structures, and some other impure features. We add these features to increase the expressive power of the language, but by doing so we lose certain operational equivalences. The game is then to win a high degree of expressiveness while losing only a small number of operational equivalences. Expressiveness is not easy to quantify, but we touched on it in our discussion of why destructive update matters. In Chapter 4 we discuss how we have organised our core language so that only the parts of the program that use impure features lose operational equivalences. This allows the full gamut of program optimisations to be applied to the pure parts, which we feel is a fair compromise.
+
+\subsubsection{Non-termination is not an effect}
+In Disciple, the time taken for a program to evaluate is not formally observable, though we do not consider this approach to be the only valid option. For example, in a hard real time system the time taken to evaluate a program is just as important as its final result (by definition). If a program written in such a system cannot produce its result in the required time, then the program is wrong. In Disciple we have no formal support for such requirements, other than good intentions. As we leave run time unobservable, then it follows that non-termination should not be observable either. This is a difference to Tolmach's system \cite{tolmach:optimizing-ml} which has specific support for pure but potentially non-terminating computations. We will return to this in \S\ref{Core:Comparisons:monadic-intermediate-languages}. Although non-termination is not observable, we certainly don't want to \emph{introduce} it into an otherwise terminating program. By the definition of weak equivalence, introducing non-termination would not change a program's meaning, but it would certainly aggravate the programmer. 
+
+DDC is a general purpose compiler and its role is to produce a binary that runs ``fast enough'' to satisfy the programmer. This ``fast enough'' is not well defined, though the general rule is the faster the better. This has implications for our handling of potentially non-terminating expressions. Suppose $\bot$ represents some non-terminating, but otherwise effect free expression. If, when compiling a program, we see an expression of the form $((\lambda z. \ 5) \ \bot)$ then we will be free to perform a compile time $\beta$-reduction and rewrite this to $5$, or not. Rewriting it reduces the run time of the program, from infinite to something finite, which we take as being a good thing. However, this treatment of non-termination is at odds with some styles of imperative programming that use functions like:
+
+\begin{lstlisting}
+    void loop ()
+    {
+        while (true)
+            ;
+    }
+\end{lstlisting}
+
+Although this function appears to do nothing, as part of a larger program it may be doing nothing for a particular purpose. For example, programs in embedded systems are often based around interrupt service routines (ISRs). Such programs typically use the main routine to set up a number of ISRs, and then enter an endless loop. When a hardware device requires service, or a timer expires, the processor calls the ISR, does some computation and returns to the main loop. In this case the program is not supposed to terminate, and it would be wrong to ``improve'' it by eliminating the loop. In DDC we handle this by requiring endless loops to contain a side effecting function. For example:
+
+\code{
+	$\iloop \ () = \klet \ \_ \ = \ \isleep \ 1 \ \kin \ \iloop \ ()$
+}
+
+The type of $\isleep$ will include an effect that signals to the compiler that the function is evaluated for some reason other than to gain its return value. We discuss effect types in \S\ref{System:Effects}.
+
+
+\subsubsection{Referential Transparency}
+
+Purity is related to the notion of \emph{referential transparency}. A language is said to be referentially transparent if any subexpression can be replaced by any other that is equal in value, without affecting the end result of the program \cite{sondergaard:referential-transparency}. 
+
+\clearpage{}
+Reusing our previous example:
+
+\code{
+	$(\lambda x. \idouble \ x) \ (\isucc \ 5)$
+}
+
+If we take $(\isucc \ 5)$ to have the value $6$ then we are free to replace any instance of $(\isucc \ 5)$ with this value, without changing the result of the program:
+
+\code{
+	$(\lambda x. \idouble \ x) \ 6$
+}
+
+This is clearly valid, because it is the result we would have obtained when reducing the expression call-by-value anyway, and we know that the lambda calculus is pure.
+
+For contrast, consider the following expression which reads a character from the console:
+
+\code{
+	$\igetChar \ ()$
+}
+
+Is this expression referentially transparent? If we were to say that the ``value'' of $\igetChar \ ()$ is a character, then the answer would be no. The character returned will depend on which key the user presses, and could be different every time. We cannot take the first character that the user enters and use this to replace all other instances of $\igetChar \ ()$ in the program without changing its meaning.
+
+We could equally say that this expression does not in fact \emph{have} a value separate from the context in which it is evaluated. Knowledge of the return value is inextricably linked to knowledge of what key the user will press. Saying that the ``value'' of $\igetChar \ ()$ is a just character is a gross oversimplification. 
+
+Another way of looking at this is to say that the expression $\igetChar \ ()$, and the character value, are not \emph{observationally equivalent} \cite{gunter:semantics}. The \emph{observed result} of evaluating a character is just the character, but the evaluation of $\igetChar \ ()$ also changes (or examines) the state of the outside world.
+
+If desired, we could deal with this problem by simply embedding the notion of ``the outside world'' directly into the space of values. Once this is done we might then pretend that the language was referentially transparent all along. In Haskell syntax, we could give $\igetChar$ the following type:
+
+\code{
+	$\igetChar :: \iWorld \to (\iChar, \iWorld)$
+}
+
+This function takes the previous state of the world and returns a character along with the new world. The technique of threading the world through IO functions goes back to at least FL~\cite{aiken:fl-project}, though the state parameter was named the \emph{history} instead of the world.
+
+To construct a useful example, we would also like to have a function which prints characters back to the console:
+
+\code{
+	$\iputChar :: \iChar \to \iWorld \to \iWorld$
+}
+
+The problem of manufacturing the initial world can be solved by introducing a primitive function which executes the program, similarly to the $\imain$ function in C or Haskell.
+
+\code{
+	$\irunProg :: (\iWorld \to \iWorld) \to ()$
+}
+
+\clearpage{}
+Now we can can write a program which reads a character and prints it back to the user:
+
+\code{
+	\mc{4}{$\klet \ \iprog \ \iworld$} \\
+	\ =     & $(\klet$ & $(c, \ \iworldTwo)$	& $= \igetChar \iworld$  \\
+	        &          & $\iworldThree$		& $= \iputChar \ c \ \iworldTwo$ \\
+	        & $\ \kin$ & $\iworldThree)$ \\
+	\mc{4}{$\kin \ \irunProg \ \iprog$}
+}
+
+Whether we chose to swallow these definitions would likely depend on whether we had constructivist or intuitionistic tendencies. As it is impossible to actually construct a value of $\iWorld$ type, we cannot replace an expression such as $(\igetChar \ \iworld)$ with its resulting value, like we did with $(succ \ 5)$. We could replace it with an expression such as $(\iid \ (\igetChar \ \iworld))$, but that seems pointless.  
+
+Nevertheless, programming in this style has an important advantage. We can write our compiler as though the language were \emph{indeed pure and referentially transparent}, because the act of passing around the world explicitly introduces the data dependencies needed to enforce the desired sequence of effects. In addition, we do not actually need to construct the world value at all. At runtime can we can simply pass around a dummy value, or eliminate the world passing entirely during compilation, once it has served its purpose. This allows the programmer to manage the problem, but the burden of correctness is theirs. For some programs, failing to supply adequate data dependencies can cause unexpected results at runtime.
+
+\subsubsection{Data Dependencies}
+Consider the following expression:
+
+\code{
+	$f \ (\iputStr \ ``hello") \ (\iputStr \ ``world")$
+}
+
+In what order should these two strings be printed? If we read this as a curried, call-by-value application, then the expression is equivalent to:
+
+\code{
+	$(f \ (\iputStr \ ``hello")) \ (\iputStr \ ``world")$
+}
+
+In this case the output would be: $``\iworldhello"$. On the other hand, if the compiler did a left to right conversion to administrative normal form during desugaring, then we could also read the expression as:
+
+\code{	
+	$\klet$ & $x = \iputStr ``hello"$ \\
+		& $y = \iputStr ``world"$ \\
+	$\kin$  & $f \ x \ y$ 
+}
+
+If the runtime system then evaluated these bindings top to bottom, in a call-by-value manner, then the output would instead be: $``helloworld"$. If evaluation was call-by-name then it would depend on which order $f$ used its arguments, if at all. 
+
+If we instead converted the expression to C99, its result would be undefined by the language standard~\cite{c99-standard}. In C99, side effects are only guaranteed to be completed at each \emph{sequence point}, before moving onto the next one. There is a sequence point just before the call to a function, but only \emph{after} all arguments are evaluated. Each argument does not have its own sequence point, so the compiler is free to call the $\iputStr$ functions in any order.
+
+If we do not wish to rely on the order specified (or not) by the language standard, we could instead use our world passing mechanism to enforce a particular sequence:
+
+\code{
+	\mc{3}{$\klet \ \iprog \ \iworld$} \\
+	\ = &	($\klet$ & $(x, \iworldTwo)   = \iputStr \ ``hello" \ \iworld$ \\
+    	&	 	 & $(y, \iworldThree) = \iputStr \ ``world" \ \iworldTwo$ \\
+    	&	\ $\kin$   & $\ifun \ x \ y \ \iworldThree$) \\
+	\mc{3}{$\kin \ \irunProg \iprog$}
+}
+
+Now there there is no ambiguity.\footnote{Or at least less ambiguity, we're still glossing over the actual operational semantics of the language.} Assuming that $\iputStr$ is an atomic, primitive operation which is strict in both arguments, the first occurrence must be evaluated before the second because we need to pass the token bound to $\iworldTwo$ to the next occurrence.
+
+Unfortunately, this mechanism falls apart if we mix up the variables binding the world token, such as $\iworld$ and $\iworldTwo$. Our program can also give unexpected results if we accidentally re-use them:
+
+\code{
+	\mc{3}{$\klet \ \iprog \ \iworld$} \\
+	\ = &	$(\klet$  & $(x, \_ ) = \iputStr \ ``hello"  \ \iworld$ \\
+    	&		  & $(y, \_ ) = \iputStr \ ``world"  \ \iworld$ \\
+    	&	$\ \kin$  & $\ifun \ x \ y \ \iworld)$ \\
+	\mc{3}{$\kin \ \irunProg \ \iprog$} 
+}
+
+In this case we have passed the same token to each instance of $\iputStr$. In a call-by-need language such as Haskell, and in the absence of data dependencies, the order in which let bindings are evaluated depends on the order their values are demanded by the surrounding program. 

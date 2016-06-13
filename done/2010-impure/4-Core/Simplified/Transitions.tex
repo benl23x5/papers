@@ -1,0 +1,181 @@
+\clearpage{}
+\subsection{Transitions}
+\label{Core:Simplified:Transitions}
+\bigskip
+
+\ruleBox{
+% -- Term Transitions ------------------------------------------------------------------------------
+	\begin{center}
+		\fbox{$\heap \with t \eto \heap' \with t'$}
+	\end{center}
+	\vspace{-1em}
+	\begin{gather}
+	\ruleI	{EvTApp1}
+		{ \heap  \with t \eto 
+		  \heap' \with t' }
+		{ \heap  \with t \ \varphi \eto 
+		  \heap' \with t' \ \varphi 
+		}
+	\ruleSkip
+	\ruleA{EvTAppAbs}
+		{ \heap \with (\Lambda (a :: \kappa). \ t) \ \varphi \eto 
+		  \heap \with t[\varphi/a] 
+		}
+	\ruleSkip
+	\ruleI	{EvApp1}
+		{ \heap  \with t_1 \eto 
+		  \heap' \with t_1' 
+		}
+		{ \heap  \with t_1  \ t_2 \eto
+		  \heap' \with t_1' \ t_2 
+		}
+	\ruleSkip
+	\ruleI	{EvApp2}
+		{ \heap  \with t \eto 
+		  \heap' \with t' 
+		}
+		{ \heap  \with v \ t \eto
+		  \heap' \with v \ t' 
+		}
+	\ruleSkip
+	\ruleA	{EvAppAbs}
+		{ \heap \with (\lambda (x :: \tau). \ t) \ v^\circ \eto
+		  \heap \with t[v^\circ/x] 
+		}
+	\ruleSkip
+	\ruleI	{EvLet1}
+		{ \heap  \with t_1 \eto
+		  \heap' \with t_1' 
+		}
+		{ \heap  \with \rblet \ x = t_1  \ \rbin \ t_2 \eto
+		  \heap' \with \rblet \ x = t_1' \ \rbin \ t_2 
+		}
+	\ruleSkip
+	\ruleA	{EvLet}
+		{ \heap  \with \rblet \ x = v^\circ \ \rbin \ t \eto
+		  \heap  \with t[v^\circ/x] 
+		}
+	\ruleSkip
+	\ruleI	{EvLetRegion}
+		{ \heap, \ \ov{\rpropOf(\Delta_i)} \with \ov{\delta_i \leadsto \Delta_i} 
+		  \qq \rho \ \textrm{fresh}
+		}
+		{ & \heap \with \rbletregion \ r \ \{ \ov{w_i = \delta_i} \} \ \rbin \ t \\
+		  & \qq \qq \qq \eto
+	 	  \heap, \ \rho, \ \ov{\rpropOf(\Delta_i)} 
+		  	\with t[\ov{\Delta_i/w_i}][\un{\rho}/r] 
+		}
+	\ruleSkip
+	\ruleI	{EvIf}
+		{ \heap  \with t_1  \eto
+		  \heap' \with t_1' 
+		}
+		{ \heap  \with \rbif \ t_1  \ \rbthen \ t_2 \ \rbthen \ t_3 \eto
+		  \heap' \with \rbif \ t_1' \ \rbthen \ t_2 \ \rbthen \ t_3 
+		}
+	\ruleSkip
+	\ruleA	{EvIfThen}
+		{ \qq \qq \ \ \
+		  \heap, \ l \mapstoa{\rho} \textrm{T} \with \rbif \ \un{l} \ \rbthen \ t_2 \ \rbthen \ t_3 \eto
+		  \heap, \ l \mapstoa{\rho} \textrm{T} \with t_2
+		}
+	\ruleSkip
+	\ruleA{EvIfElse}
+		{ \heap, \ l \mapstoa{\rho} \textrm{F} \with \rbif \ \un{l} \ \rbthen \ t_2 \ \rbthen \ t_3 \eto
+	  	  \heap, \ l \mapstoa{\rho} \textrm{F} \with t_3
+		}
+	\ruleSkip
+	\ruleI{EvTrue}
+		{ l \ \text{fresh} }
+		{ \heap, \ \rho \with \iTrue \ \un{\rho} \eto
+		  \heap, \ \rho, \ l \mapstoa{\rho} \textrm{T} \with \un{l} 
+		}
+	\ruleSkip
+	\ruleI	{EvFalse}
+		{ l \ \text{fresh} }
+		{ \heap, \ \rho \with \iFalse \ \un{\rho} \eto
+		  \heap, \ \rho, \ l \mapstoa{\rho} \textrm{F} \with \un{l} 
+		}
+	\ruleSkip
+	\ruleI	{EvUpdate1}
+		{ \heap  \with t_1 \eto
+		  \heap' \with t_1' 
+		}
+		{ \heap  \with \iupdate \ \Delta \ t_1  \ t_2 \eto
+		  \heap' \with \iupdate \ \Delta \ t_1' \ t_2 
+		}
+	\ruleSkip
+	\ruleI	{EvUpdate2}
+		{ \heap  \with t \eto
+		  \heap' \with t'
+		}
+		{ \heap  \with \iupdate \ \Delta \ v \ t \eto
+		  \heap' \with \iupdate \ \Delta \ v \ t' 
+		}
+	\end{gather}
+} % -- typebox
+
+
+\ruleBox{
+	\begin{gather}
+	\ruleA	{EvUpdate3}
+		{ \begin{aligned}
+		  & \heap	, \ \rmutable \ \rho_1
+			, \ l_1 \mapstoa{\rho_1} V_1
+			, \ l_2 \mapstoa{\rho_2} V_2
+			\with \iupdate \
+				\underline{\rmutable \ \rho_1} \ 
+				\un{l_1} \ 
+				\un{l_2} \\
+		  	\eto  
+		  & \heap , \ \rmutable \ \rho_1
+			, \ l_1 \mapstoa{\rho_1} V_2
+			, \ l_2 \mapstoa{\rho_2} V_2
+			\with ()
+		  \end{aligned}
+		}
+	\ruleSkip
+	\ruleI	{EvSuspend1}
+		{ \heap \with \delta \leadsto \delta' 
+		}
+		{ \heap	\with \isuspend \ \delta \ t_1 \ t_2  \eto
+		  \heap	\with \isuspend \ \delta' \ t_1 \ t_2 
+		}
+	\ruleSkip
+	\ruleI	{EvSuspend2}
+		{ \heap \with t_1 \eto \heap \with t_1' 
+		}
+		{ \heap	\with \isuspend \ \Delta \ t_1 \ t_2  \eto
+		  \heap	\with \isuspend \ \Delta \ t_1' \ t_2
+		}
+	\ruleSkip
+	\ruleI
+		{EvSuspend3}
+		{ \heap \with t \eto \heap \with t' 
+		}
+		{ \heap	\with \isuspend \ \Delta \ v \ t  \eto
+		  \heap	\with \isuspend \ \Delta \ v \ t' 
+		}
+	\ruleSkip
+	\ruleA	{EvSuspend4}
+		{ \heap	\with \isuspend \ 
+			\underline{\rpure \ \sigma_1} \ (\lambda (x : \tau). \ t) \ v^\circ \eto
+		  \heap	\with t[v^\circ/x] 
+		}
+	\end{gather}
+} % -- ruleBox
+
+\bigskip
+\bigskip
+Rules EvTApp1 - EvLet are standard.
+
+EvLetRegion creates a new region in the store, and substitutes its region handle into the value term. By inspection of the witness production rules, the statement \ $H, \ \ov{\rpropOf(\Delta_i)} \with \ov{\delta_i \leadsto \Delta_i}$ \ is always true. It says that if we place the required properties in the heap, we can then construct witnesses that sample these properties.
+
+EvIf - EvIfElse are standard.
+
+EvTrue - EvFalse show how to allocate new boolean values into the store. Note that to allocate a new value, the region it is to be allocated in must already exist in the store. In the proof of progress we show that if a term contains a region witness $\un{\rho}$ then the corresponding region will always be present.
+
+EvUpdate1 - EvUpdate3 show how to update a boolean value in the store. 
+
+EvSuspend1 - EvSuspend4 handle the suspension of function applications. In EvSuspend1 we include the statement $\heap \with \delta \leadsto \delta'$ to allow for the evaluation of witness production rules, such as EwPureJoin. Note that in EvSuspend, the effect term $\sigma_1$ is only mentioned in the witness term. Our typing rules ensure that $\sigma_1$ actually represents the effect of evaluating the term $t$.
+

@@ -1,0 +1,10 @@
+
+\label{Core:Introduction}
+
+Our core language is based on System-F, and includes a witness passing mechanism similar to one in System-Fc \cite{sulzmann:system-Fc} which is used in GHC. Our language is typed, and these types are used as both an internal sanity check, and to guide code optimisations. This thesis discusses a few optimisations, though we do not offer any new ones. What we present is a framework whereby optimisations previously reserved for pure languages can be applied to ones that include side effects and mutability polymorphism.
+
+With regard to optimisation, transforms that do not change the order of function applications, and do not modify the sharing properties of data, are equally applicable to both pure and impure languages. For example, the case-elimination transform from \cite{santos:compilation} is effect agnostic. Inlining function definitions into their call sites also does not present a problem, provided the function arguments are in normal form. This restriction prevents the duplication of computations at runtime, and is also used in pure languages such as GHC \cite{peyton-jones:transformation-based-optimiser}. On the other hand, we need effect information to perform the let-floating transform, as it changes the order of bindings. We also need information about the mutability of data to guide optimisations that have the potential to increase data sharing, such as the full laziness transform.
+
+In this chapter we present the main features of our core language, discuss how to use the type information to perform optimisation, then compare our system with other work. We also give highlights of the proof of soundness, though the bulk of the proof is deferred to the appendix.
+
+

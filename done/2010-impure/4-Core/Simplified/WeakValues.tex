@@ -1,0 +1,71 @@
+
+\subsection{Weak values and lazy evaluation}
+Values are terms of the form $x$, \ $\Lambda (a:\kappa). t$, 
+\ $\lambda (x:\tau). t$ \ or \ $\un{l}$. We use $v$ to refer to terms that are values.
+
+Additionally, \emph{weak values} are all values, plus terms of the form $\isuspend \ \delta \ t_1 \ t_2$. The latter term is a thunk, which delays the evaluation of the embedded function application. As such, $t_1$ is the function, $t_2$ is its argument, and $\delta$ is a witness that the application is pure.
+
+When we perform function application the function argument is reduced to a weak value only. When reducing a let-expression, the right of the binding is also reduced to a weak value only. We use $v^\circ$ to refer to weak values, and imagine the circle in the superscript as a bubble that can carry an unapplied function application through the reduction, \emph{sans} evaluation. A weak value is only forced when the surrounding expression demands its (strong) value. This happens when the value is inspected by an if-expression, or is needed by a primitive operator such as $\iupdate$.
+
+Here is an example, where the term being reduced at each step is underlined.
+
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+	\> \rblet \> $z$  \> = $\un{(\lambda x. \ x) \ \icat}$ \ \rbin \\
+	\> \rblet \> $f$  \> = $\isuspend \ (\lambda x. \lambda y. \ x) \ \ 
+					(\isuspend \ (\lambda x. \ x) \ \idog)$  \\
+	\> \rbin  \> $f$ \ $z$ 
+	\> \> (1)
+\end{tabbing}
+
+\vspace{-2em}
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+\eto	\> \un{\rblet} 
+			\> $z$  \> = $\icat$ \ \rbin \\
+	\> \rblet \> $f$  \> = $\isuspend \ (\lambda x. \lambda y. \ x) \ \ 
+					(\isuspend \ (\lambda x. \ x) \ \idog)$  \\
+	\> \rbin  \> $f$ \ $z$
+	\> \> (2)
+\end{tabbing}
+
+\vspace{-2em}
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+\eto	\> \un{\rblet} 
+			\> $f$  \> = $\isuspend \ (\lambda x. \lambda y. \ x) \ \ 
+					(\isuspend \ (\lambda x. \ x) \ \idog)$  \\
+	\> \rbin  \> $f$ \ $\icat$ 
+	\> \> (3)
+\end{tabbing}
+
+\vspace{-2em}
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+\eto	\> \un{$(\isuspend \ (\lambda x. \lambda y. \ x) \ \ 
+					(\isuspend \ (\lambda x. \ x) \  \idog))$} \ $\icat$
+	\> \> \> (4)
+\end{tabbing}
+
+\vspace{-2em}
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+\eto	\> \un{$(\lambda y. \ \isuspend \ (\lambda x. \ x) \idog) \ \icat$}
+	\> \> \> (5)
+\end{tabbing}
+
+\vspace{-2em}
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+\eto	\> \un{$(\isuspend \ (\lambda x. \ x) \ \idog)$}
+	\> \> \> (6)
+\end{tabbing}
+
+\vspace{-2em}
+\begin{tabbing}
+MMM 	\= MM  	  \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MM \kill
+\eto	\> $\idog$
+	\> \> \> (7)
+\end{tabbing}
+
+Note that in the step from (3) to (4), the right of the $f$ binding is a thunk, so it is substituted directly into the body of the let-expression. In the step from (4) to (5), the function application demands the value of the function, so the thunk that represents it is forced.

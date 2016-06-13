@@ -1,0 +1,201 @@
+
+% -- Fabricated symbols.
+\def\vvdash{\vdash\mkern-6mu\vdash}
+
+\newcommand{\apair}	[1]	{ \langle#1\rangle }
+
+% -- Code Environments --------------------------------------------------------------------------
+\newcommand{\code}	[1]	{ \qq\qq\begin{tabular}{llllllll}#1\end{tabular}\medskip }
+
+
+% -- Utils for proofs ----------------------------------------------------------------------------
+\newcommand{\lemma}	[1]	{ \bigskip \textbf{Lemma: (#1)} }
+
+\newcommand{\pIf}		{ \trm{If} \ }
+\newcommand{\pthen}		{ \ \trm{then} \ }
+\newcommand{\pand}		{ \ \trm{and} \ }
+\newcommand{\por}		{ \ \ \trm{or} \ \ }
+\newcommand{\pstep}	[2]	{ #1 \: ; \: #2 \ \trm{can step}}
+\newcommand{\pCase}	[1]	{ \tbf{Case}: \ #1 }
+\newcommand{\pcase}	[1]	{ \emph{Case}: \ #1}
+\newcommand{\pby}	[1]	{ \text{(#1)}	}
+\newcommand{\pnofab}	[1]	{ \textrm{nofab}(#1) }
+
+\newcommand{\proofBox}[1]{
+	\begin{minipage}{1.35\textwidth}
+	#1
+	\end{minipage}
+}
+
+\newcommand{\proof}[1]{ 
+	\begin{minipage}{1.35\textwidth}
+	\begin{align*}
+	#1
+	\end{align*}
+	\end{minipage}
+}
+
+
+
+% -- Term Macros -----------------------------------------------------------------------------------
+\newcommand{\teLAM}	[3]	{\Lambda(#1 : #2). \: #3}
+\newcommand{\teLAMB}	[3]	{\Lambda(#1 \sqsupseteq #2). \: #3}
+\newcommand{\teLam}	[3]	{\lambda(#1 : #2). \: #3}
+\newcommand{\teLet}	[3]	{\rblet \ #1 = #2 \ \rbin \ #3}
+\newcommand{\teLetR}	[3]	{\rbletregion \ #1 \ \kwith \ \{ #2 \} \ \rbin \ #3}
+\newcommand{\teLetRE}	[2]	{\rbletregion \ #1 \ \rbin \ #2}
+\newcommand{\teIf}	[3]	{\rbif \ #1 \ \rbthen \ #2 \ \rbelse \ #3}
+
+% -- Value Macros ----------------------------------------------------------------------------------
+
+
+% -- trule
+\newcommand{\trule}[3]{
+	\frac	{\begin{aligned}#2\end{aligned}}
+		{\begin{aligned}#3\end{aligned}} \ (\textrm{\small{#1}})
+}
+
+\newcommand{\dtrule}[3]{
+	\begin{displaymath}
+	\trule{#1}{#2}{#3}
+	\end{displaymath}
+}
+
+
+% -- taxiom
+
+\newcommand{\dtaxiom}[2]{
+	\begin{displaymath}
+	\taxiom{#1}{#2}
+	\end{displaymath}
+}
+
+% -- tbox
+\newcommand{\tbox}[1]{
+	\makebox[0.49\textwidth]{$#1$}
+}
+
+
+% -- tfbox
+ \newcommand{\tfbox}[1]{
+	\makebox[0.49\textwidth]{\fbox{$#1$}}}
+
+% -- tpack
+\newcommand{\tpack}[2]{
+	\makebox[0.49\textwidth]{$#1$}
+	\makebox[0.49\textwidth]{$#2$}
+ }
+
+% -- tspace
+\newcommand{\tskip}[0]
+	{\vspace{10pt}}
+
+
+% -- operators
+\newcommand\tle			{\sqsubseteq}
+\newcommand\tme			{\sqsupseteq}
+\newcommand\tspace		{\hspace{0.5cm}}
+\newcommand\tfun		{\rightarrow}
+\newcommand\To			{\Rightarrow}
+\newcommand\eto			{ \ \textbf{$\longrightarrow$} \ }
+\newcommand\etos		{ \ \textbf{$\stackrel{*}{\longrightarrow}$} \ }
+
+\newcommand\toa[1]		{\stackrel{#1}{\rightarrow}}
+
+\newcommand\fun			{\rightarrow}
+\newcommand\lfun		{\longrightarrow}
+\newcommand\funa[1]		{\stackrel{#1}{\rightarrow}}
+\newcommand\lfuna[1]		{\stackrel{#1}{\longrightarrow}}
+
+\newcommand\mapstoa[1]		{\stackrel{#1}{\mapsto}}
+
+\newcommand\equalsa[1]		{\stackrel{#1}{=}}
+\newcommand\equalsdef		{\stackrel{\trm{def}}{=}}
+
+\newcommand\sima[1]		{\stackrel{#1}{\sim}}
+
+
+
+% -- TRASH -----------------------------------------------------------------------------------------
+
+% -- common constructors
+\newcommand{\tPure}[1]		{\textrm{Pure} \ #1}
+\newcommand{\tConst}[1]		{\textrm{Const} \ #1}
+\newcommand{\tConstT}[1]	{\textrm{ConstT} \ #1}
+\newcommand{\tMutable}[1]	{\textrm{Mutable} \ #1}
+\newcommand{\tMutableT}[1]	{\textrm{MutableT} \ #1}
+\newcommand{\tRead}[1]		{\textrm{Read} \ #1}
+\newcommand{\tWrite}[1]		{\textrm{Write} \ #1}
+
+\newcommand{\kPure}[1]		{\textbf{Pure} \ #1}
+\newcommand{\kConst}[1]		{\textbf{Const} \ #1}
+\newcommand{\kMutable}[1]	{\textbf{Mutable} \ #1}
+
+
+
+
+\newcommand{\rlet}	{\textrm{let}}
+\newcommand{\rin}	{\textrm{in}}
+\newcommand{\s}			{\ ; \ }
+\newcommand{\ra}		{\ \rightarrow \ }
+
+% -- judgements
+\newcommand\judge		{\hspace{2pt} \boldsymbol{\vdash} 			\hspace{2pt}}
+
+\newcommand\judgea[1]{ 
+	\hspace{2pt} 
+	\boldsymbol{
+		\vdash_{\textrm{\tiny{#1}}}
+	}
+%	\hspace{2pt}
+}
+
+\newcommand{\judgek}[0]		{\judgea{K}}
+\newcommand{\judget}[0]		{\judgea{T}}
+
+% --- trash
+\newcommand\hastype	{\hspace{2pt} :: \hspace{2pt}}
+\newcommand\hasconstr	{\hspace{2pt} \texttt{:-} \hspace{2pt}}
+
+\newcommand\fdot	{\hspace{2pt} \texttt{.}  \hspace{2pt}}
+\newcommand\fcomma	{\hspace{2pt} \texttt{,}  \hspace{2pt}}
+
+
+\newcommand\with	{\hspace{4pt} \textbf{;} \hspace{4pt}}
+
+\newcommand\ctor[1]	{\texttt{#1}}
+
+
+\newcommand\mRead[1]	{\mbox{\texttt{Read $#1$}}}
+
+\newcommand\ctorM[2]	{\mbox{\texttt{#1 $#2$}}}
+\newcommand\PureM[1]	{\mbox{\texttt{Pure $#1$}}}
+
+
+
+\newcommand\Read[1]	{\mbox{\texttt{Read} #1}}
+\newcommand\Write[1]	{\mbox{\texttt{Write} #1}}
+\newcommand\Init[1]	{\mbox{\texttt{Init} #1}}
+
+\newcommand\Int[1]	{\mbox{\texttt{Int} #1}}
+\newcommand\Ref[1]	{\mbox{\texttt{Ref} #1}}
+
+\newcommand\systemF	{\mbox{System-F}}
+
+
+\newcommand\dtyperule[3]{\begin{displaymath}\frac{#2}{#3} \ (#1)\end{displaymath}}
+\newcommand\typerule[3]{\frac{#2}{#3} \ (#1)}
+
+\newcommand\mtyperule[3]{
+	\begin{small}
+	$\frac {\begin{aligned} #2 \end{aligned}}{\begin{aligned}#3\end{aligned}}$ \ (#1) 
+	\end{small} 
+}
+
+\newcommand\mtypeaxiom[2]{
+	\begin{small}
+	$#2 \ \ (#1)$
+	\end{small}
+}
+
+

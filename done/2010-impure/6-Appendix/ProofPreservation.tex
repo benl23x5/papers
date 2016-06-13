@@ -1,0 +1,816 @@
+% -- Theorem: Preservation
+\clearpage{}
+\begin{flushleft}
+\textbf{Theorem: (Preservation)} \\
+Suppose we have a state $\heap \with t$ with store $\heap$ and term $t$.
+	Let $\Sigma$ be a store typing which models $\heap$. 
+	If $\heap$ and $t$ are well typed, 
+		and $\heap \with t$ can transition to a new state $\heap' \with t'$
+		then for some $\Sigma'$ which models $\heap'$, 
+		$\heap'$ is well typed, 
+		$t'$ has a similar type to $t$,
+		and the effect $\sigma'$ of $t'$ is no greater than the effect $\sigma$ 
+		of $t$.
+
+\medskip
+\begin{tabular}{ll}
+	If	& $\tyJudge{\Gamma}{\Sigma}{t}{\tau}{\sigma}$ \\
+	\ and	& $\trEval{\heap}{t}{\heap'}{t'}$ \\
+	\ and	& $\Sigma \vdash \heap$ \ and \ $\Sigma \models \heap$ 
+	\\[1ex]
+	\multicolumn{2}{l}{then for some $\Sigma'$, $\tau'$, $\sigma'$ we have} \\
+		& $\tyJudge{\Gamma}{\Sigma'}{t'}{\tau'}{\sigma'}$ \\
+	\ and	& $\Sigma' \supseteq \Sigma$ \ \ and \ $\Sigma' \models \heap'$ \ and $\Sigma' \vdash  \heap'$  \\
+	\ and	& $\tau' \sim_{\Sigma'} \tau$ \  and \ $\sigma' \sqsubseteq_{\Sigma'} \sigma$ 
+\end{tabular}
+
+\bigskip
+\trb{Proof:} By induction over the derivation of $\tyJudge{\Gamma}{\Sigma}{t}{\tau}{\sigma}$.
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(IH) 
+	\> Progress holds for all subterms of $t$.
+	\> (assume)
+\end{tabbing}
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t$ is one of
+	$x$, 
+	\ $\Lambda(a :: \kappa). \ t'$, 
+	\ $\lambda (x :: \tau). \ t'$, 
+	\ $()$, 
+	\ $\underline{l}$}
+
+Can't happen. There is no transition rule for $H \with t$
+
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = t_1 \ \varphi_2$ / TyAppT / EvApp1}
+$$ 
+\qq 
+	\frac
+	{ (5) \ \tyJudge {\Gamma} {\Sigma} {t_1} {\tyForall{a}{\kappa_{11}}{\varphi_{12}}} {\sigma}
+	  \qq
+	  (6) \ \kiJudge {\Gamma} {\Sigma} {\varphi_2} {\kappa_{2}} 
+	  \qq
+	  (7) \ \kappa_{11} \sims \kappa_2
+	}
+	{ (\un{1}) \ \tyJudge {\Gamma} {\Sigma} {t_1 \ \varphi_2} 
+				{\varphi_{12}[\varphi_2/a]} 
+				{\sigma[\varphi_2/a]}
+	}
+$$
+$$
+\qq \qq
+	\frac
+	{ (8) \ \trEval {\heap} {t_1} {\heap'} {t_1'} }
+	{ (\un{2}) \ \trEval {\heap} {t_1 \ \varphi_2} {\heap'} {t_1' \ \varphi_2} }
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{3}, \un{4}) 	
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume}
+\\[1ex]
+\>	(9..14) \> $\tyJudge{\Gamma}{\Sigma'}{t_1'}
+				{ \tyForall{a} {\kappa_{11}'} {\varphi_{12}'}} {\sigma'},$ 
+\\[0.2ex]
+\>		\> \qq $\Sigma' \supseteq \Sigma, \ \
+				\sigma' \sqsubseteq_{\Sigma'} \sigma,$
+\\[0.2ex]
+\>		\> \qq	$\tyForall{a}{\kappa_{11}'}{\varphi_{12}'}
+					\sim_{\Sigma'} \tyForall{a}{\kappa_{11}}{\varphi_{12}}$ 
+\\[0.2ex]
+\>		\> \qq	$\Sigma' \vdash \heap', \ \
+				\Sigma' \models \heap'$
+		\> \pby {IH 5 8 3 4}
+\\[1ex]
+\>	(15)	\> $\kiJudge {\Gamma} {\Sigma'} {\varphi_2} {\kappa_2}$	
+		\> \pby{Weak. Store Typing 6 10}
+\\[1ex]
+\>	(16)	\> $\kappa_{11}' \sim_{\Sigma'} \kappa_{11}$		
+		\> \pby{SimAll 12}
+\\[1ex]
+\>	(17)	\> $\kappa_{11}  \sim_{\Sigma'} \kappa_{2}$		
+		\> \pby{Weak. $(\sims)$ 7 10}
+\\[1ex]
+\>	(18)	\> $\kappa_{11}' \sim_{\Sigma'} \kappa_{2}$		
+		\> \pby{16 17}
+\\[1ex]
+\>	(19)	\> $\tyJudge {\Gamma} {\Sigma'} {t_1' \ \varphi_2} 
+				{\varphi_{12}'[\varphi_2/a]} 
+				{\sigma'[\varphi_2/a]}$
+		\> \pby {TyAppT 9 13 18}
+\end{tabbing}
+\bigskip
+
+\clearpage{}
+% ---------------------
+\pCase{$t = t_1 \ \varphi_2$ / TyAppT / EvAppAbs}
+$$
+\qq \qq
+	\infer
+	{ (\un{1}) \ \tyJudge{\Gamma} {\Sigma} 
+			{ (\teLAM{a}{\kappa_{11}}{t_{12}}) \ \varphi_2}
+			{ \varphi_{12}[\varphi_2/a] }
+			{ \sigma[\varphi_2/a]}
+	}
+	{ 	\begin{aligned}
+		\infer 
+		{ (5) \ \tyJudge{\Gamma}{\Sigma}
+			{ \teLAM{a}{\kappa_{11}}{t_{12}} }
+			{ \tyForall{a}{\kappa_{11}}{\varphi_{12}}}
+			{ \sigma}
+		}
+		{ (8) \ \tyJudge{\Gamma, \ a : \kappa_{11}}{\Sigma}
+				{t_{12}}{\varphi_{12}}{\sigma} 
+		}
+		\end{aligned}
+	  \qq
+	  	\begin{aligned}
+		  (7) 	\ \kappa_{11} \sims \kappa_2
+		  \\
+		  (6)	\ \kiJudge{\Gamma}{\Sigma}
+			{ \varphi_2}
+			{ \kappa_2 }
+		\end{aligned}
+	}
+$$
+$$ (\un{2}) \
+	 \heap \with (\Lambda (a :: \kappa_{11}). \ t_{12}) \ \varphi_2 \eto 
+	 \heap \with t_{12}[\varphi_2/a] 
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	$(\un{3}, \un{4})$	
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$		
+		\> \pby{assume}
+\\[1ex] 
+\>	(9) 	\> $\tyJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{t_{12} [\varphi_2/a]}
+			{\varphi_{12} [\varphi_2/a] }
+			{\sigma [\varphi_2/a] }$				
+		\> \pby{Sub. Type/Value 8 6 7}
+\\[1ex]
+\>	(10) 	\> $a \notin \Gamma$					
+		\> \pby{No Var Capture 1}
+\\[1ex]
+\>	(11) 	\> $\Gamma[\varphi_2/a] \equiv \Gamma$			
+		\> \pby{Def. Sub. 10}
+\end{tabbing}
+
+\bigskip
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = t_1 \ t_2$ / TyApp / EvApp1}
+$$
+\qq \qq
+	\frac	
+	{ (5) \ \tyJudge{\Gamma}{\Sigma}
+		{t_1}
+		{\tau_{11} \funa{\sigma} \tau_{12}}
+		{\sigma_1}
+	  \qq
+	  (6) \ \tyJudge{\Gamma}{\Sigma}
+		{t_2}
+		{\tau_2}
+		{\sigma_2}
+	  \qq
+	  (7) \	\tau_{11} \sim_\Sigma \tau_2{}
+	}
+	{ (\un{1})
+		\ \tyJudge{\Gamma}{\Sigma}
+		{t_1 \ t_2}
+		{\tau_{12}}
+		{\sigma_1 \lor \sigma_2 \lor \sigma}
+	}
+$$
+$$
+\qq \qq
+	\frac
+	{ (8) \ \trEval	{\heap}{t_1}
+			{\heap'}{t_1'}
+	}
+	{ (\un{2})
+		 \ \trEval	
+		 	{\heap}{t_1 \ t_2}
+			{\heap'}{t_1' \ t_2}
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{3}, \un{4})
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume}
+\\[1ex]
+\>	(9..14) \> $\tyJudge{\Gamma}{\Sigma'}
+				{t_1'}
+				{\tau_{11}' \funa{\sigma'} \tau_{12}'}
+				{\sigma_1'}$
+\\[0.2ex]
+\>		\> \qq $\Sigma' \supseteq \Sigma, \ \Sigma' \vdash \heap', \ \ \Sigma' \models \heap'$
+\\[0.2ex]
+\>		\> \qq $(\tau_{11}' \funa{\sigma'} \tau_{12}')  \sim_{\Sigma'}
+			      (\tau_{11} \funa{\sigma} \tau_{12}) $
+\\[0.2ex]
+\>		\> \qq $\sigma_1'  \sim_{\Sigma'} \sigma_1$ 		
+		\> \pby{IH 5 8 3 4}
+\\[1ex]
+\>	(15) 	\> $\tyJudge{\Gamma}{\Sigma'}{t_2}{\tau_2}{\sigma_2}$
+		\> \pby{Weak. Store Typing 6 10}
+\\[1ex]
+\>	(16) 	\> $\tau_{11}' \sim_{\Sigma'} \tau_{11}$
+		\> \pby{SimApp 13}
+\\[1ex]
+\>	(17) 	\> $\tau_{11} \sim_{\Sigma'} \tau_{2}$
+		\> \pby{Weak. $(\sims)$ 7 10}
+\\[1ex]
+\>	(18) 	\> $\tau_{11}' \sim_{\Sigma'} \tau_{2}$
+		\> \pby{16 17}
+\\[1ex] 
+\>	(19) 	\> $\tyJudge{\Gamma}{\Sigma'}
+				{t_1' \ t_2}
+				{\tau_{12}'}
+				{\sigma_1' \lor \sigma_2 \lor \sigma'}$
+		\> \pby{TyApp 9 15 18}
+\\[1ex]
+\>	(20) 	\> $\sigma' \sim_{\Sigma'} \sigma$		
+		\> \pby{SimApp 13}
+\\[1ex]
+\>	(21) 	\> $\sigma_1' \lor \sigma_2 \lor \sigma'
+				\sqsubseteq_{\Sigma'}
+				\sigma_1 \lor \sigma_2 \lor \sigma$
+		\> \pby{14 20}
+\end{tabbing}
+
+
+
+\clearpage{}
+
+% ---------------------
+\pCase{$t = t_1 \ t_2$ / TyApp / EvApp2}
+		
+Similarly to TyApp/EvApp1 case.
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = t_1 \ t_2$ / TyApp / EvAppAbs}
+$$
+ 	\infer	
+	{ (\un{1}) \ 
+	   \tyJudge
+		{\Gamma}{\Sigma}
+		{(\teLam{x}{\tau_{11}}{t_{12}}) \ v^\circ}
+		{\tau_{12}}
+		{\sigma_1 \lor \sigma_2 \lor \sigma}
+	}
+	{ 	\infer 
+	  	{ (5) \ 
+		  \tyJudge
+		  	{\Gamma}{\Sigma}
+			{\teLam{x}{\tau_{11}}{t_{12}}}
+			{\tau_{11} \funa{\sigma} \tau_{12}}
+			{\sigma_1}
+		}
+		{ 	(8) \ 
+			\tyJudge
+				{\Gamma, \ x : \tau_{11}}{\Sigma}
+				{t_{12}}
+				{\tau_{12}}
+				{\sigma}
+		}
+		& \quad
+		(6) \
+		\tyJudge
+			{\Gamma}{\Sigma}
+			{v^\circ}
+			{\tau_2}
+			{\bot}
+		& \quad
+		(7) \
+		\tau_{11} \sim_\Sigma \tau_2
+	}
+$$	
+$$
+\qq \qq
+	(\un{2}) \
+	\trEval	{\heap}
+		{(\teLam{x}{\tau_{11}}{t_{12}}) \ v^\circ}
+		{\heap'}
+		{t_{12}[v^\circ/x]}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	$(\un{3}, \un{4}) $
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume} 
+\\[1ex]
+\>	(9..11) \> $\tyJudge
+			{\Gamma}{\Sigma}
+			{t_{12}[v^\circ/x]}
+			{\tau_{12}'}
+			{\sigma'}$ 
+\\[0.2ex]
+\>		\> \qq $\tau_{12} \sim_\Sigma \tau_{12}'$
+\\[0.2ex]
+\>		\> \qq $\sigma \  \sim_\Sigma \sigma'$
+		\> \pby{Sub. Value/Value 8 6 7} 
+\\[1ex]
+\>	(12) 	\> $\sigma' \tle_\Sigma \sigma_1 \lor \sigma_2 \lor \sigma$	
+		\> \pby{11}
+\end{tabbing}
+
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = \teLet{x}{t_1}{t_2}$ / TyLet / EvLet1}
+$$
+\qq \qq	\infer
+	{ (\un{1}) \
+	  \tyJudge
+	  	{\Gamma}{\Sigma}
+		{\teLet{x}{t_1}{t_2}}
+		{\tau_2}
+		{\sigma_1 \lor \sigma_2}
+	}
+	{ (5) \
+	  \tyJudge
+	  	{\Gamma}{\Sigma}
+		{t_1}
+		{\tau_1}
+		{\sigma_1}
+	  & \quad
+	  (6) \
+	  \tyJudge
+	  	{\Gamma, \ x : \tau_3}{\Sigma}
+		{t_2}
+		{\tau_2}
+		{\sigma_2}
+	  & \quad
+	  (7) \
+	 	\tau_1 \sim_\Sigma \tau_3 
+	}
+$$
+$$
+\qq \qq	\infer
+	{ (\un{2}) \
+	  \trEval
+	  	{\heap} {\teLet{x}{t_1}{t_2}}
+		{\heap'}{\teLet{x}{t_1'}{t_2}}
+	}
+	{ (8) \
+	  \trEval
+		{\heap} {t_1}
+		{\heap'}{t_1'}
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{3}, \un{4}) 
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume} 
+\\[1ex]
+\>	(9..14) \> $\tyJudge
+			{\Gamma}{\Sigma'}
+			{t_1}
+			{\tau_1'}
+			{\sigma_1'}$
+\\[0.2ex]
+\>		\> \qq 	$\Sigma' \supseteq \Sigma, \ 
+			\Sigma' \vdash \heap', \ 
+			\Sigma' \models \heap'$ 
+\\[0.2ex]
+\>		\> \qq 	$\tau_1' \sim_{\Sigma'} \tau_1, \ 
+			\sigma_1' \tle_{\Sigma'} \sigma_1$			
+		\> \pby{IH 5 2 3 4}
+\\[1ex]
+\>	(15) 	\> $\tau_1 \sim_{\Sigma'} \tau_3$		
+		\> \pby{Weak. $(\sim_\Sigma)$ 7 10}
+\\[1ex]
+\>	(16) 	\> $\tau_1' \sim_{\Sigma'} \tau_3$
+		\> \pby{13 15}
+\\[1ex]
+\>	(17) 	\> $\tyJudge
+		  	{\Gamma, \ x : \tau_3}{\Sigma'}
+			{t_2}
+			{\tau_2}
+			{\sigma_2}$						
+		\> \pby{Weak. Store Typing 6 10}
+\\[1ex]
+\>	(18) 	\> $\tyJudge
+			{\Gamma}{\Sigma'}
+			{\teLet{x}{t_1'}{t_2}}
+			{\tau_2}
+			{\sigma_1' \lor \sigma_2}$	
+		\> \pby{TyLet 9 17 16} 
+\\[1ex]
+\>	(20) 	\> $\sigma_1' \lor \sigma_2 \ 
+			\tle_{\Sigma'} \ \sigma_1 \lor \sigma_2	$
+		\> \pby{14}
+\end{tabbing}
+
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = \teLet{x}{t_1}{t_2}$ / TyLet / EvLet}
+
+Similarly to TyApp / EvAppAbs case.
+
+
+\clearpage{}
+% ---------------------
+\pCase{$t = \teLetR{r}{\ov{w_i = \delta_i}}{t_1}$ / TyLetRegion / EvLetRegion}
+$$
+\qq	\infer
+	{ (\un{1}) \
+	  \tyJudge
+	  	{\Gamma}{\Sigma}
+	  	{(\teLetR{r}{\ov{w_i = \delta_i}}{t_1})}
+		{\tau}
+		{\sigma}
+	}
+	{ \begin{aligned}
+		  \\
+		  (5) \ 
+		  \tyJudge
+			{\Gamma, \ r : \%, \ \ov{w_i : \kappa_i}} 
+			{\Sigma} 
+			{t_1} 
+			{\tau} 
+			{\sigma}
+	  \end{aligned}
+	  \quad
+	  \begin{aligned}
+		(6) \ 
+		\ksJudge{\Gamma &}
+			{\Sigma}
+			{\kappa_i}
+			{\Diamond}
+		\\
+		(7) \ 
+		\kiJudge
+		  	{\Gamma &}
+			{\Sigma}
+			{\delta_i}
+			{\kappa_i}
+	  \end{aligned}
+	  & \quad
+	  \begin{array}{cc}
+		  \\
+	  	  (8) \ \ov{\delta_i} \ \trm{well formed} \\
+	  \end{array}
+	}
+$$
+$$
+\qq\qq
+	\infer
+	{ (\un{2}) \ 
+	  \trEval
+		{\heap}
+		{\teLetR{r}{\ov{w_i = \delta_i}}{t_1}}
+		{\heap, \ \un{\rho}, 
+			\ r \sim \rho, 
+			\ \ov{\Delta_i} \ 
+		}
+		{\ t_1[\ov{\Delta_i/w_i}][\un{\rho}/r]}
+	}
+	{ (9) \ 
+	  \heap, \ \ov{\rpropOf(\Delta_i)} \with \ov{\delta_i} \leadsto \ov{\Delta_i}
+	  \qq 
+	  (10) \ 
+	  \un{\rho} \ \textrm{fresh}
+	}
+$$
+
+\begin{tabbing}
+MM \= MMM \= MMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{3}, \un{4}) 
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap	$		
+		\> \pby{assume} 
+\\[1ex]
+\>	(11) 	\> ${\Gamma[\ov{\Delta_i/w_i}][\un{\rho}/r]} \ | \ {\Sigma} 
+			  \vdash {t_1	[\ov{\Delta_i/w_i}][\un{\rho}/r]} $
+\\[0.2ex]
+\>		\> $\ \hspace{4em} :: {\tau_1 [\ov{\Delta_i/w_i}][\un{\rho}/r]} 
+			  \ ;  \	    {\sigma [\ov{\Delta_i/w_i}][\un{\rho}/r]}$	
+		\> \pby{Sub. Type/Value 5 7}
+\\[1ex] 
+\>	(12) 	\> $\Gamma[\ov{\Delta_i/w_i}][\un{\rho}/r] \equiv \Gamma$
+		\> \pby{No Var Capture 1}
+\\[1ex]
+\>	(13) 	\> $\sigma[\ov{\Delta_i/w_i}][\un{\rho}/r] \equiv \sigma[\un{\rho}/r]$
+		\> \pby{No Wit. Vars in Effects 7 6}
+\\[1ex]
+\>	(14) 	\> $\tau  [\ov{\Delta_i/w_i}][\un{\rho}/r] \equiv \tau[\un{\rho}/r]$
+		\> \pby{No Wit. Vars in Value Types 7 6}
+\\[1ex]
+\>	(15) 	\> $\Sigma' = \Sigma,  
+				\ \un{\rho}, 
+				\ r \sim \rho, 
+				\ \ov{\Delta_i} $				
+			\> \pby{let}
+\\[1ex]
+\>	(16) 	\> $\tyJudge
+			{\Gamma}{\Sigma'}
+			{t_1	[\ov{\Delta_i/w_i}][\un{\rho}/r]}
+			{\tau[\un{\rho}/r]}
+			{\sigma[\un{\rho}/r]}$
+		\> \pby{Weak. Store Typing 11..15}
+\\[1ex]
+\>	(17) 	\> $\tau   \sim_{\Sigma'} \tau[\un{\rho}/r]$		
+		\> \pby{SimHandle 15}
+\\[1ex]
+\>	(18) 	\> $\sigma \tle_{\Sigma'} \sigma[\un{\rho}/r]$			
+		\> \pby{SubReflSim, SimHandle 15}
+\end{tabbing}
+
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = \teIf{t_1}{t_2}{t_3}$ / TyIf / EvIf}
+
+Similarly to TyApp / EvApp1 case.
+
+
+\bigskip
+\bigskip
+% ---------------------
+\pCase{$t = \teIf{t_1}{t_2}{t_3}$ / TyIf / EvIfThen}
+
+$$
+\qq	\infer	
+	{ (\un{1}) \
+	  \tyJudgeGS
+		{\teIf{\un{l}}{t_2}{t_3}}
+		{\tau_2}
+		{\sigma_1 \lor \sigma_2 \lor \sigma_3 \lor \iRead \ \rho}
+	}
+	{ 
+	  \begin{aligned}
+	  \\
+	  (5) \ 
+	  \tyJudgeGS
+		{\un{l}}
+		{\iBool \ \rho}
+		{\sigma_1}
+	  \end{aligned}
+	  \qq
+	  \begin{aligned}
+		  (6) \ 
+		  \tyJudgeGS
+			{t_2}
+			{\tau_2}
+			{\sigma_2} 
+		 \\
+		 (7) \ 
+		  \tyJudgeGS
+		  	{t_3}
+			{\tau_3}
+			{\sigma_3}
+	  \end{aligned}
+	  \qq
+	  \begin{aligned}
+		\\
+	  	\tau_2 \sim_\Sigma \tau_3
+	  \end{aligned}
+	}
+$$
+$$
+\qq \qq	(\un{2}) \ 
+	\trEval
+		{\heap, \ l \mapstoa{\rho} \trm{T}}
+		{\teIf{\un{l}}{t_2}{t_3}}
+		{\heap, \ l \mapstoa{\rho} \trm{T}}
+		{t_2}
+$$
+\begin{tabbing}
+MM \= MMM \= MMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{3}, \un{4}) 
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume} 
+\\[1ex]
+\>	(8) 	\> $\tyJudgeGS
+			{t_2}
+			{\tau_2}
+			{\sigma_2}$						
+		\> \pby{Repeat 6}
+\\[1ex]
+\>	(9) 	\> $\sigma_2 \tle_\Sigma \sigma_1 \lor \sigma_2 \lor \sigma_3 \lor \iRead \ \rho$
+		\> \pby{SubJoin2}
+\end{tabbing}
+
+\clearpage{}
+% ---------------------
+\pCase{$t = \teIf{t_1}{t_2}{t_3}$ / TyIf / EvIfElse}
+
+Similarly to TyIf / EvIfThen case.
+
+
+\bigskip
+
+% ---------------------
+\pCase{$t = \iTrue \ \varphi$ / TyTrue / EvTrue}
+
+$$
+	\infer
+	{ (\un{1}) \
+	  \tyJudgeGS
+	  	{ \iTrue \ \un{\rho} }
+		{ \iBool \ \un{\rho} }
+		{ \bot }
+	}
+	{	\infer
+		{ (5) \ 
+		  \kiJudgeGS
+			{ \un{\rho} }
+			{ \% }
+		}
+		{ (6) \ 
+		  \un{\rho} \in \Sigma }
+	}
+$$
+
+$$
+	\infer
+	{	(\un{2}) \ 
+		\trEval	{\heap, \ \un{\rho}}
+			{\iTrue \ \un{\rho}}
+			{\heap, \ \un{\rho}, \ \un{l} \mapstoa{\rho} \trm{T}}
+			{\un{l}}
+	}
+	{ 	\un{l} \ \trm{fresh} 
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{3}, \un{4}) 
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume} 
+\\[1ex]
+\>	(7) 	\> $\Sigma' = \Sigma, \ l : \iBool \ \un{\rho}$
+		\> \pby{let}
+\\[1ex]
+\>	(8) 	\> $\tyJudge
+			{\Gamma}
+			{\Sigma'}
+			{\un{l}}
+			{\iBool \ \un{\rho}}
+			{\bot}$
+		\> \pby{TyLoc 7}
+\end{tabbing}
+
+
+\bigskip
+% ---------------------
+\pCase{$t = \iFalse \ \varphi$ / TyFalse / EvFalse}
+
+Similarly to TyFalse / EvFalse case.
+
+\bigskip
+% ---------------------
+\pCase{$t = \iupdate \ \delta \ t_1 \ t_2$ / TyUpdate / \{EvUpdate1, EvUpdate2\} }
+
+Similarly to TyApp / EvApp1 case.
+
+\bigskip
+% ---------------------
+\pCase{$t = \iupdate \ \delta \ t_1 \ t_2$ / TyUpdate / EvUpdate3}
+
+$$ 
+	\begin{aligned}
+	  (\un{2}) \qq
+	  	 & \heap	, \ \rmutable \ \rho_1
+			, \ l_1 \mapstoa{\rho_1} V_1
+			, \ l_2 \mapstoa{\rho_2} V_2
+			\with \iupdate \
+				\underline{\textrm{mutable $\rho_1$}} \ 
+				\un{l_1} \ 
+				\un{l_2} \\
+		  	\eto  
+		  & \heap , \ \rmutable \ \rho_1
+			, \ l_1 \mapstoa{\rho_1} V_2
+			, \ l_2 \mapstoa{\rho_2} V_2
+			\with ()
+	  \end{aligned}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{1}) 
+		\> $\Gamma \ \vert \ \Sigma \judge \iupdate \ \un{\rmutable \ \rho_1} \ \un{l_1} \ \un{l_2} :: ()$
+\\[0.2ex]
+\>		\> \hspace{6ex} $ ; {\ \sigma_1 \lor \sigma_2 \lor \iRead \ \rho_1 \ \lor \iRead \ \rho_2}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}, \un{4}) 
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume} 
+\\[1ex]
+\>	(5) 	\> $\tyJudgeGS{()}{()}{\bot}$
+		\> \pby{TyUnit}
+\end{tabbing}
+
+
+\bigskip
+% ---------------------
+\pCase{$t = \isuspend \ \delta \ t_1 \ t_2$ / TySuspend / EvSuspend1}
+
+Immediate
+
+
+\bigskip
+% ---------------------
+\pCase{$t = \isuspend \ \delta \ t_1 \ t_2$ / TySuspend / \{EvSuspend2, EvSuspend3\} }
+
+Similarly to TyApp / EvApp1 case.
+
+
+\clearpage{}
+% --------------------
+\pCase{$t = \isuspend \ \delta \ t_1 \ t_2$ / TySuspend / EvSuspend}
+$$
+\qq 	\infer
+	{ (\un{1}) \
+	  \tyJudgeGS
+		{\isuspend \ \ \un{\rpure \ \sigma} \ \ (\teLam{x}{\tau_{11}}{t_{12}}) \ \ v^\circ}
+		{\tau_{12}}
+		{\bot}
+	}
+	{	
+		\begin{aligned}
+			\\
+			\infer
+			{ (5) \
+			  \tyJudgeGS
+			  	{ \teLam{x}{\tau_{11}}{t_{12}} }
+				{ \tau_{11} \funa{\sigma} \tau_{12} }
+				{ \bot }
+		   	}
+			{ (9) \
+			  \tyJudge
+			  	{ \Gamma, \ x : \tau_{11} }
+				{ \Sigma }
+				{ t_{12} }
+				{ \tau_{12} }
+				{ \sigma }
+			}
+		\end{aligned}
+		\qq
+		\begin{aligned}
+			(8) \ 
+			\tau_{11} \sim_\Sigma \tau_{2}
+			\\
+			(7) \ 
+			\tyJudgeGS
+			  	{ v^\circ }
+				{ \tau_2 }
+				{ \bot }
+			\\
+			(6) \
+			\kiJudgeGS
+			  	{ \un{\rpure \ \sigma} }
+				{ \iPure \ \sigma }
+		\end{aligned}
+	}
+$$
+$$
+	(\un{2}) \
+	\trEval
+		{\heap}{\isuspend \ \ \un{\rpure \ \sigma} \ \ (\teLam{x}{\tau_{11}}{t_{12}}) \ \ v^\circ}
+		{\heap}{t[v^\circ/x]}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	$(\un{3}, \un{4})$
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap$
+		\> \pby{assume} 
+\\[1ex]
+\>	(10..12) \> $\tyJudgeGS{t_{12}[v^\circ/x]}{\tau_{12}'}{\sigma'},$ 
+\\[0.2ex]
+\>		\> $\qq \tau_{12}' \sim_\Sigma \tau_{12}, \ \sigma' \tle_\Sigma \sigma$
+		\> \pby{Sub. Value/Value 9 7 8}
+\\[1ex]
+\>	(13) 	\> $\sigma \tle_\Sigma \bot$
+		\> \pby{SubPurify 6}
+\\[1ex]
+\>	(14) 	\> $\sigma' \tle_\Sigma \bot$
+		\> \pby{12 13}
+\end{tabbing}
+
+\end{flushleft}
+
+
+
+
+
+

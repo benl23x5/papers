@@ -1,0 +1,428 @@
+
+\clearpage{}
+\section{Type Classes}
+\label{inference:type-classes}
+
+It is straightforward to add basic support for type class constraints to a graph based inference algorithm. This includes support for ``baked in'' constraints such as $\iMutable$ and $\iPure$, as well as programmer defined constraints such as $\iShow$ and $\iEq$. 
+
+The additions to the language are:
+
+% -- Declarations
+\vspace{-1em}
+\subsubsection{Declarations}
+\vspace{-1ex}
+\begin{tabbing}
+	MM 	\= MM \= MMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+	$\idecl$ \> $\to$ 	\> $\dots$ \\
+		\> \ $\mid$	\> $\kclass \ C \ \ov{a} \ \kwhere \ \ov{x :: \varphi}$  
+				\> (type class declaration) \\[0.5ex]
+		\> \ $\mid$	\> $\kinstance \ C \ \ov{\tau} \ \kwhere \ \ov{x = t}$  
+				\> (type class instance)
+\end{tabbing}
+
+% -- Types 
+\vspace{-2em}
+\subsubsection{Types}
+\vspace{-1ex}
+\begin{tabbing}
+	MM 	\= MM \= MMMMMMM \= MMMMMMMMMMM \= MMMM \kill
+	$\varphi$, $\tau$, $\sigma$, $\varsigma$	\\
+		\> \ $\to$	\> \dots \\
+		\>  \ $\mid$	\> $\iReadT \ \tau$	\> $\mid \ \iWriteT \ \tau$	
+				\> (effect constructors)
+\end{tabbing}
+
+
+% -- Constraints
+\vspace{-2em}
+\subsubsection{Constraints}
+\vspace{-1ex}
+\begin{tabbing}
+	MM 	\= MM \= MMMMMMM \= MMMMMMMMMMM \= MMMM \kill
+	$\chi$ 	\> $\to$	\> \dots 
+		\\[0.5ex]
+		\> \ $\mid$	\> $C \ \ov{\tau}$ 
+				\> \> (value type classes)
+		\\[0.5ex]
+		\> \ $\mid$	\> $\iShape \ \tau \ \tau'$ 
+						\> $\mid \ \iLazyH \ \tau$ 
+				\> 
+		\\[0.5ex]
+		\> \ $\mid$	\> $\iConstT \ \tau$	\> $\mid \ \iMutableT \ \tau$
+				\> 
+		\\[0.5ex]
+		\> \ $\mid$	\> $\iConst \ r$ 	\> $\mid \ \iMutable \ r$	
+				\> (region classes)	
+		\\
+		\> \ $\mid$	\> $\iLazy \ r$		\> $\mid \ \iDirect \ r$  
+				\> 
+		\\[0.5ex]
+		\> \ $\mid$	\> $\iPure \ \sigma$	\>				
+				\> (effect class)	
+		\\[0.5ex]
+		\> \ $\mid$	\> $\iEmpty \ \varsigma$ \>				
+				\> (closure class)	
+\end{tabbing}
+
+The new declarations behave the same way as their Haskell counterparts. We use $C$ to represent the programmer defined type class constructors such as $\iShow$ and $\iEq$. The meanings of $\iShape$, $\iConstT$ and $\iMutableT$ are discussed in \S\ref{System:TypeClassing}. The meanings of $\iLazy$, $\iLazyH$ and $\iDirect$ were discussed in \S\ref{System:Effects:lazy-and-direct}. $\iPure$ is discussed in \S\ref{System:Effects:purification} and $\iEmpty$ is discussed in \S\ref{System:Closure:empty}.
+
+When performing inference we represent type class constraints as extra nodes in the graph. For example, the type:
+
+\code{
+	$s_{\iupdateInt}$ 
+		& $= \iInt r_1 \to \iInt r_2 \lfuna{e_1 \ c_1} ()$ \\
+		& $\rhd \ e_1 \tme \iRead r_2 \lor \iWrite r_1$ \\
+		& $, \  \ c_1 \tme x : r_1$ \\
+		& $, \ \ \iMutable \ r_1$ 	
+}
+
+Would be represented as:
+\begin{tabbing}
+MMMMM	\= MM 	\= MM 		\= MMMMMM 	\= MM \kill
+	\> *1	\> $\sim$	\> $s_{\iupdateInt}$	
+					\> $= \ \iInt \ r_1 \to \iInt \ r_2 \lfuna{e_1 \ c_1} ()$ \\
+	\> \ !1	\> $\sim$	\> $e_1$	\> $\tme \ \iRead \ r_2 \lor \iWrite \ r_1$ \\
+	\> \$1	\> $\sim$	\> $c_1$	\> $\tme \ x : r_1$ \\
+	\> $\Diamond1$	\> $\sim$	\> $\iMutable \ r_1$ 
+\end{tabbing}
+
+In the type graph we use $\Diamond$ as an identifier for type class equivalence classes.\footnote{Perhaps the type theorist union should start a petition to introduce more synonyms for ``constraint'', and ``class.''} Note that in $\Diamond1$ we have not used an = or $\tme$ operator. Both of these operators are binary and infix, but $\iMutable$ is unary and prefix. We store multi-parameter type class constraints such as $\iShape$ in the same way.
+
+Following on from the section on generalisation \S\ref{inference:generalisation}, when we trace a type from the graph we must also include any type class constraints that reference variables in the body of the type. For example, if we were to re-trace the type of $\iupdateInt$ from the graph, we would need to include $\iMutable \ r_1$. In a real implementation it would be a disaster if we had to inspect every equivalence class in the graph to find all the appropriate constraints. In DDC we mitigate this problem associating each value, region, effect and closure equivalence class, with a set of type class equivalence classes that contain references to it.
+
+Although the programmer defined type classes do not have super class constraints, there are implicit super class constraints on some of the built in ones. We need to reduce these constraints when performing type inference, and the rest of this section discusses how this is done.
+
+
+%--
+\subsection{Deep Read/Write}
+
+\begin{tabbing}
+	M \= MMMMMMMMM \= MMMMMMMM \= MMMMM \kill
+	\> (deep read data)	\> $\{ \ s = T_{\kappa} \ \ov{a}$, 
+				\> $e \tme \iReadT \ s \ \}$ 
+	\\
+	\> \qq \qq $\vvdash$	\> $\{ \ s = T_{\kappa} \ \ov{a}$, 
+				\> $e \tme \ov{\iReadT \ b} \lor \ov{\iRead \ r} \}$ 
+	\\[1ex]
+	\> \qq \qq	
+		\begin{tabular}{lllll}
+		where 	& $\ov{b} \in \{ \ b'$	
+					& $| \ b'  \gets \ov{a},$
+					& $b' :: *,$
+					& $b' \in \imv(\emptyset, \ T_{\kappa} \ \ov{a}) \ \}$ \\
+			& $\ov{r}    \in \{ \  r'$	
+					& $| \ r'   \gets \ov{a},$
+					& $r' :: \%,$ 
+					& $r' \in \imv(\emptyset, \ T_{\kappa} \ \ov{a}) \ \}$ 
+		\end{tabular}
+\end{tabbing}
+
+A deep read effect such as $\iReadT \ a$ represents a read on any region variable contained within the as-yet unknown type $a$. The $\iReadT$ constructor has kind $* \to \ !$, and the ``T'' in $\iReadT$ stands for ``value type''. This distinguishes it from the standard $\iRead$ constructor that works on single regions.
+
+When reducing a deep read on a data type $T \ \ov{\varphi}$, we first separate the argument variables $a$ according to their kinds. Reads on region variables are expressed with the $\iRead$ constructor, and reads on value type variables are be expressed with $\iReadT$. Reads on effect and closure arguments can be safely discarded, as there is no associated action at runtime.
+
+It is only meaningful to read (or write) material variables, hence the clauses \mbox{$b' \in \imv(\emptyset, \ T_{\kappa} \ \ov{a})$} and \mbox{$r' \in \imv(\emptyset, \ T_{\kappa} \ \ov{a})$}. In these clauses, it is safe to use $\emptyset$ for the constraint set. As mentioned in \S\ref{inference:material-regions}, the $\imv$ function expresses a simple reachability analysis, but so does the (deep read data) reduction rule. The appropriate read effects will be generated when we perform further reductions on the resulting graph.
+
+Deep writes are handled similarly to deep reads. Note that an implementation must be careful about applying these reduction rules when there are loops through the value portion of the type graph. For example, if we had the following constraints:
+
+\code{
+	$\{ \ s = \iList \ r \ s, \ e \tme \iReadT s \ \}$
+}
+
+This graph cannot be reduced to normal form because each application of (deep read data) to $\iReadT s$ generates $\iRead r$ as well as another $\iReadT s$ effect.
+
+\begin{tabbing}
+	M \= MMMMMMMMM \= MMMMMMMM \= MMMMM \kill
+	\> \ \ (deep read fun)	\> $\{ \ s = \tau_1 \lfuna{\sigma \ \varsigma} \tau_2$, 
+				\> $e \tme \iReadT \ s \ \}$ 
+	\\
+	\> \qq \qq $\vvdash$	\> $\{ \ s = \tau_1 \lfuna{\sigma \ \varsigma} \tau_2$, 
+				\> $e \tme \bot \ \}$ 
+\end{tabbing}
+
+The rule (deep read fun) shows that deep reads (and writes) on function types can be removed from the graph. Function values do not contain material objects that are capable of being updated.
+
+
+%--
+\subsection{Deep Mutable/Const}
+
+Deep mutability and constancy constraints are reduced in a similar way to deep read and write effects.
+
+\begin{tabbing}
+	M \= MMMMMMMMM \= MMMMMMMM \= MMMMM \kill
+	\> \ \ \ (deep mutable)	\> $\{ \ s = T \ \ov{a}$, 
+				\> $\iMutableT \ s \ \}$ 
+	\\
+	\> \qq \qq $\vvdash$	\> $\{ \ s = T \ \ov{a}$, 
+				\> $\ov{\iMutableT \ b}, \ \ov{\iMutable \ r} \ \}$ 
+	\\[1ex]
+	\>  \qq \qq	
+		\begin{tabular}{lllll}
+		where 	& $\ov{b} \in \{ \ b'$	
+					& $| \ b'  \gets \ov{a},$
+					& $b' :: *,$
+					& $b' \in \imv(\emptyset, \ T_{\kappa} \ \ov{a}) \ \}$ \\
+			& $\ov{r}    \in \{ \  r'$	
+					& $| \ r'   \gets \ov{a},$
+					& $r' :: \%,$ 
+					& $r' \in \imv(\emptyset, \ T_{\kappa} \ \ov{a}) \ \}$ 
+		\end{tabular}
+\end{tabbing}
+
+
+%--
+\subsection{Purification}
+
+\begin{tabbing}
+	MMM \= MMMMMMM \= MMMMMMMM \= MMMMM \= MMMMM \kill
+	\> \ \ (purify)	\> $\{ \ e \tme \iRead \ r$, 
+			\> $\iPure \ e \ \}$ 
+	\\
+	\> \qq $\vvdash$	
+			\> $\{ \ e \tme \iRead \ r$, 
+			\> $\iPure \ e$,
+			\> $\iConst \ r \}$ 
+\end{tabbing}
+
+\begin{tabbing}
+	MMM \= MMMMMMM \= MMMMMMMM \= MMMMM \= MMMMM \kill
+	\> (deep purify)	
+			\> $\{ \ e \tme \iReadT \ s$, 
+			\> $\iPure \ e \ \}$ 
+	\\
+	\> \qq $\vvdash$	
+			\> $\{ \ e \tme \iReadT \ s$, 
+			\> $\iPure \ e$,
+			\> $\iConstT \ s \}$ 
+\end{tabbing}
+
+\begin{tabbing}
+	MMM \= MMMMMMM \= MMMMMMMM \= MMMMM \= MMMMM \kill
+	\> (purify trans)	
+			\> $\{ \ e_1 \tme e_2$, 
+			\> $\iPure \ e_1 \ \}$ 
+	\\
+	\> \qq $\vvdash$	
+			\> $\{ \ e_1 \tme e_2$, 
+			\> $\iPure \ e_1$,
+			\> $\iPure \ e_2 \}$ 
+\end{tabbing}
+
+
+To purify a $\iRead$ effect on a region $r$, we constrain that region to be constant by adding $\iConst \ r$ to the graph. Purification of deep reads is similar. As discussed in \S\ref{System:Effects:purification-higher-order}, we choose to leave the original $\iRead$ effect in the graph, though we could equally remove it.
+
+We must leave the $\iPure \ e$ constraint in the graph. If the equivalence class containing $e$ is unified with another, then these new effects need to be purified as well. 
+
+For example, suppose we had the following constraint set:
+
+\qq (1) \quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s = a \lfuna{e_1} b$,	& $e_1 \tme \iRead \ r_1$, 	& $\iPure \ e_1$, \\
+	& $s = a \lfuna{e_2} b$, 	& $e_2 \tme \iRead \ r_2$, 	& $\iMutable \ r_2$
+	& $\}$
+\end{tabular}
+\bigskip
+
+If we were to set $r_1$ constant while removing the $\iPure \ e_1$ constraint we would get:
+
+\qq (2) \quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s = a \lfuna{e_1} b$, 	& $e_1 \tme \iRead \ r_1$,	& \\
+	& $s = a \lfuna{e_2} b$, 	& $e_2 \tme \iRead \ r_2$, 	& $\iMutable \ r_2$, \\
+	& $\iConst \ r_1$ 		&				&	
+	& $\}$ \qq	(bad purify, 1)
+\end{tabular}
+\bigskip
+
+\clearpage{}
+Performing unification on $s$ gives:
+
+\qq (3) \quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s \ = a \lfuna{e_1} b$,	& $e_1 \tme \iRead \ r_1$,	& \\
+	& 	 			& $e_1 \tme \iRead \ r_2$,	& $\iMutable \ r_2$, \\
+	& $\iConst \ r_1$, 		& $e_1 = e_2$			&	
+	& $\}$ \qq	(unify fun, 2)
+\end{tabular}
+\bigskip
+
+Now, although we used to have a purity constraint on $e_1$, this effect now includes a read of the mutable region $r_2$. In addition, there is nothing left in the constraint set to indicate that such an effect is in any way invalid. On the other hand, if we were to take our original constraint set and perform the unification first, then we would get:
+
+\qq (4) \quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s \ = a \lfuna{e_1} b$,	& $e_1 \tme \iRead \ r_1$, 	& $\iPure \ e_1$, \\
+	& 	 			& $e_1 \tme \iRead \ r_2$, 	& $\iMutable \ r_2$, \\
+	& $e_1 = e_2$ 			& 			&	
+	& $\}$ \qq (unify fun, 1)
+\end{tabular}
+\bigskip
+
+Applying the bad purify rule to this new set yields:
+
+\qq (5) \quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s \ = a \lfuna{e_1} b$,	& $e_1 \tme \iRead \ r_1$, 	& \\
+	& 	 			& $e_1 \tme \iRead \ r_2$, 	& $\iMutable \ r_2$, \\
+	& $e_1 = e_2$,			& $\iConst \ r_1$,		& $\iConst \ r_2$ 
+	& $\}$ \qq (bad purify, 4)
+\end{tabular}
+\bigskip
+
+In this case we have both $\iMutable \ r_2$ and $\iConst \ r_2$ in the final constraint set, which indicates a type error. Removing the purity constraint from the graph has caused our reduction to be non-confluent. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Shape}
+
+\begin{tabbing}
+	MMM \= MMMMMMM \= MMMMMMMM \= MMMMM \= MMMMM \kill
+	\> (shape left)	\> $\{ \ s_1 = T_{\kappa} \ \ov{a}$, 
+			\> $\iShape \ s_1 \ s_2 \ \}$
+	\\[1ex]
+	\> \qq $\vvdash$
+			\> $\{ \ s_1 = T_{\kappa} \ \ov{a}$,
+			\> $s_2 = \varphi' \ \} \ \cup \ 
+				\iaddShape (\emptyset, \ T_{\kappa} \ \ov{a}, \ \varphi') $ 
+	\\[1ex]
+	\> 		\> where \ $\varphi' = \ifreshen(\emptyset, \ T_{\kappa} \ \ov{a})$
+\end{tabbing}
+
+\begin{tabbing}
+	MMM \= MMMMMMM \= MMMMMMMM \= MMMMM \= MMMMM \kill
+	\> (shape right) \> $\{ \ s_2 = T_{\kappa} \ \ov{a}$, 
+			 \> $\iShape \ s_1 \ s_2 \ \}$
+	\\[1ex]
+	\> \qq $\vvdash$
+			\> $\{ \ s_2 = T_{\kappa} \ \ov{a}$,
+			\> $s_1 = \varphi' \ \} \ \cup \ 
+				\iaddShape (\emptyset, \ T_{\kappa} \ \ov{a}, \ \varphi')$ 
+	\\[1ex]
+	\> 		\> where \ $\varphi' = \ifreshen(\emptyset, \ T_{\kappa} \ \ov{a})$
+\end{tabbing}
+
+\quad
+\begin{tabular}{llllll}
+	\mc{2}{$\ifreshen(\iSM, \ a_\kappa)$} \\
+	& $| \ a_{\kappa} \in \iSM \ \trm{and} \ \kappa \in \{ *, \% \}$
+	& $ = a_\kappa' \ \trm{fresh}$
+	\\[1ex]
+	\mc{2}{$\ifreshen(\iSM, \ T_{\kappa} \ \ov{\varphi})$}
+		& $ = T_{\kappa} \ \ \ov{\ifreshen(\iSM \cup \ismv(\emptyset, T_{\kappa} \ \ov{\varphi}), \ \varphi)}$ 
+	\\[1ex]
+	\mc{2}{$\ifreshen(\iSM, \ \varphi)$}	
+		& $ = \varphi$
+	\\[2em]
+	%
+\end{tabular}
+
+\quad
+\begin{tabular}{llllll}
+	%
+	\mc{2}{$\iaddShape(\iSM, \ a_{*}, \ a_{*}')$} \\
+	& $| \ a_{*} \in \iSM \ \trm{and} \ a_{*} \neq a_{*}'$
+	& $ = \{ \ \iShapeTwo a_* \ a_*' \ \}$
+	\\[1ex]
+	\mc{2}{$\iaddShape(\iSM, \ T_{\kappa} \ \ov{\varphi}, \ T_{\kappa} \ \ov{\varphi'})$}
+		& $ = \bigcup \ov{\iaddShape(\iSM \cup \ismv(\emptyset, T_{\kappa} \ \ov{\varphi}), \ \varphi, \ \varphi')}$
+	\\[1ex]
+	\mc{2}{$\iaddShape(\iSM, \ \varphi, \ \varphi')$}
+		& $ = \emptyset$
+\end{tabular}
+
+\bigskip
+When reducing a constraint like $\iShape \ s_1 \ s_2$, the choice of what rule to use depends on whether we have a type constructor for $s_1$ or $s_2$. If we have a constructor for $s_1$, we can use this as a template to constrain the type of $s_2$, and \emph{vice versa}. If we have a constructor for both $s_1$ and $s_2$, then it does not matter which of the rules we use. 
+
+\subsubsection{Example}
+We will use the $\iFunThing$ type as an example. A $\iFunThing$ can contain an integer, a character, a function that takes an integer, or a thing of arbitrary type.
+
+\code{
+	\mc{3}{$\kdata \ \iFunThing \ r_1 \ r_2 \ a_1 \ a_2 \ e_1 \ c_1$} \\
+		& $=$	& $\iFInt \  (\iInt \ r_1)$ \\
+		& \ $|$ & $\iFChar \ (\iChar \ r_2)$ \\
+		& \ $|$	& $\iFFun \ (\iInt \ r_2 \lfuna{e_1 \ c_1} a_1)$ \\
+		& \ $|$	& $\iFThing \ a_2$
+}
+
+% The kind of $\iFunThing$ is $\% \to \% \to * \to * \to \: ! \to \$ \to *$. 
+
+Suppose we have constraints: 
+
+\quad\quad\quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s_1 \ = \iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1$ \\
+	& $s_2 \ = \iInt \ r_3$ \\
+	& $s_3 \ = \iInt \ r_4$ \\
+	& $e_1 \ \tme \iRead \ r_2 \lor \iRead \ r_5$ \\
+	& $c_1 \ \tme \iInt \ r_5$ \\
+	& $\iShape \ s_1 \ s_1'$ 
+	& $\}$
+\end{tabular}
+\bigskip
+
+As we have a constructor for $s_1$ we can use the (shape left) rule. The material variables of $\iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1$ are:
+
+\code{
+	$\imv(\emptyset, \iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1)$ & $= \{ r_1, \ r_2, \ a_2 \}$
+}
+
+Whereas the immaterial variables are:
+
+\code{
+	\: $\iiv(\emptyset, \iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1)$ & $= \{ r_2, \ e_1, \ c_1, a_1 \}$
+}
+
+This means the strongly material variables are:
+
+\code{
+	$\ismv(\emptyset, \iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1)$ & $= \{ r_1, \ a_2 \}$
+}
+
+Note that when reducing the $\iShape$ constraint, region variables that are only reachable from the closure of a type, such as $r_5$, are not counted as material. Similarly to the example given in \S\ref{System:TypeClassing:shape-immaterial}, the programmer cannot copy objects in such regions, so we do not freshen the associated region variables. This is achieved in part by passing $\emptyset$ as the first argument of $\ifreshen$ and $\iaddShape$, instead of the full set of constraints being reduced. This ensures that these functions do not have information about the $c_1$ constraint. 
+
+The alternative would be to freshen $c_1$ as well, and create a new constraint $c_1' \tme \iInt \ r_5'$. We would also need to create a new version of the constraint on $e_1$, and ensure that this referred to the copied closure. Of course, actually copying the objects in the closures of functions would require additional support from the runtime system, so we have not considered it further.
+
+Applying the $\ifreshen$ function to the type of $s_1$ gives us the new type:
+
+\code{
+	$s_1' = \iFunThing \ r_1' \ r_2 \ s_2 \ s_3' \ e_1 \ c_1$ \qq with $r_1', s_3'$ fresh
+}
+
+\clearpage{}
+Applying the $\iaddShape$ function provides $\iShape$ constraints on the components of this type:
+
+\code{
+	 \mc{4}{$\iaddShape (\emptyset	
+				, \ \iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1
+				, \ \iFunThing \ r_1' \ r_2 \ s_2 \ s_3' \ e_1 \ c_1)$} 
+		\\[1em]
+   		& $\equiv$	& $\iaddShape(\iSM, \ r_1, \ r_1')$ & $\cup \ \iaddShape(\iSM, \ r_2, \ r_2)$ \\
+		& $\cup$	& $\iaddShape(\iSM, \ s_2, \ s_2)$  & $\cup \ \iaddShape(\iSM, \ s_3, \ s_3')$ \\
+		& $\cup$	& $\iaddShape(\iSM, \ e_1, \ e_1)$  & $\cup \ \iaddShape(\iSM, \ c_1, \ c_1)$ \\
+		&		& $\kwhere \ \iSM = \{ r_1, \ s_3 \}$
+		\\[1ex]
+		& $\equiv$	& $\iShape \ s_3 \ s_3'$
+}
+
+So our final result is:
+
+\quad\quad\quad
+\begin{tabular}{llllll}
+	$\{$
+	& $s_1 \ = \iFunThing \ r_1 \ r_2 \ s_2 \ s_3 \ e_1 \ c_1$ \\
+	& $s_2 \ = \iInt \ r_3$ \\
+	& $s_3 \ = \iInt \ r_4$ \\
+	& $e_1 \ \tme \iRead \ r_2 \lor \iRead \ r_5$ \\
+	& $c_1 \ \tme \iInt \ r_5$ \\[1ex]
+	& $s_1' = \iFunThing \ r_1' \ r_2 \ s_2 \ s_3' \ e_1 \ c_1$ \\
+	& $\iShape \ s_3 \ s_3'$
+	& $\}$
+\end{tabular}
+
+Note that in the new type $\iFunThing \ r_1' \ r_2 \ s_2 \ s_3' \ e_1 \ c_1$, the fresh variables $r_1'$ and $s_3'$, correspond to just the components of the underlying $\iFunThing$ values that can potentially be coppied. $r_2$ and $s_2$ are not freshened because these variables are used in the parameter and return types of an embedded function value. Likewise $e_1$ and $c_1$ are not freshened because they do not represent data objects.
+

@@ -1,0 +1,150 @@
+
+\clearpage{}
+\section{Comparisons with other work}
+
+% ---------------------------
+\subsection{FX. 1986 -- 1993.\\
+	Gifford, Lucassen, Jouvelot and Talpin.}
+
+Although Reynolds \cite{reynolds:interference} and Popek \emph{et al} \cite{popek:euclid} had discussed the benefits of knowing which parts of a program may interfere with others, Gifford and Lucassen \cite{gifford:integrating} were the first to annotate a subroutine's type with a description of the effects it may perform. This allowed reasoning about effects in languages with first class functions, whereas previous work based on flow analysis \cite{banning:find-side-effects} was limited to first order languages. A refined version of their system is embodied in the language FX \cite{gifford:report-on-fx}, which has a Scheme-like syntax. We consider FX to be a spiritual predecessor of Disciple.
+
+In Gifford and Lucassen's original system \cite{gifford:integrating}, the types of subroutines are written $\tau \to_C \tau$ where $C$ is an ``effect class'' and can be one of \scProcedure, \scObserver, \scFunction \ or \scPure. Subroutines marked \scProcedure \ are permitted to read, write and allocate memory. \scObserver \ allows a subroutine to read and allocate memory only. \scFunction \ allows a subroutine to allocate memory only. A subroutine marked \scPure \ may not read, write or allocate memory. Correctness dictates that subroutines marked \scPure \ cannot call subroutines marked \scFunction, those cannot call subroutines marked \scObserver, and they cannot call subroutines marked \scProcedure.
+
+In this system, the concept of purity includes idempotence, and a subroutine that allocates its return value is not idempotent. Although such a subroutine cannot interfere with other parts of the program, the fact that it might allocate memory must be accounted for when transforming it. We will return to this point in \S\ref{Core:Optimisation:floating-out}. Note that in Disciple we use quantification of region variables to track whether a function allocates its return value, and our definition of purity includes functions that do so.
+
+In \cite{lucassen:polymorphic-effect-systems} Gifford and Lucassen introduce the polymorphic effect system. This system includes region variables, quantification over region and effect variables, and effect masking. The primitive effects are $\iRead \ r$, $\iWrite \ r$ and $\iAlloc \ r$, and $e_1 \lor e_2$ is written \texttt{maxeff} $e_1 \ e_2$. Their language uses explicit System-F style type, region and effect abstraction and applications, which makes their example programs quite verbose. Their system also includes region unions, where the region type \texttt{union} $r_1 \ r_2$ represents the fact that a particular object may be in either region $r_1$ or region $r_2$. Disciple does not yet include region unions as they complicate type inference. This point is discussed in \S\ref{Evaluation:Limitations:blocked-regions}.
+
+In \cite{jouvelot:reconstruction-types-and-effects} Jouvelot and Gifford describe an algebraic reconstruction algorithm for types and effects. They separate type schemes into two parts, the value type and a set of effect constraints, which gives us the familiar $\forall \ov{a}. \ \tau \rhd \Omega$ for type schemes. Here, $\ov{a}$ is a collection of type variables, $\tau$ is the body of the type and $\Omega$ are the constraints. On the other hand, the left of the constraints in their work can be full effect terms, not just variables. They present a proof of soundness, but only a single example expression. They also remark that they were still working on the implementation of their system in FX, so its practicality could be assessed.
+
+In \cite{talpin:polymorphic} Talpin and Jouvelot abandon the explicit polymorphism present in previous work, require the left of effect constraints to be a variable, and introduce sub-effecting. This allows their new system to have principle types. Sub-effecting is also used to type if-expressions, as the types of both alternatives can be coerced into a single upper bound. Finally, in \cite{talpin:discipline} they present the Type and Effect Discipline and address the problem of polymorphic update \S\ref{System:PolyUpdate}. They use effect information to determine when to generalise the type of a let-bound variable, instead of relying on the syntactic form of the expression as they did in \cite{jouvelot:reconstruction-types-and-effects}. We have based Disciple on this work.
+
+
+% ---------------------------
+\subsection{C++ 1986 \\Bjarne Stroustrup. }
+The C++ language \cite{stroustrup:cpp, cpp-standard} includes some control over the mutability of data. In C++ a pointer type can be written \texttt{*const}, which indicates that the data it points to cannot be updated via that pointer. Pointers can also be explicitly defined as mutable. Fields in structures and classes can be defined as either mutable or constant, though they default to mutable due to the need to retain backwards compatibility with C. C++ also provides some limited control over side effects whereby a \texttt{const} qualifier can be attached to the prototype of a class method. This indicates that it does not (or at least should not) update the attributes of that class. However, this can be circumvented by an explicit type cast, or by accessing the attribute via a non-const pointer.
+
+\texttt{const} annotations are also supported in C99 \cite{c99-standard}. Some C compilers including GCC \cite{gcc-4.3.2} provide specific, non-standard ways to annotate function types with mutability and effect information. For example in GCC the programmer can attach a purity attribute to a function that allows the optimiser to treat it as being referentially transparent. Attributes can also be added to variables to indicate whether or not they alias others. Of course, these attributes are compiler pragmas and not checked type information, and neither C++ or C99 has type inference. With DDC we can infer such information directly from the source program, and the type system for our core language ensures that it remains valid during program transformation. 
+
+More recent work based on Java  \cite{birka:reference-immutability} can ensure that \texttt{const} qualified objects remain constant, and \cite{foster:type-qualifiers} presents a general system of type qualifiers that includes inference. However, neither of these systems include region or effect information, or discuss how to add qualifiers to Haskell style algebraic data types. In \cite{foster:type-qualifiers} the authors mention that some effect systems can be expressed as type qualifier (annotation) systems, but state that the exact connection between effect systems and type qualifiers was unclear. In this chapter we have shown how to re-use Haskell's type classing system to qualify both region and effect information, which brings regions, effects and qualifiers into single framework. 
+
+
+ 
+% ---------------------------
+\subsection{Haskell and unsafePerformIO. 1990 \\Simon Peyton Jones \emph{et al}. }
+	
+The Haskell Foreign Function Interface (FFI) \cite{haskell-ffi} provides a function \\ $\iunsafePerformIO$ that is used to break the monadic encapsulation of IO actions. It has the following type:
+
+\code{
+	$\iunsafePerformIO$ :: $\iIO a \to a$ 
+}
+
+Use of this function discards the guarantees provided by a pure language, in favour of putting the programmer in direct control of the fate of the program. Using $\iunsafePerformIO$ is akin to casting a type to \texttt{void*} in C. When a programmer is forced to use $\iunsafePerformIO$ to achieve their goals, it is a sign that the underlying system cannot express the fact that the program is still safe. Of course, this assumes the programmer knows what they're doing and the resulting program actually \emph{is} safe.
+
+As Disciple includes an effect system which incorporates masking, the need for a function like $\iunsafePerformIO$ is reduced. As discussed in \S\ref{System:Effects:masking}, if a particular region is only used in the body of a function, and is not visible after it returns, then effects on that region can be masked. In this case the system has proved that resulting program \emph{is} actually safe. 
+
+On the other hand functions like $\iunsafePerformIO$ allow the programmer to mask top level effects, such as $\iFileSystem$. For example, we might know that a particular file will not be updated while the program runs, so the effect of loading the file can be safely masked. In these situations the type system must always ``trust the programmer'', as it cannot hope to reason about the full complexity of the outside world.
+
+
+% ---------------------------
+\subsection{Behaviors and Trace Effects. 1993 \\ Nielson and Nielson \emph{et al}}
+
+In \cite{nielson:from-cml-to-its-process-algebra} Nielson and Nielson introduce \emph{behaviours}, which are a richer version of the FX style effect types. As well as containing information about the actions a function may perform, behaviours include the order in which these actions take place. They also represent whether there is a non-deterministic choice between actions, and whether the behaviour is recursive. Having temporal information in types can be used to, say, enforce that files must be opened before they are written to. Skalka \emph{et al}'s recent work \cite{skalka:trace-effects} gives a unification based inference algorithm for a similar system. For Disciple, we have been primarily concerned with optimisation and have so far avoided adding temporal information to our effect types. However, we expect that Disciple's main features such as mutability inference and purity constraints are reasonably independent of temporal information, and adding it represents an interesting opportunity for future work.
+
+
+% ---------------------------
+\subsection{$\lambda_{\ivar}$. 1993 -- 1994 \\ Odersky, Rabin, Hudak, Chen}
+In \cite{odersky:lambda-var} Odersky, Rabin and Hudak present an untyped monadic lambda calculus that includes assignable variables. Interestingly, their language includes a keyword $\kpure$ that provides effect masking. $\kpure$ is seen as the opposite of the monadic $\kreturn$ function. This work is continued in Rabin's thesis \cite{rabin:functional-assignment}. The Imperative Lambda Calculus \cite{swarup:assignments-applicative, yang:ilc-revisited} is a related system. 
+
+In \cite{chen:type-lambda-var} Chen an Odersky present a type system for $\lambda_{\ivar}$ to verify that uses of $\kpure$ are safe. This is done by stratifying the type system into two layers, that of pure expressions and that of commands. Their inference algorithm uses a simple effect system that does not distinguish between pure and impure lambda bound functions. They note that using the region variables of Talpin and Jouvelot's system \cite{talpin:polymorphic} would give better results. 
+
+
+% ---------------------------
+\subsection{MLKit. 1994 \\Tofte, Talpin, Birkedal}
+MLKit \cite{tofte:mlkit-4.3.0}, uses regions for storage management, whereas DDC uses them to help reason about the mutability and sharing properties of data. In MLKit, region annotations are only present in the core language. As in DDC, MLKit supports region polymorphism, so functions can be written that accept their arguments from any region, and output their result into any region. Unlike DDC, MLKit adds region annotations to function types, as the runtime objects that represent functions are also allocated into regions. 
+
+MLKit performs type inference with a two stage process \cite{tofte:region-inference}. The SML typing of the program is determined first, and region annotations are added in a separate analysis. This helps when performing type inference in the presence of polymorphic recursion, which is important for storage efficiency. Although polymorphic recursion of value types is known to make the general type inference problem undecidable \cite{mycroft:polymorphic-recursion}, in MLKit it is supported on the region information only, via a fixed point analysis. As DDC does not use regions for storage management, polymorphic recursion is not as important, and we do not support it.
+
+
+% ---------------------------
+\subsection{Functional Encapsulation. 1995. Gupta}
+\label{System:Comparisons:functional-encapsulation}
+
+In \cite{gupta:functional-encapsulation} Gupta presents a system to convert mutable objects to constant ones for the parallel language Id. As discussed in \S\ref{System:Effects:masking} this is needed for objects that are constructed imperatively, but are used functionally thereafter. Like our own system, Gupta's is based on Leroy's closure typing \S\ref{System:Closure}. He presents a term $\kclose \ t_1$ whose result has the same value as $t_1$, except that the type system statically enforces that it will no longer be updated. The type of $\kclose \ t_1$ can also be generalised, because the return value is guaranteed not to suffer the problem of polymorphic update \S\ref{System:PolyUpdate}. $\kclose$ is interesting because it serves as the dual of the \emph{effect} masking operator, $\kpure$, which appears in $\lambda_{\ivar}$ \cite{odersky:lambda-var}.
+
+As in our own system, Gupta uses region variables to track the mutability of objects. Instead of using region constraints, region variables are only attached to the types of mutable objects. All constant objects are annotated with the null region $\epsilon$. 
+
+In his conclusion, Gupta laments that $\kclose$ had not yet been implemented in the Id compiler, and it still relied on ``hacks''. The Id language was reincarnated as a part of pH \cite{nikhil:ph}, but $\kclose$ did not make it into the language specification. Being based on Haskell, it ended up using state monads to provide its impure features. Although we have not yet implemented mutability masking in DDC, it is a highly desirable feature and is first in line for future work \S\ref{Evaluation:Limitations:mutability-masking}.
+
+
+% -------------------------------------
+\subsection{Objective Caml. 1996 \\
+	Leroy, Doligez, Garrigue, R\'{e}my and J\'{e}r\^ouillon.}
+
+As well as $\iRef$ types, O'Caml \cite{leroy:ocaml-3.11} supports mutable record fields. In fact, the $\iRef$ constructor is expressed as a record with a single mutable field. Mutable fields are declared with the $\kmutable$ keyword. Fields that are not declared as mutable default to constant. Mutable fields are updated with the $\leftarrow$ operator. The following example is from the O'Caml 3.11 manual:
+
+\code{
+	$\ktype \ \imutableUpoint$ 
+			& $= \{ \kmutable \ x: \ \ifloat; \ \kmutable \ y: \ifloat \};;$ 
+	\\[1ex]
+	$\klet \ \itranslate \ p \ dx \ dy $
+			& $= \ p.x \ \leftarrow \ p.x + dx; \ p.y \leftarrow p.y + dy;;$
+}
+
+One of the benefits of mutable record fields over $\iRef$ types is that we do not need to sprinkle calls to $\ireadRef$ throughout our code. This reduces the refactoring effort required when the mutability of an object is changed. However, unlike Disciple, O'Caml does not support mutability polymorphism, so two records that have the same overall structure but differ in the mutabilities of their fields have incompatible types. A constant list has a different type to a mutable list, and the standard O'Caml libraries only provide the constant version. This point was also discussed in \S\ref{intro:ref-types}.
+
+
+% -------------------------------------
+\subsection{Calculus of Capabilities and Cyclone. 1999 \\ Crary, Walker, Grossman, Hicks, Jim, and Morrisett}
+\label{System:Comparisons:CalculusOfCapabilities}
+
+Cyclone \cite{jim:cyclone} is a type-safe dialect of C which uses regions for storage management. Its type system derives from Crary, Walker and Morrisett's work on the Calculus of Capabilities \cite{crary:capabilities}. The Vault \cite{deline:vault} and RC \cite{gay:rc} languages are related.
+
+Cyclone's type safety is achieved in part by using region typing to track the lifetimes of objects, and to ensure that programs do not dereference dangling pointers \cite{grossman:region-cyclone}. Cyclone has region polymorphism and parametric value polymorphism \cite{grossman:quantified-imperative}, but not mutability polymorphism. Being an imperative style language, programs tend to be expressed using update and pointer manipulation. Allocation is explicit, though deallocation can be performed via the region system, or implicitly via garbage collection.
+
+As in C, higher order functions can be introduced using function pointers. Cyclone supports existential types, and these can be used to express type safe function closures. Cyclone does not support full Hindley-Milner style type reconstruction, but instead relies on user provided type annotations. Region annotations are attached to pointer types in the source language, though many annotations can be elided and subsequently reconstructed by using intra-function type inference and defaulting rules.
+
+The main technical feature that the Calculus of Capabilities (CC) has over the DDC core language is that the capability to perform an action can be revoked. The CC can then statically ensure that that a revoked capability is no longer used by the program. This mechanism is used in Cyclone's region system, where the capability to access a particular region is revoked when the region is deallocated. In contrast, in DDC a capability such as the ability to update a region cannot be revoked by the programmer. We have discussed mutability masking in \S\ref{System:Effects:masking}, but have not implemented it. On the other hand, DDC supports full type inference (apart from ambiguous projections, which are an orthogonal issue).
+
+Although Cyclone is an imperative language, its use of regions in the source language means that it shares some common ground with Disciple. For example, here is the type of sets from \cite{grossman:region-cyclone}:
+
+\code{
+	\mc{2}{\texttt{struct \ Set<}$\alpha, \rho$\texttt{> \{}} \\
+	& \texttt{list\_t <}$\alpha, \rho$\texttt{> elts;} \\
+	& \texttt{int (*cmp)(}$\alpha, \alpha;$\ \texttt{regions\_of(}$\alpha$\texttt{));} \\
+	\texttt{\}}
+}
+
+The $\rho$ annotation is the primary region variable and $\alpha$ is a type variable. The term \texttt{regions\_of(}$\alpha$\texttt{)} is an effect that represents the fact that the comparison function \texttt{cmp} on two values of type $\alpha$ could access any region contained in that type. In this respect \texttt{regions\_of(}$\alpha$\texttt{)} has the same meaning as $\iReadT a \lor \iWriteT a$ from \S\ref{System:TypeClassing}. Note that as Cyclone is based on C, most data is mutable. In such a language there is less to be gained by separating effects on regions into reads and writes. A general region access effect suffices.
+
+
+% ---------------------------
+\subsection{BitC. 2004 
+	\\ Shapiro, Sridhar, Smith, Doerrie}
+
+BitC \cite{shapiro:bitc-language-specification} is a Scheme-like language targeted at systems programming. One of its stated aims is to offer \emph{complete mutability}, meaning that any location -- whether on the stack, heap or within unboxed structures -- can be mutated \cite{sridhar:type-inference-systems-language}. BitC supports the imperative variables that we decided not to in \S\ref{System:Update}. 
+
+The operational semantics of BitC includes an explicit stack as well as a heap, and the arguments of functions are implicitly copied onto the stack during application. This allows the local copies to be updated in a way that is not visible to the caller, a behaviour demonstrated by the following C program:
+\begin{lstlisting}
+int fun(int x)
+{
+     x = x + 1;
+     return x;
+}
+\end{lstlisting}
+
+BitC includes mutability inference, and inferred type for the BitC version of \texttt{fun} will be:
+\begin{lstlisting}
+(mutable int) -> (mutable int)
+\end{lstlisting}
+Note that the fact that \texttt{x} is updated locally to \texttt{fun} has ``leaked'' into its type. We do not actually need to pass a mutable integer to \texttt{fun}, because only the fresh copy, located in the stack frame for the call, will be updated. For this reason, BitC introduces the notion of \emph{copy compatibility}, which is similar to the property expressed by our $\iShape$ constraint from \S\ref{System:TypeClassing:copy-and-update}. We can pass a \mbox{\texttt{const int}} to a function expecting a \texttt{mutable int}, because the first will be implicitly copied during the call.
+
+Although \cite{shapiro:origins-of-bitc} discusses adding effect typing to BitC, it does not mention region variables, so the possible effects are limited to the coarse-grained \emph{pure}, \emph{impure} and \emph{unfixed}. Exploiting effect information during program optimisation is not discussed, and the more recent formal specification of the type system in \cite{sridhar:formalization-of-bitc-type-system} does not include it. 
+
+
+% ---------------------------
+\subsection{Monadic Regions. 2006
+	\\ Fluet, Morrisett, Kiselyov, Shan}
+
+In \cite{fluet:monadic-regions} Fluet and Morrisett draw on the MLKit and Cyclone work to express a version of the region calculus in a monadic framework. Once again, they focus on using regions for storage management. They trade complexity of the original region type system for complexity of encoding, though the result could serve as a useful intermediate language.
+
+

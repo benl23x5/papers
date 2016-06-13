@@ -1,0 +1,168 @@
+% -- Kinds of Types --------------------------------------------------------------------------------
+\clearpage{}
+\subsection{Kinds of types}
+\label{Core:Language:KindsOfTypes}
+\bigskip
+\ruleBox{
+	\begin{center}
+	\fbox{ $\kiJudge{\Gamma}{\Sigma}{\varphi}{\kappa}$ } \\
+	\end{center}
+	\begin{gather}
+	\ruleI	{ KiVar }
+		{ a : \kappa \in \Gamma }
+		{ \kiJudge{\Gamma}{\Sigma}{a}{\kappa} }
+	\ruleSkip
+	\ruleI	{ KiAll }
+		{ \ksJudgeGS
+			{\kappa_1}
+			{\omega_1} 
+			\tspace
+		  \kiJudge
+		  	{\Gamma, \ a : \kappa_1}{\Sigma}
+			{\tau_2}
+			{ * }
+		}
+		{ \kiJudge
+			{\Gamma}{\Sigma}
+			{ \tyForall{a}{\kappa_1}{\tau_2} }
+			{ * }
+		}
+	\ruleSkip
+	\ruleI	{ KiApp }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \varphi_1 }
+			{ \Pi (a : \kappa_1) . \ \kappa_2 }
+		  \tspace
+		  \kiJudge{\Gamma}{\Sigma}
+		  	{ \varphi_2 }
+			{ \kappa_1 }
+	 	}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \varphi_1 \ \varphi_2 }
+			{ \kappa_2 [\varphi_2 / a] }
+		}
+	\ruleSkip
+	\ruleI	{ KiJoin }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \sigma_1 }
+			{ \ ! }
+		  \tspace
+		  \kiJudge{\Gamma}{\Sigma}
+		  	{ \sigma_2 }
+			{ \ ! }
+		}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \sigma_1 \lor \sigma_2 }
+			{ \ ! }
+		}
+	\ruleSkip
+	\ruleA	{ KiTop }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \top }
+			{ \ ! }
+		}
+	\ruleSkip
+	\ruleA	{ KiBot }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \bot }
+			{ \ ! }
+		}
+	\ruleSkip
+	\ruleI	{ KiHandle }
+		{ \un{\rho} \in \Sigma  }
+		{ \kiJudge{\Gamma}{\Sigma}{\un{\rho}} {\%} }
+	\ruleSkip
+	\ruleI	{ KiMutable }
+		{ \un{ \trm{mutable} \ \rho} \in \Sigma  }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un {\trm{mutable} \ \rho} }
+			{ \iMutable \ \un{\rho} }
+		}
+	\ruleSkip
+	\ruleI	{ KiConst }
+		{ \un{ \trm{const} \ \rho } \in \Sigma }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un {\trm{const} \ \rho} }
+			{ \iConst \ \un{\rho} }
+		}
+	\ruleSkip
+	\ruleA	{ KiPure }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un {\rpure \ \bot} }
+			{ \iPure \ \bot }
+		}
+	\ruleSkip
+	\ruleI	{ KiPurify }
+		{ \un {\rconst \ \rho } \in \Sigma }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un {\rpure \ (\iRead \ \rho)} }
+			{ \iPure \ (\iRead \ \un{\rho}) }
+		}
+	\ruleSkip
+	\ruleI	{ KiPureJoin }
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un {\rpure \ \sigma_1} }
+			{ \iPure \ \sigma_1 }
+		  \\
+		  \kiJudge{\Gamma}{\Sigma}
+		  	{ \un {\rpure \ \sigma_2} }
+			{ \iPure \ \sigma_2 }
+		}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un { \rpure \ (\sigma_1 \lor \sigma_2) } }
+			{ \iPure \ (\sigma_1 \lor \sigma_2) }
+		}
+	\end{gather}
+}
+
+
+\medskip
+\begin{minipage}{1.2\textwidth}
+
+% -- witness constructors
+\bigskip
+\begin{tabular}{lll}
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\textrm{()}$ 	& $\hastype *$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $(\to)$ 		& $\hastype * \to * \to \ ! \to *$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iBool$ 	& $\hastype \% \to *$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iRead$ 	& $\hastype \% \tfun \ !$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iWrite$ 	& $\hastype \% \tfun \ !$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkConst$ 	& $\hastype \Pi (r : \%). \ \iConst \ r$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkMutable$ 	& $\hastype \Pi (r : \%). \ \iMutable\ r$ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkPure$	& $\hastype \iPure \ \bot$	\\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkPurify$ 	
+			& $\hastype \Pi (r : \%). 
+			\ \iConst \ r \rightarrow \ \iPure \ (\iRead \ r)$ 
+ \\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ 
+			& $\iMkPureJoin 	$ 
+			& $\hastype \Pi (e_1 : \ !). \ \Pi (e_2 : \ !). $ 
+			$\ \iPure \ e_1 \tfun \iPure \ e_2 \tfun \ \iPure{(e_1 \lor e_2)}$ \\
+\end{tabular}
+\end{minipage}
+
+\bigskip
+The judgement form \ $\kiJudge{\Gamma}{\Sigma}{\varphi}{\kappa}$ \ reads: with environment $\Gamma$, and store typing $\Sigma$, the type $\varphi$ has kind $\kappa$.
+
+KiVar is standard. 
+
+In KiAll is similar to KsAbs, with the premise $\ksJudgeGS{\kappa_1}{\omega_1}$ ensuring that $\kappa_1$ is well formed.
+
+KiApp is the rule for type-type application, and the substitution in the conclusion handles our dependent kinds. 
+
+KiJoin ensures that both arguments are effects, as the join operator is only defined for types of that kind. 
+
+KiTop and KiBot are straightforward. 
+
+KiHandle requires all region witnesses present in the term to be present in the store typing. Provided the store typing models the store \S\ref{Core:Simplified:StoreTypings}, this ensures that if a region witness is present in the term, the corresponding region is also present in the store. Likewise, KiMutable and KiConst ensure that the appropriate witnesses are present in the store typing, so the store has the required property.
+
+KiPure and KiPurify relate type-level witnesses of purity with the corresponding kind-level description of that property.
+
+KiPureJoin joins two separate witnesses, each showing the purity of an effect, into a witness of purity of the sum of these effects. KiPureJoin was introduced in \S\ref{Core:Witnesses:purity}.
+
+The remaining rules give the kinds of our type constructors. We could have arranged for these kinds to be present in the initial type environment, but present them as separate rules due to their built-in nature. 
+
+\clearpage{}
+
+
+

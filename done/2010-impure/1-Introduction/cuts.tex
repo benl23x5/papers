@@ -1,0 +1,35 @@
+\subsubsection{A monad is a general structure}
+
+The use of state monads in this way has several benefits. First and foremost, by using $\ibindIO$ we have eliminated the need to manually plumb the world token around our programs. 
+
+Additionally, because monads are a general structure who's application is not restricted to IO and state, we can define new combinators which work on \emph{all} monads, including IO, state, lists, exceptions, parsers etc. In Haskell we do this by defining a monad constructor class\note{cite}:
+
+\qq\qq
+\begin{tabular}{lll}
+	\mc{3}{$\kclass \ \iMonad \ m \ \kwhere$} \\
+	& $\ibind$ 	& $:: m \ a \to (a \to m \ b) \to m \ b$ \\
+	& $\ireturn$ 	& $:: a \to m \ a$
+\end{tabular}
+
+\bigskip
+In this class, $\ibind$ is the combinator which sequences two actions, and $\ireturn$ is a combinator which creates a new action that just returns its argument. For IO, we can instantiate this class as:
+
+\qq\qq
+\begin{tabular}{lll}
+	\mc{3}{$\kinstance \ \iMonad \ \iIO \ \kwhere$} \\
+\end{tabular}
+
+We can also define our \emph{own} combinators in the same language, for example the $\iwhen$ combinator which is used to evaluate an action only when a certain condition is met. For the IO monad, this combinator has type:
+$$
+\iwhen :: \iBool \to IO \ a \to IO \ ()
+$$
+
+\note{Haskell Monad type class}
+For example, using constructor classes\note{cite}, the generalised version of $\iwhen$ has type:
+$$
+\iwhen :: \iMonad \ m \Rightarrow \iBool \to m \ a \to m \ ()
+$$
+
+
+
+When using state monads the fact that a function (may) perform an IO action is present in its type. This is an aid to program documentation as well as analysis, both by the programmer directly as well as compilers and static analysis tools. It is manifestly clear whether a particular function application could perform an IO action or not, because such functions \emph{must} have the $IO$ constructor in their types. If a particular function does not, then it is guaranteed by the type checker not to affect the outside world.

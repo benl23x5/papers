@@ -1,0 +1,33 @@
+% -----
+% -- Introduction
+% --
+\chapter{Introduction}
+\vspace{-2em}
+
+\section{Prelude}
+
+I am thinking of a data structure for managing collections of objects. It provides O(1) insert and update operations. It has native hardware support on all modern platforms. It has a long history of use. It's proven, and it's lightning fast.
+
+Unfortunately, support for it in my favourite language, Haskell~\cite{haskell98-report}, appears to be somewhat lacking. There are people that would tell me that it's not needed~\cite{peyton-jones:ifp}, that there are other options~\cite{okasaki:pure-data}, that it's bad for parallelism~\cite{cann:retire-fortran} and bad for computer science in general~\cite{backus:liberate}. They say that without it, programs are easier to understand and reason about. Yet, it seems that every time I start to write a program I find myself wanting for it. It's called \emph{the~store}.
+
+The \emph{mutable} store, that is. I want for real destructive update in a real functional language (for my own, particular,  subjective definition of `real'). I wanted it for long enough that I decided I should take a PhD position and spend the next several  years of my life trying to get it. 
+
+Soon after starting I came to realise two things:
+\begin{enumerate}[1)]
+\item That the problem was real, and that many people were aware of it.
+\item That this was \emph{not} a new problem.
+\end{enumerate}
+
+\input{1-Introduction/Problem}
+\input{1-Introduction/Update}
+\input{1-Introduction/Purity}
+\input{1-Introduction/Linear}
+\input{1-Introduction/Monads}
+\input{1-Introduction/RefTypes}
+\input{1-Introduction/Lazy}
+\input{1-Introduction/Forward}
+
+
+
+
+

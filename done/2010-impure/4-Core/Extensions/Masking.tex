@@ -1,0 +1,312 @@
+
+\subsection{Masking non-observable effects}
+\label{Core:Masking}
+We mask three sorts of effects: effects of computations that are unobservable, effects on freshly allocated values, and effects that are known to be pure. The following rule handles the first sort:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TyMaskObserve}
+		{ \tyJudgeGS{t}{\tau}{\sigma}
+		  \quad
+		  r \notin \ifv_T(\Gamma)
+		  \quad
+		  r \notin \ifv(\tau)
+		}
+		{ \tyJudgeGS{t}{\tau}{\sigma \setminus (\iRead \ r \lor \iWrite \ r)} }
+	\end{gather}
+}
+
+This rule encodes the observation criteria discussed in \S\ref{System:PolyUpdate}. It says that if a region variable is not present in the type environment or type of a term, then we can ignore the fact that its evaluation will perform read or write actions on the associated region. As we treat $\lor$ as akin to set union $\cup$ the effect minus operator $\setminus$ is defined in the obvious way. 
+
+Note that it is safe to allow kind bindings of the form $r : \%$ to be present in the environment, as long as the region variable is not mentioned in the $\tau$ part of any $x : \tau$. This is handled by the $\ifv_T(\Gamma)$ function which is defined as:
+
+\code{
+	$\ifv_T(\Gamma)$ = $\bigcup \{ \ \ifv(\tau) \ | \ x : \tau \in \Gamma \ \}$
+}
+		
+
+For a concrete implementation, the trouble with TyMaskObserve is that it is not syntax directed. It is valid to apply this rule to any term, but applying it to \emph{every} term could be too slow at compile time. Usefully, when reconstructing the type of a term we only need to perform this sort of masking on sub-terms that are the bodies of $\lambda$-abstractions. This is because the typing rule for abstractions is responsible for moving effect information from the $\sigma$ in $\tyJudgeGS{t}{\tau}{\sigma}$ into the value type expression.
+
+Instead of using a separate TyMaskObserve rule, we find it convenient to incorporate effect masking directly into the rule for $\lambda$-abstractions. This gives:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TyAbsObserve}
+		{ \tyJudge	{\Gamma, \ x : \tau_1 \: } {\Sigma} {t} {\tau_2} {\sigma} \\
+		  \quad 
+		  r \notin \ifv_T(\Gamma)
+		  \quad
+		  r \notin \ifv(\tau_1) \cup \ifv(\tau_2)
+		  \quad
+		  \sigma' = \sigma \setminus (\iRead \ r \lor \iWrite \ r)
+		}
+		{ \tyJudgeGS	{\teLam{x}{\tau_1}{t}} {\tau_1 \toa{\sigma'} {\tau_2}} {\bot} }
+	\end{gather}
+}
+
+An alternative would be to combine the effect masking TyLetRegion, but this would require the type checker to inspect the effect term more frequently. 
+
+% -------------------------------------------
+\clearpage{}
+\subsection{Masking effects on fresh regions}
+\label{Core:Masking:fresh}
+
+As discussed in \S\ref{System:Effects:masking}, we can mask effects that are only used to compute the result of a function, and are not otherwise visible. Here is the rule to do so:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TyMaskFresh}
+		{ \begin{aligned}
+		  \\
+		  \tyJudgeGS{\lambda (x : \tau). \ t}{\tau \funa{\sigma} \iBool \ r}{\sigma'} 
+		  \end{aligned}
+		  \quad
+		  \begin{aligned}
+		  r \notin \ifv_T(\Gamma) \quad r \notin \ifv(\tau) \\
+		  \sigma'' = \sigma \setminus (\iRead \ r \lor \iWrite \ r)
+		  \end{aligned}
+		}
+		{ \tyJudgeGS{\lambda (x : \tau). \ t}{\tau \funa{\sigma''} \iBool \ r}{\sigma'}
+		}
+	\end{gather}
+}
+
+As have not included closure typing information in our simplified language, we have to tie TyMaskFresh to the lambda abstraction $\lambda (x : \tau). \ t$. This prevents us from inadvertently masking effects on regions present in the closure of the function. When TyMaskFresh is applied, all the free variables in $t$ (the closure) must be present in the environment $\Gamma$, and thus the term $\ifv_T(\Gamma)$ accounts for them.
+
+Note that in TyMaskFresh we have set the result type of the function to $\iBool$ as that is the only non-function value type constructor in our simplified language. For the full language, we can replace $\iBool$ by any type constructor, so long as we only mask effects on region variables that are in strongly material positions. Materiality was discussed in \S\ref{System:Closure:shared-regions}.
+
+Returning to the issue of closure typing, note that the following more general variant of TyMaskFresh is bad.\footnote{We avoid the word \emph{unsound} because its use will not prevent a term from being reduced to normal form. However, if we apply it during type reconstruction and then optimise the program based on this information, then we run the risk of producing a program that gives an unintended answer, hence badness. }
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{BadTyMaskFresh}
+		{ \begin{aligned}
+		  \\
+		  \tyJudgeGS{t}{\tau \funa{\sigma} \iBool \ r}{\sigma'} 
+		  \end{aligned}
+		  \quad
+		  \begin{aligned}
+		  r \notin \ifv_T(\Gamma) \quad r \notin \ifv(\tau) \\
+		  \sigma'' = \sigma \setminus (\iRead \ r \lor \iWrite \ r)
+		  \end{aligned}
+		}
+		{ \tyJudgeGS{t}{\tau \funa{\sigma''} \iBool \ r}{\sigma'}
+		}
+	\end{gather}
+}
+
+We can see why BadTyMaskFresh is bad by considering its (non) applicability in the following program. Note that for a clearer example, we have taken the liberty of using $\iInt$ instead of $\iBool$.
+
+\code{
+	\mc{3}{$\imakeInc$} \\
+	& $= \lambda().$ 	
+		& $\klet$	& $x$	& $= 0 \ r_1$ \\
+	& 	& 		& $f$	& \mc{2}{$= \lambda(). \ \kdo \ \{ \ x := x + 1 \ r_1; \ x \ \}$} \\
+	& 	& $\kin$	& $f$
+}
+
+This program is similar in spirit to the examples from \S\ref{System:Closure:masking}. It allocates a mutable integer $x$, then returns a function that updates it and returns its value. Without masking, the type of the inner let-expression is:
+
+\code{
+	$(\klet \ x = 0 \ ... \ \kin \ f)$ :: $() \lfuna{\iRead r_1 \ \lor \ \iWrite r_1} \iInt \ r_1$
+}
+
+At this point, the type environment only needs to contain the term $r_1 : \%$ and type for $(+)$, which has no free variables. If we were to apply BadTyMaskFresh here, then we would end up with:
+
+\code{
+	$(\klet \ x = 0 \ ... \ \kin \ f)$ :: $() \to \iInt \ r_1$
+}
+
+This is invalid because the expression will return a different value each time we apply it to (), hence we cannot reorder calls to it.
+
+In future work we plan to extend our core language with closure typing information. This would allow us to use a rule similar to the following:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{CloTyMaskFresh}
+		{ \begin{aligned}
+		  \\
+		  \tyJudgeGS{t}{\tau \lfuna{\sigma \ \varsigma} \iBool \ r}{\sigma'} 
+		  \end{aligned}
+		  \quad
+		  \begin{aligned}
+		  r \notin \ifv_T(\Gamma) \quad r \notin \ifv(\tau) \quad r \notin \ifv(\varsigma)\\
+		  \sigma'' = \sigma \setminus (\iRead \ r \lor \iWrite \ r)
+		  \end{aligned}
+		}
+		{ \tyJudgeGS{t}{\tau \lfuna{\sigma'' \ \varsigma} \iBool \ r}{\sigma'}
+		}
+	\end{gather}
+}
+
+When we include closure typing information in the previous example, the type of the let-expression becomes:
+
+\code{
+	$(\klet \ x = 0 \ ... \ \kin \ f)$ :: $() \lfuna{(\iRead r_1 \ \lor \ \iWrite r_1) \ (x : \iInt \ r) } \iInt \ r_1$
+}
+
+This closure term $x : \iInt \ r$ reveals the fact that successive applications of this function will share a value of type $\iInt \ r$. Because of this we cannot guarantee that the returned value is fresh, so we cannot mask effects on it.
+
+
+% --------------------
+\subsection{Masking pure effects}
+
+Recall the $\imapL$ function from \S\ref{System:Effects:purification-higher-order} which performs a spine-lazy map across the elements of a list. We will convert its definition to the core language. Firstly, the source type of $\imapL$ is:
+
+ \code{
+	$\imapL$ 	
+	& $::$		& $\forall \ a \ b \ r_1 \ r_2 \ e_1$ \\
+	& $.$		& $(a \lfuna{e_1} b) \to \iList \ r_1 \ a \lfuna{e_2} \iList \ r_2 \ b$ \\
+	& $,$		& $e_2 = \iRead \ r_1 \lor e_1$ \\
+	& $\rhd$ 	& $\iPure \ e_1, \ \iConst \ r_1$
+}
+
+To convert this type to core, we write the purity and constancy constraints in prefix form, and place the manifest effect term directly on the corresponding function constructor:
+
+\bigskip
+\code{	
+	$\imapL$ 	
+	& $::$		& $\forall \ a \ b \ r_1 \ r_2 \ e_1$ \\
+	& $.$ 		& $\iPure \ e_1 \Rightarrow \iConst \ r_1$ \\
+	& $\Rightarrow$ & $(a \lfuna{e_1} b) \to \iList \ r_1 \ a \lfuna{\iRead \ r_1 \lor e_1} \iList \ r_2 \ b$ \\
+}
+
+The desugared version of the function definition follows. We have expanded the pattern matching syntax, the infix use of $@$, and have introduced a binding for each function argument:
+
+% ---------------
+\code{
+	\mc{2}{$\imapL$} \\
+	\ = 	& $\lambda f. \ \lambda xx.$ \\
+		& $\kcase \ xx \ \kof$ \\
+}
+
+\vspace{-3ex}
+\code{
+	& & & $\iNil$			& $\to \iNil$ \\
+	& & & $\iCons \ x \ \ixs$	& $\to$
+}
+
+\vspace{-3ex}
+\code{
+	& & & & $\kdo$	& $x'$		& $ = f \ x$ \\
+	& & & & 	& $\imapL'$	& $ = \imapL \ f$ \\
+	& & & &		& $\ixs'$	& $ = \isuspendOne \ mapL' \ \ixs$ \\
+	& & & &		& \mc{2}{$\iCons \ x' \ \ixs'$}
+}
+
+From the type of $\imapL$ we see that the core version of the function should have seven type parameters: five due to the universal quantifier, and two to bind the witnesses for $\iPure \ e_1$ and $\iConst \ r_1$. We will add these type arguments, along with type applications where required:
+
+\quad
+\begin{tabular}{llllllllll}
+	\mc{3}{$\imapL$} \\
+	\ = 	& \mc{2}{$\Lambda \ a \ b \ r_1 \ r_2 \ e_1.$} \\
+		& $\Lambda \ w_1$	& $:: \iPure \ e_1.$ \\
+		& $\Lambda \ w_2$	& $:: \iConst \ r_1.$ \\
+		& $\lambda \ f$		& $:: a \funa{e_1} b.$ \\
+		& $\lambda \ xx$	& $:: \iList \ r_1 \ a.$ \\
+		& \mc{3}{$\kcase \ xx \ \kof$}
+\end{tabular}
+
+\vspace{-1ex}
+\quad
+\begin{tabular}{llllllllll}
+	& & & $\iNil$		& $\to \iNil \ a \ r_2$ \\
+	& & & $\iCons \ x \ xs$	& $\to$ 
+\end{tabular}
+
+\vspace{-1ex}
+\quad
+\begin{tabular}{llllllllll}
+	& & & \ $\kdo$	& $x'$		& $= f \ x$ \\
+	& & &		& $\imapL'$	& $= \imapL \ a \ b \ r_1 \ r_2 \ e_1 \ w_1 \ w_2 \ f$ \\
+	& & &		& $\ixs'$	& $= \isuspendOne$ \\
+	& & &		&		& \qq $(\iList \ r_1 \ a) \ (\iList \ r_2 \ b)$ $(\iRead \ r_1 \lor e_1)$ \\
+	& & &		&		& \qq $(\iMkPureJoin \ (\iRead r_1) \ e_1 \ (\iMkPurify \ r_1 \ w_2) \ w_1)$ \\
+	& & &		& \mc{2}{$Cons \ b \ r_2 \ x' \ xs'$} 
+\end{tabular}
+
+\bigskip
+We have elided the kind annotations on the first five type parameters to aid readability. The variables $w_1$ and $w_2$ bind witnesses to the facts that $e_1$ is pure and $r_1$ is constant. Note that in the recursive call to $\imapL$ all of its type parameters must be passed back to itself. We also add type applications to satisfy the quantifiers and constraints on $\isuspendOne$, and to satisfy $\iNil$ and $\iCons$. For reference, $\iNil$ and $\iCons$ have the following types:
+
+\ic
+\begin{tabular}{lll}
+	$\iNil$		& $:: \ \forall a \ r_1. \iList \ r_1 \ a$ \\
+	$\iCons$ 	& $:: \ \forall a \ r_1. \ a \to \iList \ r_1 \ a \to \iList \ r_1 \ a$
+\end{tabular}
+\medskip
+
+Note that because the type we used for $\imapL$ contains the effect term $\iRead \ r_1 \lor e_1$, when we call $\isuspendOne$ we must provide a witness that this effect is pure. This is the reason for the $(\iMkPureJoin \ (\iRead r_1) \ e_1 \ (\iMkPurify \ r_1 \ w_2) \ w_1)$ term. Such witnesses were discussed in \S\ref{Core:Witnesses:purity}.
+
+This is a valid translation, but as mentioned in \S\ref{System:Effects:purification-higher-order} it would be ``nicer'' if we could mask the $\iRead \ r_1$ and $e_1$ effects and not have to write them in the type. After all, the point of proving that a particular effect is pure is so we can ignore it from then on. Masking these effects in the type is straightforward, and the core version is:
+
+\bigskip
+\code{	
+	$\imapL$ 	
+	& $::$		& $\forall \ a \ b \ r_1 \ r_2 \ e_1$ \\
+	& $.$ 		& $\iPure \ e_1 \Rightarrow \iConst \ r_1$ \\
+	& $\Rightarrow$ & $(a \lfuna{e_1} b) \to \iList \ r_1 \ a \lfuna{\bot} \iList \ r_2 \ b$ \\
+}
+
+However, using this type requires that we add a mechanism to mask the equivalent effects in the core program. One option is to add a rule similar to TyMaskObserve from \S\ref{Core:Masking}:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TyMaskPure}
+		{ \tyJudgeGS{t}{\tau}{\sigma}
+		  \quad
+		  \kiJudgeGS{\delta}{\iPure \ \sigma'}
+		}
+		{ \tyJudgeGS{t}{\tau}{\sigma \setminus \sigma'} }
+	\end{gather}
+}
+
+However, as with TyMaskObserve, this rule is not syntax directed. Another option is to introduce an explicit masking keyword, which states the witness being used to mask the effect of a particular expression. For example:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TyMaskPureEx}
+		{ \tyJudgeGS{t}{\tau}{\sigma}
+		  \quad
+		  \kiJudgeGS{\delta}{\iPure \ \sigma'}
+		  \qq
+		}
+		{ \tyJudgeGS
+			{\rbmask \ \delta \ \kin \ t}
+			{\tau}
+			{\sigma \setminus \sigma'}
+		}
+	\end{gather}
+}
+
+The following code is a core version of the $\imapL$ function that uses the $\rbmask$ keyword, and has the ``nice'' type mentioned above. Note that because the effect of $\imapL$ is now $\bot$ we use this as the effect argument to $\isuspendOne$. 
+
+\quad\quad
+\begin{tabular}{llllllllll}
+	\mc{3}{$\imapL$} \\
+	\ = 	& \mc{2}{$\Lambda \ a \ b \ r_1 \ r_2 \ e_1.$} \\
+		& $\Lambda \ w_1$	& $:: \iPure \ e_1.$ \\
+		& $\Lambda \ w_2$	& $:: \iConst \ r_1.$ \\
+		& $\lambda \ f$		& $:: a \funa{e_1} b.$ \\
+		& $\lambda \ xx$	& $:: \iList \ r_1 \ a.$ \\
+		& \mc{2}{$\rbmask \ \iMkPureJoin \ (\iRead \ r_1) \ e_1 \ (\iMkPurify \ r_1 \ w_2) \ w_1 \ \kin $} \\
+		& \mc{3}{$\kcase \ xx \ \kof$}
+\end{tabular}
+
+\vspace{-1ex}
+\quad
+\begin{tabular}{llllllllll}
+	& & & $\ \iNil$		& $\to \iNil \ a \ r_2$ \\
+	& & & $\ \iCons \ x \ xs$	& $\to$ 
+\end{tabular}
+
+\vspace{-1ex}
+\quad
+\begin{tabular}{llllllllll}
+	& & & \ \ $\kdo$	& $x'$		& $= f \ x$ \\
+	& & &		& $\imapL'$	& $= \imapL \ a \ b \ r_1 \ r_2 \ e_1 \ w_1 \ w_2 \ f$ \\
+	& & &		& $\ixs'$	& $= \isuspendOne$ \\
+	& & &		&		& \qq $(\iList \ r_1 \ a) \ (\iList \ r_2 \ b)$ \ $\bot$ \\
+	& & &		&		& \qq $(\iMkPure \ \bot)$ \\
+	& & &		& \mc{2}{$Cons \ b \ r_2 \ x' \ xs'$} 
+\end{tabular}
+

@@ -1,0 +1,137 @@
+\section{Comparisons}
+
+\subsection{Monadic intermediate languages. 1998 --\\
+	 Tolmach, Benton, Kennedy, Russell.}
+\label{Core:Comparisons:monadic-intermediate-languages}
+One of the main inspirations for our work has been to build on the monadic intermediate languages of \cite{tolmach:optimizing-ml}, \cite{benton:monads-effects-transformations} and \cite{peyton-jones:bridging-the-gulf}. The system of \cite{tolmach:optimizing-ml} uses a coarse grained effect analysis to guide the translation of the source program into a core language incorporating a hierarchy of monadic types. The monads are \texttt{ID}, \texttt{LIFT}, \texttt{EXN}, and \texttt{ST}. Starting from the bottom of the hierarchy: \texttt{ID} describes pure, terminating computations; \texttt{LIFT} encapsulates pure but potentially non-terminating computations; \texttt{EXN} encapsulates potentially non-terminating computations that may raise uncaught exceptions, and \texttt{ST} encapsulates computations that may do everything including talk to the outside world.
+
+The optimisations in \cite{tolmach:optimizing-ml} are given as transform rules on monadic terms, and less transforms apply to expressions written with the more effectual monads. Limitations of this system include the fact that it lacks effect polymorphism, and the coarseness of the hierarchy. In the last part of \cite{tolmach:optimizing-ml}, Tolmach suggests that it would be natural to extend his system with Hindley-Milner style polymorphism for both types and monads in the Talpin-Jouvelot style. He also suggests that it would extend naturally to a collection of fine-grained monads encapsulating primitive effects, but laments the lack of a generic mechanism for combining such monads. 
+
+\subsubsection{Monads and effects express equivalent information}
+In \cite{wadler:marriage-2003}, Wadler and Thiemann compare the effect typing and monadic systems, and give a translation from the first to the second. For their monadic system, they write the types of computations as $\trm{T}^\sigma \ a$, where $a$ is the type of the resulting value and $\sigma$ is a set of store effects. They consider store effects such as $\iRead \ r_1$ and $\iWrite \ r_2$, use $\lor$ to collect atomic effect terms, and include type schemes that quantify over type, region and effect variables. Clearly, their monadic system shares a lot of common ground with an effect system. The main technical difference between the two is that the monadic version of the typing rule for applications is broken into two parts:
+
+Whereas in the effect system we have:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{EffApp}
+		{ 	\Gamma \judge t_1 :: \tau_{11} \lfuna{\sigma_3} \tau_{12} \ ; \ \sigma_1
+		  \quad \Gamma \judge t_2 :: \tau_{11} \ ; \ \sigma_2 }
+		{	\Gamma \judge t_1 \ t_2 :: \tau_{12} \ ; \ \sigma_1 \lor \sigma_2 \lor \sigma_3 }
+	\end{gather}
+}
+
+In the monadic system we have:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{MonApp}
+		{	\Gamma \judge t_1 :: \tau_{11} \to \tau_{12}
+		 \quad	\Gamma \judge t_2 :: \tau_{11} }
+		{	\Gamma \judge t_1 \ t_2 :: \tau_{12} }
+	\ruleSkip
+	\ruleI	{MonBind}
+		{	\Gamma \judge t_1 : \trm{T}^{\sigma_1} \ \tau_1
+		  \quad	\Gamma, \ x : \tau_1 
+				\judge t_2 : \trm{T}^{\sigma_2} \ \tau_2 }
+		{ 	\Gamma \judge \ \klet \ x \gets t_1 \ \kin \ t_2 :: \trm{T}^{\sigma_1 \lor \sigma_2} \ \tau_2 }
+	\end{gather}
+}
+
+In the effect typing system, effects are caused by the application of functions, as well as by the evaluation of primitive operators such as $\ireadRef$ and $\iwriteRef$.  In the monadic system, all effects are invoked explicitly with the $\klet \ x \gets t_1 \ \kin \ t_2$ form, which evaluates the computation $t_1$, and then substitutes the resulting value into $t_2$. Function application of the form $t_1 \ t_2$ is always pure.
+
+\subsubsection{Expressing T-monads in Disciple}
+Note that $\trm{T}^\sigma \ a$ style computation types are straightforward to express in Disciple, because we can define data types that have effect parameters. For example, eliding region and closure information we can write:
+
+\code{
+	$\kdata \ T \ e_1 \ a = \iMkT \ (() \lfuna{e_1} a)$
+}
+
+Our $T \ e_1 \ a$ data type simply encapsulates a function that produces a value of type $a$ when applied to the unit value (), while having an effect $e_1$. The monadic return and bind operators are defined as follows:
+
+\code{
+	$\ireturnT$	
+	& $::$	& $\forall a. \ a \to T \ \bot \ a$ 
+	\\[1ex]
+	\mc{3}{$\ireturnT \ x \ = \iMkT \ (\lambda (). \  x)$}
+}
+
+\code{
+	$\ibindT$ \ \ \	
+	& $::$		& $\forall a \ b \ e_1 \ e_2$ \\
+	& $.$		& $T \ e_1 \ a \to (a \to T \ e_2 \ b) \to T \ e_3 \ b$ \\
+	& $\rhd$	& $e_3 = e_1 \lor e_2$
+}
+
+\vspace{-1ex}
+\code{
+	\mc{3}{$\ibindT \ (\iMkT \ f_1) \ \imf_2$} \\
+	& \mc{2}{$= \iMkT \ (\lambda (). \ \kcase \ \imf_2 \ (f_1 \ ()) \ \kof$} \\
+	& & \qq \qq \qq $\iMkT \ f_2 \to f_2 \ ())$
+}
+
+Although we can directly express T monads in a language with an effect system, the reverse is not true. A monadic system requires all effects to be encapsulated within a computation type such as T, and the function arrow, $\to$, must be pure. However, an effect system allows arbitrary function applications to have effects, and we can add these effects as annotations to the arrows, $\funa{\sigma}$.
+
+
+\subsubsection{What's more natural?}
+In \cite{benton:monads-effects-transformations} Benton and Kennedy suggest that ``the monadic style takes the distinction between computations and values more seriously'', and that it has a more well-behaved equational theory. However, their work has different goals to ours. On one hand, \cite{benton:monads-effects-transformations} includes rigorous proofs that their optimising transforms are correct. For this purpose, we can appreciate how reducing effect invocation to a single place in the language would make it easier to reason about. Their system was implemented in the MLj \cite{benton:mlj}  compiler, so it is demonstrably practical. In \cite{benton:relational-semantics-effect-transformations} Benton \emph{et al} consider the semantics of a similar system extended with region variables and effect masking, and in \cite{benton:semantics-effect-analysis} Benton and Buchlovsky present the semantics of an effect based analysis for exceptions. On the other hand, \cite{benton:mlj} does not include effect polymorphism, and the more recent work of \cite{benton:relational-semantics-effect-transformations} and \cite{benton:semantics-effect-analysis} does not discuss type inference and has not yet been implemented in a compiler.  
+
+For our purposes, we find it more natural to think of function application and primitive operators as causing effects, as this is closer to the operational reality. After spending time writing a compiler for a language that includes laziness, we don't feel too strongly about the distinction between computations and values. When we sleep we dream about thunks, and the fact that the inspection of a lazy ``value'' of type $\iInt$ may diverge is precisely because that value represents a possibly suspended computation.  
+
+If we were going to follow Benton and Kennedy's approach then we would write $\trm{T}^{\texttt{LIFT}} \ \iInt$ for the lazy case and $\iInt$ for the direct one. Using (MonBind) above, this would have the benefit that the potential non-termination of lazy computations would be propagated into the types of terms that use them. However, for the reasons discussed in \S\ref{intro:purity} we don't actually treat non-termination as a computational effect. We also remain unconvinced of the utility of introducing a separate monadic binding form into the core language, at least in the concrete implementation. \mbox{Horses for courses.}
+
+
+\subsection{System-Fc. 2007 -- \\
+	Sulzmann, Chakravarty, Peyton Jones, Donnelly.}
+
+The core language of GHC is based on System-Fc \cite{sulzmann:system-Fc}, which uses type equality witnesses to support generalised algebraic data types (GADTs) \cite{xi:grdc} and associated types \cite{chakravarty:associated-types}. The kinds of such witnesses are written $a \sim b$, which express the fact that type $a$ can be taken as being equivalent to type $b$. The witnesses express non-syntactic type equalities, which are a major feature of the work on GADTs and associated types.
+
+ 
+The witness passing mechanism in DDC was inspired by an earlier draft of \cite{sulzmann:system-Fc} that included the dependent kind abstraction $\Pi a : \kappa_1 . \ \kappa_2$. 
+
+\clearpage{}
+In this draft, abstraction was used to write the kinds of polymorphic witness constructors such as:
+
+\code{
+	$\ielemList :: \Pi a : *. \iElem \ [a] \sim a$
+}
+
+Here, $\iElem$ is the constructor of an associated type. The kind of $\ielemList$ says that elements of a list of type $a$ have type $a$. In the published version of the paper, extra typing rules were introduced to compose and decompose types that include equality constraints, and these new rules subsumed the need for an explicit dependent kind abstraction. In the published version, the type of $\ielemList$ is written:
+
+\code{
+	$\ielemList :: (\forall a : *. \iElem \ [a]) \sim (\forall a : *. \ a)$
+}
+
+Note that when this type is instantiated, the type argument is substituted for both bound variables. For example:
+
+\code{
+	$\ielemList \ \iInt :: \iElem \ [\iInt] \sim \iInt$
+}
+
+The dependent kind abstraction is still there in spirit, but the syntax has changed. System-Fc includes witness constructors such as $\isym$, $\itrans$, $\ileft$ and $\iright$ whose kinds express logical properties such as the symmetry and transitivity of the type equality relation, as well as providing decomposition rules. Although \cite{sulzmann:system-Fc} gives typing rules for these constructors, if we were prepared to limit their applicability to first order kinds then we could also express them with the dependent kind abstraction. For example:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{Sym}
+		{ \Gamma \judge \varphi : \tau_1 \sim \tau_2 }
+		{ \Gamma \judge \isym \ \varphi : \tau_2 \sim \tau_1 }
+	\end{gather}
+}
+would become:
+
+\code{
+	$\isym :: \Pi (a : *). \ \Pi (b : *). \ a \sim b \to b \sim a$
+}
+
+Adding kind abstraction to the system would allow us to remove the restriction to first order kinds, and regain the full expressiveness of the original rules:
+
+\code{
+	$\isym :: \lambda (k : \Box). \ \Pi (a : k). \ \Pi (b : k). \ a \sim b \to b \sim a$
+}
+
+Here, the superkind $\Box$ restricts $k$ to be something like $*$ or $* \to *$, and not another witness kind. 
+
+Note that the System-Fc witness constructors such as $\isym$, and the DDC witness constructors such as $\iMkPureJoin$ are of the same breed. They both express logical properties of the specific system, which are separate from the underlying LF \cite{avron:edinburgh-lf} style framework. It would be interesting to see how well both systems could be expressed in a more general one, such as $\Omega$mega \cite{sheard:curry-howard}, which has extensible kinds.
+
+
+

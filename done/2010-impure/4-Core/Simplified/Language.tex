@@ -1,0 +1,121 @@
+
+\bigskip
+\subsubsection{Symbol Classes}
+\vspace{-1ex}
+\begin{tabular}{lll}
+$a$, $r$, $e$, $w$	& $\rightarrow$ &  (type variable)  \\
+$x$			& $\rightarrow$ &  (value variable)  \\
+$\rho$			& $\rightarrow$ &  (region handles) \\
+$l$			& $\rightarrow$ &  (store locations) 
+\end{tabular}
+
+\vspace{-1em}
+% -- Super-kinds
+\subsubsection{Super-kinds}
+\vspace{-1ex}
+\begin{tabbing}
+MM 	\= MM \= MMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+$\omega$ 
+	\> $::=$ 	\> $\Diamond$						\> (super-kind of witness kinds) \\
+	\> $\ |$	\> $\Box$						\> (super-kind of non-witness kinds) \\
+	\> $\ |$	\> $\kappa \to \omega$ 					\> (super-kind constructor) 
+\end{tabbing}
+
+\vspace{-2em}
+% -- Kinds
+\subsubsection{Kinds}
+\vspace{-1ex}
+\begin{tabbing}
+MM 	\= MM \= MMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+$\kappa$ 
+	\> $::=$ 	\> $\Pi(a : \kappa_1) . \ \kappa_2$ 		  	
+			\> (dependent kind abstraction)	
+	\\
+	\> \ $\mid$	\> $\kappa \ \varphi$ 		 			
+			\> (dependent kind application)	
+	\\
+ 	\> \ $\mid$	\> $* \ \mid \ \% \ \mid \ !$ 			
+			\> (atomic kinds) 
+	\\
+	\> \ $\mid$	\> $\iConst \ \mid \ \iMutable \ \mid \ \iPure$ 
+			\> (witness kind constructors)
+\end{tabbing}
+
+% -- Types 
+\vspace{-2em}
+\subsubsection{Types}
+\vspace{-1ex}
+\begin{tabbing}
+MM 	\= MM \= MMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+$\varphi$, $\tau$, $\sigma$, $\delta$, $\Delta$ \\
+	\> $::=$	\> $a$							\> (type variables) \\
+	\> \ $\mid$	\> $\forall (a : \kappa). \ \tau$			\> (unbounded quantification) \\
+	\> \ $\mid$	\> $\varphi_1 \ \varphi_2$				\> (type application) \\
+	\> \ $\mid$	\> $\sigma_1 \lor \sigma_2 \ 
+				\mid \ \top \ \ \mid  \ \ \bot$			\> (least upper bound, top and bottom) \\
+	\> \ $\mid$	\> $() \ \mid (\to) \ \mid \iBool$			\> (value type constructors) \\
+	\> \ $\mid$	\> $\iRead \ \mid \ \iWrite$ 				\> (effect type constructors) \\
+	\> \ $\mid$	\> $\iMkConst \ \mid \ \iMkMutable$			\> (region witness constructors) \\
+	\> \ $\mid$	\> $\iMkPure \ \mid \ \iMkPurify \ \mid \ \iMkPureJoin$
+										\> (effect witness constructors) \\
+	\> \ $\mid$	\> $\underline{\rmutable \ \varphi} 
+				\ \mid \ \underline{\rconst \ \varphi}
+				\ \mid \ \underline{\rpure \ \sigma}$		\> (witnesses) \\
+	\> \ $\mid$	\> $\un{\rho}$						\> (region witness) 
+\end{tabbing}
+
+% -- Terms 
+\vspace{-2em}
+\subsubsection{Terms}
+\vspace{-1ex}
+\begin{tabbing}
+MM 	\= MM \= MMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+$t$ 	\> $::=$ 	\> \ $x$						\> (term variable) \\
+	\> \ $\mid$	\> \ $\Lambda (a : \kappa). \ t$			\> (type abstraction) \\
+	\> \ $\mid$	\> \ $t \ \varphi$					\> (type application) \\
+	\> \ $\mid$	\> \ $\lambda (x : \tau). \ t$				\> (term abstraction) \\
+	\> \ $\mid$	\> \ $t_1 \ t_2$					\> (term application) \\
+	\> \ $\mid$	\> \ $\klet \ x = t_1 \ \rbin \ t_2$			\> (let binding) \\
+	\> \ $\mid$	\> \ $\kletregion \ r \ \kwith \ \{ \ov{w_i = \delta_i} \} \ \kin \ t$	
+										\> (region introduction) \\
+	\> \ $\mid$	\> \ $\kif \ t_1 \ \kthen \ t_2 \ \kelse \ t_3$	\> (selection) \\
+	\> \ $\mid$	\> \ $\iTrue \ \varphi \mid \iFalse \ \varphi$ 		\> (boolean constructors) \\
+	\> \ $\mid$	\> \ $\iupdate  \ \delta  \ t_1 \ t_2$			\> (boolean update) \\
+	\> \ $\mid$	\> \ $\isuspend \ \delta \ t_1 \ t_2$			\> (suspension of function application) \\
+	\> \ $\mid$	\> \ $()$						\> (unit value) \\
+	\> \ $\mid$	\> \ $\underline{l}$					\> (store location) 
+\end{tabbing}
+
+
+\clearpage{}
+% -- Sugar 
+\vspace{-1em}
+\subsubsection{Derived Forms}
+\vspace{-1ex}
+\begin{tabbing}
+MM 	\= MMMMMMMMMMM \= MMMMMMM \= MMMMM \kill
+	\> $\kappa_1 \to \kappa_2$ 	\> $\equalsdef \ \ \Pi     (\_ :: \kappa_1). \ \kappa_2$ 
+	\\
+	\> $\kappa \ \To \tau$ 		\> $\equalsdef \ \ \forall (\_ :: \kappa).   \ \tau$  
+	\\[1ex]
+	\> $\kdo \ \ov{\ibindstmt} \ ; \ t$
+		\> $\equalsdef \ \klet \ \ov{\trm{mkBind}(\ibindstmt)} \ \kin \ t$
+	\\[1ex]
+	\> \trm{where} $\ibindstmt$		\> $\to \ x = t \ \mid \ t$ 
+	\\
+	\> \hspace{2.6em} $\trm{mkBind}(x = t)$	\> $\equalsdef \ x = t$ \\
+	\> \hspace{2.6em} $\trm{mkBind}(t)$ 	\> $\equalsdef \ x = t, \ \ x \ \trm{fresh}$ 
+\end{tabbing}
+
+\bigskip
+\bigskip
+The language described in this section is a cut-down version of the language used in our real implementation. To simplify the presentation we have omitted witnesses for direct and lazy regions, along with shape constraints. We have also omitted bounded quantification, effect masking, algebraic data types and case expressions. 
+
+Witnesses for direct and lazy regions are handled similarly to the ones for mutable and constant regions. Shape constraints are handled similarly to purity constraints. We will discuss bounded quantification in \S\ref{Core:Bounded} and effect masking in \S\ref{Core:Masking}.  We have included if-expressions as a simpler version of case-expressions, and limit ourselves to booleans as the only updatable type. 
+
+Note also that closure information is not used in the core language, though we discuss one of the benefits that would be gained from adding it in \S\ref{Core:Masking:fresh}.
+
+\subsection{Symbol Classes}
+We use $a$ to mean a type variable of arbitrary kind, $r$ to mean a type variable of region kind, $e$ of effect kind, and $w$ of witness kind. The distinction between these symbols is for convenience only. We will use $r$ when only a variable of region kind makes sense, but an implementation must still check that $r$ does indeed have region kind with respect to the typing rules. We use $x$ to mean a value variable. Region handles $\rho$ are terminal symbols that correspond to a set of locations $l$, in the store. 
+
+Note that in a practical implementation it is desirable to attach type and kind information to value and type variables. This allows us to reconstruct the type or kind of an expression locally, without needing access to the information attached to surrounding binders. In \cite{jay:scrap-type} this is known as the \emph{uniqueness of types} property.

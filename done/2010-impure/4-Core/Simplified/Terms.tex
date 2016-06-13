@@ -1,0 +1,51 @@
+
+\clearpage{}
+\subsection{Terms}
+\label{Core:Language:Terms}
+The majority of the term language is standard. Our $\klet \ x = t_1 \ \kin \ t_2$ term is not recursive, but we include it to make the examples easier to write. The addition of a \textbf{letrec} form can be done via \textbf{fix} in the usual way \cite[\S11.11]{pierce:tapl} but we do not discuss it here. As per \S\ref{System:Effects:currying} we write our (non-monadic) $\kdo$ expressions as a sugared version of $\klet$.
+
+The term $\kletregion \ r \ \kwith \ \{ \ov{w_i = \delta_i} \} \ \kin \ t$ introduces a new region variable $r$ which is in scope in both the witness bindings $\ov{w_i = \delta_i}$ and the body $t$. The witness bindings are used to set the properties of the region being created, and introduce witnesses to those properties at the same time. If the region has no specific properties then we include no bindings and write $\teLetRE{r}{t}$.
+
+The use of $\rbletregion$ imposes some syntactic constraints on the program. These ensure that conflicting region witnesses cannot be created:
+
+
+\medskip
+\textbf{Well-formedness of region witnesses}: In the list of witness bindings $\ov{w_i = \delta_i}$, each $\delta_i$ must be either $\iMkConst \ r$ or $\iMkMutable \ r$, and the list may not mention both. In our full core language we also use the witnesses $\iMkDirect \ r$ and $\iMkLazy \ r$ from \S\ref{System:Effects:lazy-and-direct}, and these are also mutually exclusive.
+
+Requiring such witnesses to be mutually exclusive rejects obviously broken terms such as:
+
+\code{
+	$\kletregion \ r \ \kwith \ \{ w_1 = \iMkConst \ r, \ w_2 = \iMkMutable \ r \} \ \rbin \ \dots$
+}
+
+
+\textbf{Uniqueness of region variables}: In all terms $\kletregion \ r \ \kwith \ \{ \ov{w_i = \delta_i} \} \ \kin \ t$ in the initial program, each bound region variable $r$ must be distinct. 
+
+This constraint ensures that conflicting witnesses cannot be created in separate $\rbletregion$ terms. For example:
+$$
+\begin{aligned}
+& \rbletregion \ r \ \kwith \ \{ w_1 = \iMkConst \ r \} \ \rbin \\ 
+& \rbletregion \ r \ \kwith \ \{ w_2 = \iMkMutable \ r \} \ \rbin \ \dots
+\end{aligned}
+$$
+
+In an implementation this is easily satisfied by giving variables unique identifiers.
+
+\textbf{No fabricated region witnesses}: Region witnesses constructors may not be used in a type applied directly to a term.
+
+This constraint ensures that conflicting witnesses cannot be created in other parts of the program. For example:
+
+\code{
+	& $\kletregion \ r \ \kwith \ \{ w_1 = \iMkConst \ r \} \ \kin$ \\
+	& $\dots \ \iupdate \ (\iMkMutable \ r) \ t_1 \ t_2 \ \dots$
+}
+
+\bigskip
+
+Returning to the list of terms, $\iTrue \ \varphi$ and $\iFalse \ \varphi$ allocate a new boolean value into region $\varphi$ in the heap. We use the general symbol $\varphi$ to represent the region as it may be either a region variable $r$ or a region witness $\un{\rho}$ during evaluation.
+
+The $\iupdate$ function overwrites its first boolean argument with the value from the second, and requires a witness that its first argument is in a mutable region. 
+
+The $\isuspend$ function suspends the application of a function to an argument, and requires a witness that the function is pure.
+
+Store locations, $l$, are created during the evaluation of a $\iTrue \varphi$ or $\iFalse \varphi$ term. They can be thought of as the abstract addresses where a particular boolean object lies. When we manipulate store locations in the program we write them as $\un{l}$, and treat them as (value level) witnesses that a particular store location exists. Akin to region witnesses, store locations are not present in the initial program.

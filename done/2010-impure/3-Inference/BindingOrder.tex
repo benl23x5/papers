@@ -1,0 +1,44 @@
+
+\section{Binding order and constraint based inference}
+\label{Inference:BindingOrder}
+
+When performing type inference for Haskell, a binding dependency graph is used to determine which groups of bindings are mutually recursive. This graph is also used to sort the binding groups so that their types are generalised before they need to be instantiated~\cite{jones:typing-haskell}. Unfortunately, due to the inclusion of type directed projections, a similar dependency graph cannot be extracted from Disciple programs before type inference proper. 
+
+Consider the following program:
+
+\qq\qq
+\begin{tabular}{ll}
+	$\ifunOne \ x$		& $= 1 + \ifunTwo x \ 5$	\\
+  	$\ifunTwo \ x \ y$	& $= x + y$
+\end{tabular}
+\bigskip
+
+As the body of $\ifunOne$ references $\ifunTwo$, we should generalise the type of $\ifunTwo$ before inferring the type of $\ifunOne$. It is easy to extract such dependencies from Haskell programs because at each level of scope, all bindings must have unique names. However, in Disciple programs, projections associated with different type constructors can share the same name. For example:
+
+\qq\qq
+\begin{tabular}{ll}
+	\mc{2}{$\kproject \ \iTone \ \kwhere$} \\
+	& $\ifieldOne \ x \ =  (x, \ 5)$ \\
+\\
+	\mc{2}{$\kproject \ \iTtwo \ \kwhere$} \\
+	& $\ifieldOne \ x \ =  (x, \ ``\texttt{hello}")$
+\end{tabular}
+\bigskip
+
+We have defined two projections named $\ifieldOne$, one for constructor $\iTone$ and one for constructor $\iTtwo$. Now consider what happens when we perform a $\ifieldOne$ projection in the program:
+
+\qq\qq
+\begin{tabular}{ll}
+	$\ifun \ x  = \dots  \ x \odot \ifieldOne \ \dots$
+\end{tabular}
+\bigskip
+
+This $x \odot \ifieldOne$ projection will be implemented by one of the instance functions above, but we cannot determine which until we know the type of $x$. For Disciple programs, there is no easy way to determine the binding dependency graph, or to arrange the bindings into an appropriate order before inferring their types. Instead, we must determine how the bindings depend on each other on the fly, during inference.
+
+This implies that our inference algorithm cannot be entirely syntax directed. When inferring the type of $\ifun$, once we determine which instance function to use for the $\odot \ifieldOne$ projection, we may discover that this type hasn't been inferred yet either. We must then stop what we're doing and work out the type of the instance function, before returning to complete the type of $\ifun$. In general, this process is recursive. Work on the types of several bindings may need to be deferred so that we can first determine the type of another. 
+
+We manage this problem with a constraint based approach, similar to that used by Heeren in the Helium compiler~\cite{heeren:generalising-hm, heeren:constraint-type-inferencing, heeren:top-quality-error-messages}. We extract type constraints from the desugared source program, solve them, and then use the solution to translate the desugared code into the core language, while adding type annotations. By approaching type inference as the solution of a set of constraints instead of a bottom-up traversal of the program's abstract syntax tree, we make it easier to dynamically reorder work as the need arises. This framework also helps to manage our extra region, effect and closure information. Once we have a system for expressing and solving general type constraints, the fact that we have constraints of different kinds does not add much complexity to the system. Constraint based systems also naturally support the graphical effect and closure terms discussed in \S\ref{System:Effects:recursive}, as well as providing a convenient way to manage the information used to generate type error messages.
+
+Our system has some similarity to the one use by $\textrm{ML}^\textrm{F}$~\cite{remy:graphic-type-constraints}, though we do not consider higher rank types. We believe our system could be extended to support them, but we have been mainly interested in the region, effect and closure information, and have not investigated it further. We also derive inspiration from Erwig's visual type inference~\cite{erwig:visual-type-inference}, and the graphs used by Duggan~\cite{duggan:explaining-type-inference} to track the source of type errors. However, unlike their work we do not draw our type graphs pictorially. We have found that the addition of region, effect and closure information, along with the associated type class constraints, tends to make these two dimensional diagrams into ``birds nests'' with many crossing edges, which hinders the presentation. Instead, we simply write down the constraints as equations, and try to imagine the graph being separated into several two dimensional layers, one for each kind. Such graphs might make an interesting target for work on computer aided visualisation as we know of no tool to generate a suitably pleasing diagram.
+
+

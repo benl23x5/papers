@@ -1,0 +1,168 @@
+
+\subsection{Bounded quantification}
+\label{Core:Extensions:Bounded}
+
+We add bounded quantification to the core language so we can support the higher order programs discussed in \S\ref{System:Effects:constraint-strengthening}. For example, when converted to core, the third order function $\ifoo$ has the following type and definition:
+
+\code{
+	$\ifoo$	
+	& $::$ 		& $\forall \ r_1 \ r_2 \ r_3 \ r_4 \ (e_1 \tme \iRead \ r_1) \ e_2$ \\
+	& $.$		& $((\iInt \ r_1 \lfuna{e_1} \iInt \ r_2) \lfuna{e_2} \iInt r_3) 
+				\lfuna{e_2 \lor \iRead r_3} \iInt r_4$ 
+}
+
+\code{
+	$\ifoo$ \\
+	\ = 	& $\Lambda \ r_1 \ r_2 \ r_3 \ r_4 \ (e_1 \tme \iRead \ r_1) \ e_2.$ \\
+		& $\lambda \ f : (\iInt \ r_1 \lfuna{e_1} \iInt \ r_2) \lfuna{e_2} \iInt \ r_3.$
+}
+
+\vspace{-3ex}
+\code{
+	& & $\: \kdo$	& $x_1$	& $= \isucc \ r_1 \ r_2$ \\
+	& &		& $x_2$	& $= f \ x_1$ \\
+	& &		& \mc{2}{$\isucc \ r_3 \ r_4 \ x_2$}
+}
+
+Note that in the application $f \ x_1$ the expected type of the argument is:
+
+\code{
+ 	$f$	& $:: \iInt \ r_1 \lfuna{e_1} \iInt r_2$
+}
+
+but $x_1$ has type:
+
+\code{
+	$x_1$	& $:: \iInt \ r_1 \lfuna{\iRead \ r_1} \iInt \ r_2$
+}
+
+To support this we modify the rule for application so that the argument may have any type that is subsumed by the type of the function parameter. We arrange the typing rule for bounded type abstraction to add its constraint to the type environment, and use this to show that applications such as $f \ x_1$ are valid.
+
+
+The additions to the core language are as follows:
+\begin{tabbing}
+MM 	\= MM \= MMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+$\varphi$  
+	\> $\to$	\> \dots \\
+	\> \ $\mid$	\> $\forall (e \tme \sigma ). \ \tau$		\> (bounded quantification) 
+\end{tabbing}
+
+\vspace{-1em}
+\begin{tabbing}
+MM 	\= MM \= MMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+$t$	
+	\> $\to$	\> \dots \\
+	\> \ $\mid$	\> \ $\Lambda (e \sqsupseteq \sigma). \ t$	\> (bounded type abstraction) 
+\end{tabbing}
+
+Operationally, bounded type application behaves the same way as the unbounded case:
+
+\ruleBox{
+	\begin{gather*}
+	\ruleA	{EvTAppAbsB}
+		{ \heap \with (\Lambda (e \tme \sigma). \ t) \ \varphi \eto 
+		  \heap \with t[\varphi/e] 
+		}
+	\end{gather*}
+}
+
+The new typing rules are:
+
+\ruleBox{
+	\begin{gather*}
+	\ruleI	{ KiAllB }
+		{ \kiJudge
+			{\Gamma}{\Sigma}
+			{\sigma}
+			{\ !}	
+		  \tspace
+		  \kiJudge
+		  	{\Gamma, \ e : \ !}{\Sigma}
+			{\tau}
+			{\kappa}	
+		  \tspace
+		  e \notin \ifv(\Gamma) 
+		}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \tyForallB{e}{\sigma}{\tau} }
+			{ \kappa_2}
+		}
+	\ruleSkip
+	\ruleI	{TyAbsTB}
+		{ \kiJudge	{\Gamma} {\Sigma&} {\sigma_1} {\ !} \\
+		  \tyJudge	{\Gamma, \ e : \ !, \ e \tme \sigma_1 \: } {\Sigma &} {t_2} {\tau_2} {\sigma_2}
+		}
+		{ \tyJudgeGS	{\teLAMB {e}{\sigma_1}{t_2}} 
+				{\tyForallB{e}{\sigma_1}{\tau_2}} {\sigma_2}}
+	\ruleSkip
+	\ruleI	{TyAppTB}
+		{ \begin{aligned}
+		 	 \tyJudge {\Gamma}{\Sigma&} {t_1} {\tyForallB{e}{\sigma_{11}}{\tau_{12}}} {\sigma_1} \\
+			 \kiJudge {\Gamma}{\Sigma&} {\sigma_2} {!}
+		  \end{aligned}
+		  \tspace
+		  \begin{aligned}
+			\\
+			  \sigma_{11} \subs \sigma_2 
+		  \end{aligned}
+		}
+		{ \tyJudgeGS	{t_1 \ \sigma_2} {\tau_{12}[\sigma_2/e]} {\sigma_1[\sigma_2/e]} }
+	\ruleSkip
+	\ruleI	{TyAppB}	
+		{ \tyJudge	{\Gamma} {\Sigma&} {t_2} {\tau_2} {\sigma_2} \\
+		  \tyJudge	{\Gamma} {\Sigma&} {t_1} {\tau_{11} \toa{\sigma} \tau_{12}} {\sigma_1} 
+		  \tspace
+		  \tau_{2} \tle_\Sigma \tau_{11}
+		}
+		{ \tyJudgeGS	{t_1 \ t_2} {\tau_{12}} {\sigma_1 \lor \sigma_2 \lor \sigma} }
+	\ruleSkip
+	\ruleI	{SubVar}
+		{a \tme \sigma \in \Gamma}
+		{\suJudgeGS{\sigma}{a} }
+	\ruleSkip
+	\ruleI	{SubFun}
+		{ \begin{aligned}
+		  & \suJudgeGS{\tau_{21}}{\tau_{11}} \\
+		  & \suJudgeGS{\tau_{12}}{\tau_{22}} \quad
+	            \suJudgeGS{\sigma_{1}}{\sigma_{2}}
+		  \end{aligned}
+		}
+		{\Gamma \judge \tau_{11} \funa{\sigma_{1}} \tau_{12} 	
+		\ 	\tle \ \tau_{21} \funa{\sigma_{2}} \tau_{22}}
+	\ruleSkip	
+	\ruleI	{SimAllB}
+		{ \skJudgeS{\kappa_1}{\kappa_2}
+		  \tspace
+		  \siJudgeS{\sigma_1}{\sigma_2}
+		  \tspace
+		  \siJudgeS{\tau_1}{\tau_2} 
+		}		  
+		{ \siJudgeS
+			{\tyForallB{a}{\sigma_1}{\tau_1}}
+			{\tyForallB{a}{\sigma_2}{\tau_2}}
+		}
+	\ruleSkip
+	\end{gather*}
+}
+
+\clearpage{}
+
+KiAllB and TyAbsTB are similar to their unbounded counterparts. Note that bounded quantification is only defined for effects, so the bounding type has this kind.
+
+In TyAbsTB, the effect bound $e \tme \sigma_1$ is added to the type environment, and SubVar is used to retrieve it higher up in the proof tree.
+
+In TyAppTB we use subsumption on effects, $\sigma_{11} \tle_{\Sigma} \sigma_2$, to satisfy the bound on the quantifier. 
+
+In TyAppB we use a subsumption judgement on value types, $\tau_2 \tle_{\Sigma} \tau_{11}$, to support applications such as the one described in the $\ifoo$ example. Note that although subsumption only has meaning on the effect portion of a type, we still need to define it to work on value types. This is because the effect type information is attached to the value type information. 
+
+\subsubsection{We don't really need contravariance}
+
+In SubFun, although we use contravariant subsumption, $\tau_{21} \tle \tau_{11}$, for the function parameter, in practice this contravariance isn't used. We could have equally written $\tau_{11} \tle \tau_{21}$. This arises due to the way we strengthen inferred types, discussed in \S\ref{System:Effects:constraint-strengthening}. As we do not strengthen constraints on effect variables that appear in the types of function parameters, the effect annotations on such types will always be variables. 
+
+In TyAppB, when we apply a function to its argument, we use the subsumption judgement to invoke the SubVar rule, which accepts examples like $\ifoo$. However, in that example we only applied a second order function to a first order one. Annotations on function arrows of higher order will always be variables, so applications involving them are accepted via SubRefl. The variance of function types does not come into play. 
+
+For contrast, the process algebra of \cite{nielson:from-cml-to-its-process-algebra} includes an effect system in which variance \emph{does} matter. However, that work is presented as a stand-alone language, not as a core language embedded in a larger compiler. For DDC, we cannot write a program in the source language that maps onto a core-level program in which variance matters, so we have not invested further effort into supporting it.
+
+This situation is similar to when System-F is used as a basis for the core language of a Haskell 98 compiler. System-F supports higher ranked types \cite{peyton-jones:arbitrary-rank}, but Haskell 98 doesn't. Types of rank-2 can be introduced when performing lambda lifting \cite{peyton-jones:implementation}, but no terms are produced that have types of rank higher than this. The compiler does not need to support full System-F because only a fragment of that language is reachable from source.
+
+

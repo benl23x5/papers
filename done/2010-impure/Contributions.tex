@@ -1,0 +1,22 @@
+\section{Summary of Contributions}
+
+\begin{itemize}
+\item	I present a system that integrates region, effect and closure typing into a unified whole and uses type classes to express mutability and purity constraints. To my knowledge, the system in this thesis is the first to apply mutability constraints to region variables, or purity constraints to effect terms.
+
+\item	I describe how laziness and arbitrary destructive update can be used sanely in the same program. This is done by applying purity constraints to the visible effects of suspended function applications, and satisfying these constraints by requiring objects read by the function to be constant. This ensures that impure function applications are not suspended, as the behavior of a program which did so would likely be incomprehensible to both the programmer and compiler.
+
+\item	I present a System-Fc style core language that includes region, effect and closure information. I show how to encode information about mutability and purity using dependently kinded witnesses. 
+
+\item	I describe the behaviour of a Talpin-Jouvelot style effect typing system when applied to higher order functions. I show how some $\tme$ constraints can be strengthened to equalities, but others cannot. Strengthening effect constraints allows the volume of type information in the core program to be reduced.
+
+\item	I show how $\iShape$ constraints can be used to define type classes such as $\iEq$ and $\iCopy$. These constraints are used to require the parameter and return types of a function to have the same overall value type, while allowing the contained region and mutability information to vary.
+
+\item	I discuss how $\iLazy$ and $\iDirect$ constraints can be used to track which objects might be represented as thunks. I show how to use this information to optimise programs that use mostly call-by-value evaluation.
+
+\item	I discuss the concept of material region variables and show how this concept can be used to trim the majority of information out of closure terms. 
+
+\item	I present pull-back projections and show how they can be used to eliminate the need for ML style mutable references. Using pull-back projections is preferable because ML style references pollute the value types of functions and data structures that use them, which can lead to a large amount of refactoring when developing programs.
+
+\item	I describe how to perform Hindley-Milner style type inference without prior knowledge of the binding dependency graph. If the program uses type directed projections then this graph is not obtainable \emph{a priori}, because the instance function to use for each projection depends on the type of the value being projected.
+
+\end{itemize}

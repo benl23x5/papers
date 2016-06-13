@@ -1,0 +1,27 @@
+
+\chapter{Type Inference}
+\vspace{-1em}
+\begin{center}
+\includegraphics{3-Inference/fig/intro/overview}
+\end{center}
+
+The above diagram gives an overview of our compilation process. The source program is first desugared into a simpler language, and then annotated with type variables that serve as ``hooks'' for type constraints. Type constraints relating these hook variables are extracted (slurped) from the annotated program. The constraints are solved, which produces a solution in the form of a type graph. The solution is a graph because it can contain cycles through effect and closure information due to the definitions of recursive functions. This was discussed in \S\ref{System:Effects:recursive}. We then extract flat, non-graphical types for each of the hook variables, and use this information to translate the annotated source program into the core language.
+
+This chapter concerns the annotation, constraint slurping, solving and export stages. We give the motivation for our overall approach in \S\ref{Inference:BindingOrder}, and discuss the use of type graphs. We define the simplified source language in \S\ref{Inference:Language}, and go on to discuss the annotation process and constraint slurping. Constraint solving is outlined in \S\ref{Inference:Reduction} and \S\ref{inference:generalisation}, where \S\ref{Inference:Reduction} deals with the reduction of monomorphic constraints, and \S\ref{inference:generalisation} discusses type generalisation and the extraction of flat types. In practice we also keep track of how type schemes are instantiated. This information is used when translating the source program to core, but we do not discuss this or other details of the translation in this thesis.
+
+Section \S\ref{Inference:Projections} extends the source language and inference algorithm with support for type directed projections, and \S\ref{inference:ordering} discusses how to handle mutual recursion in the presence of such projections. Section \S\ref{inference:type-classes} discusses the built-in type class constraints such as $\iPure$ and $\iShape$, and \S\ref{inference:errors} considers how to produce reasonable error messages.
+
+
+
+
+
+\clearpage{}
+\input{3-Inference/BindingOrder}
+\input{3-Inference/Language}
+\input{3-Inference/Constraints}
+\input{3-Inference/Reduction}
+\input{3-Inference/Generalisation}
+\input{3-Inference/Projections}
+\input{3-Inference/Ordering}
+\input{3-Inference/TypeClasses}
+\input{3-Inference/Errors}

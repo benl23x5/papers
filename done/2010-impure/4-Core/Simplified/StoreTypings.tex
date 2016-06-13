@@ -1,0 +1,137 @@
+\clearpage{}
+\subsection{Store typings}
+\label{Core:Simplified:StoreTypings}
+
+A \emph{store typing} $\Sigma$ is a set of elements of the form:
+$\un{\rho}$, \ $\un{\rmutable \ \rho}$, $\un{\rconst \ \rho}$, \ $l : \tau$, \ $r \sim \rho$.
+
+The store typing is an abstract model of the current state of the store, and the properties we require it to have. 
+
+A store $\heap$ is said to be \emph{well typed} with respect to a store typing $\Sigma$, 
+written $\Sigma \judge \heap$, if every binding in the store has the type predicted by the store typing. That is:
+\begin{tabbing}
+MM \= MM \= \kill
+	\> for all $l \mapstoa{\rho} V \in \heap$ we have \\
+	\> \> $l : \tau \in \Sigma$ 
+		and $\un{\rho} \in \Sigma$
+		for some $\tau, \rho$. 
+\\[1ex]
+	\> for all $\rmutable \ \rho \in \heap$ we have $\un{\rmutable \ \rho} \in \Sigma$ 
+\\[1ex]
+	\> for all 	$\rconst \ \rho \in \heap$ we have $\un{\rconst \ \rho} \in \Sigma$
+\end{tabbing}
+
+
+The dual of well typed is \emph{models}, that is a store typing $\Sigma$ is said to \emph{model} a store $\heap$, 
+written $\Sigma \models \heap$, if all members in the store typing correspond to members in the store:
+\begin{tabbing}
+MM \= \kill
+	\> for all $l : \tau \in \Sigma$ we have $l \mapstoa{\rho} V \in \heap$ 
+\\[1ex]
+	\> for all $\un{\rho} \in \Sigma$ we have $\rho \in \heap$ 
+\\[1ex]
+	\> for all $\un{\rmutable \ \rho} \in \Sigma$ we have \ $\rmutable \ \rho \in \heap$ 
+\\[1ex]
+	\> for all $\un{\rconst \ \rho} \in \Sigma$ we have   \ $\rconst \ \rho \in \heap$ 
+\end{tabbing}
+
+
+\clearpage{}
+% --------------------
+\subsection{Region similarity}
+The term $r \sim \rho$, pronounced ``$r$ is similar to $\rho$", is used to associate a region handle with a region variable. This notation is used in our proof of soundness to account for the fact that the types of terms change during evaluation.
+
+Our typing rules use the following judgement form:
+\begin{center}
+\fbox{ $\tyJudge {\Gamma} {\Sigma} {t} {\tau} {\sigma}$ }
+\end{center}
+
+This is read: with type environment $\Gamma$ and store typing $\Sigma$ the term $t$ has type $\tau$ and its evaluation causes an effect $\sigma$. The type environment maps value variables to types, and type variables to kinds. 
+
+When a $\kletregion$ is reduced, the act of substituting the fresh region handle for the region variable changes the type of the term. We can see this in the following reduction from \S\ref{Core:Language:region-handles}. 
+
+\medskip
+\qq
+\begin{tabular}{lll}
+		& $\emptyset$			
+		& $ ; \ \kletregion \ r \ \kwith \ \{ w = \iMkConst \ r \} \ 
+				\kin \ \iTrue \ r$ 
+		\\
+	$\eto$	& $\rho, \ \rconst \ \rho$	
+		& $ ; \ \iTrue \ \un{\rho}$
+\end{tabular}
+\medskip
+
+Writing each position out on a separate line, the type judgement for the initial term is:
+
+\code{
+			& $\emptyset$ \\
+	$|$		& $\emptyset$ \\
+	$\vdash$	& $\kletregion \ r \ \kwith \ \{ w = \iMkConst \ r \} \ \kin \ \iTrue \: r$ \\
+	::		& $\iBool \ r$ \\
+	;		& $\bot$
+}
+
+Note that the $\iTrue \ r$ term gives rise to $\iBool \ r$. However, when we reduce the outer $\kletregion$, we end up with:
+
+\code{			& $\emptyset$ \\
+	$|$		& $\un{\rho}, \ \un{\rconst \ \rho}, \ r \sim \rho$ \\
+	$\vdash$	& $\iTrue \ \un{\rho}$ \\
+	::		& $\iBool \ \un{\rho}$ \\
+	;		& $\bot$
+}
+
+As the value term is now $\iTrue \ \un{\rho}$ instead of $\iTrue \ r$, its type is $\iBool \ \un{\rho}$ instead of $\iBool \ r$. This is why we introduce the $r \sim \rho$ term into the store typing: it records the mapping between region handles and the variables they were substituted for. In our proof of soundness we require that when we reduce an expression, the result has a type that is \emph{similar to} the initial expression. That is, it is identical up to the renaming of region handles to their associated region variables. Note that the effect term can also change during reduction, with region variables in effects like $\iRead \ r$ being replaced by region handles.
+
+
+\clearpage{}
+% ---------------------------------------------------------
+\subsection{Duplication of region variables during evaluation}
+Before moving on to discuss the formal typing rules, we point out a final property of the store typing. There can be multiple region handles bound to a particular region variable, that is, we can have both $r \sim \rho_1$ and $r \sim \rho_2$ in the store typing, where $\rho_1$ and $\rho_2$ are distinct. This is caused when a term containing a $\kletregion$ is duplicated during function application (or via a let-binding).
+
+For example, starting with the statement:
+
+\code{
+	& 		& $f : \ \dots$ \\
+	& $|$		& $\emptyset$ \\
+	& $\vdash$	& $(\lambda x : () \ \lfuna{\bot} \iBool \ r. \ f \ (x \ ()) \ (x \ ()))$ \\
+	& 		& \qq \qq $(\lambda y : (). \ \kletregion \ r \ \kin \ \iTrue \ r)$ \\
+	& $::$		& $\dots$ \\
+	& $;$		& $\bot$
+}
+
+We substitute the argument for $x$, giving:
+
+\code{
+\eto	&		& \mc{2}{$f : \ \dots$} \\
+	& $|$		& $\emptyset$ \\
+	& $\vdash$	& $f$	& $((\lambda (y \ : \ ()). \ \kletregion \ r \ \kin \ \iTrue \ r) \ ())$ \\
+	&		& 	& $((\lambda (y \ : \ ()). \ \kletregion \ r \ \kin \ \iTrue \ r) \ ())$ \\
+	& $::$		& $\dots$ \\
+	& $;$		& $\bot$
+}
+
+Note the duplication of $r$ in the $\kletregion$ term. When the first copy is reduced it creates its own region handle:
+
+\code{
+\etos	&		& \mc{2}{$f : \ \dots$} \\
+	& $|$		& $\un{\rho_1}, \ r \sim \rho_1, \ l_1 \mapstoa{\rho_1} \iBool \ \un{\rho_1}$ \\
+	& $\vdash$	& $f \ \ \un{l_1} \ \ 
+				((\lambda (y \ : \ ()). \ \rbletregion \ r \ \rbin \ \iTrue \ r) \ ())$ \\
+	& $::$		& $\dots$	\\
+	& $;$		& $\bot$
+}
+
+Reducing the second copy produces a different one, $\rho_2$:
+
+\code{
+\etos	&		& \mc{2}{$f : \ \dots$} \\
+	& $|$		& $\un{\rho_1}, \ r \sim \rho_1, \ l_1 \mapstoa{\rho_1} \iBool \ \un{\rho_1}$ \\
+	&		& $\un{\rho_2}, \ r \sim \rho_2, \ l_2 \mapstoa{\rho_2} \iBool \ \un{\rho_2}$ \\
+	& $\vdash$	& $f \ \ \un{l_1} \ \ \un{l_2}$ \\
+	& $::$		& $\dots$	\\
+	& $;$		& $\bot$
+}
+
+This illustrates that the mapping between region variables and region handles is not simply one-to-one, a point we must be mindful of in our proof of soundness.
+

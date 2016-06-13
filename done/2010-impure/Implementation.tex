@@ -1,0 +1,43 @@
+
+\clearpage{}
+\section{Implementation}
+
+DDC is written in Haskell with GHC extensions. It uses three intermediate representations: a desugared form of the source language; the core language presented in this thesis, and an abstract C-like language. We have used Parsec \cite{leigen:parsec} for the parser, and compile to ANSI C.
+
+As the focus of our work has been on the type system and core language, we have not put a substantial amount of work into optimising the back end. However, we have gleaned a few points that may be of interest to others embarking on a similar endeavor. Although compiling via third party intermediate languages such as C$- -$ \cite{peyton-jones:portable-assembly-language} or LLVM \cite{lattner:llvm} is likely to produce better code in the long run, we feel that targeting C still has a place if the developer ``just wants to get something working''. The primary benefits are that a given developer will invariably know C already, and that implementions of primitive functions can be written directly. 
+
+\subsection{Implementing thunks and laziness}
+
+As Disciple uses call-by-value evaluation as default, we expect laziness to only be used occasionally. We desire straight-forward, C-like programs that do not make heavy use of higher order functions or partial application to run as fast as if they were actually written in C. For this reason we avoid the heavy encodings that are associated with compiling via an abstract machine, such as the STG machine 
+\cite{peyton-jones:g-machine}.
+
+After the core-level optimisations are finished, we perform lambda lifting to generate supercombinators \cite{hughes:thesis}. Each supercombinator is translated to a single C function. We handle partial application by building a thunk containing a pointer to the associated supercombinator, along with the provided arguments. This is the eval/apply method discussed in \cite{marlow:fast-curry}.
+
+Thunks representing suspended computations are created with explicit calls to the $\isuspend$ function that was introduced in \S\ref{System:Effects:purification}. Thunks that represent numeric values are forced by the $\iforce$ function. Calls to $\iforce$ are introduced by the compiler during the local unboxing optimisation that was discussed in \S\ref{Core:Optimisation:floating-same-level}. We use \texttt{switch} statements to implement core-level case-expressions, and thunks that represent values of algebraic type are forced by extra alternatives that we add to these statements.
+
+For example, the following expression:
+
+\code{
+	\mc{2}{$\kcase \ \ixx \ \kof$} \\
+	& $\iNil$		& $\to \ ... \ \ialtOne \ ...$ \\
+	& $\iCons \ x \ \ixs$	& $\to \ ... \ \ialtTwo \ ...$ \\
+}
+
+compiles to:
+
+\begin{lstlisting}
+  again:
+  switch (_TAG(xx)) {
+    case tag_Nil:   goto alt1;
+    case tag_Cons:  goto alt2;
+    case tag_INDIR: xx = ((Thunk*)xx)->next; goto again;
+    case tag_SUSP:  xx = force(xx);          goto again;
+    default:        ... error handling ...
+  }
+\end{lstlisting}
+
+The tags \texttt{INDIR} and \texttt{SUSP} are common to all objects. When the tag of an object is inspected, if it turns out to be an indirection or suspension then it is followed or forced appropriately. The object is then reinspected by jumping back to the start of the \texttt{switch} statement. Note that we place the alternatives for indirections and suspensions last in the list. This ensures that the handling of lazy objects does not degrade the speed of programs that use mostly call-by-value evaluation. If the type of the object to be inspected is constrained to be direct, then we can omit the \texttt{INDIR} and \texttt{SUSP} alternatives and gain a slight speedup due to a smaller executable.
+
+The primary advantages of this method are its simplicity and portability. The disadvantage is that we incur a function call overhead every time we force a thunk. This method is unlikely to ever match the efficiency a purpose built system based on the STG machine \cite{peyton-jones:g-machine}, but it works, and is significantly easier to implement.
+
+

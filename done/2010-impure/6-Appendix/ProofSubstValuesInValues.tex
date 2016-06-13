@@ -1,0 +1,335 @@
+
+% -- Lemma: Preservation of types under value substitution -----------------------------------------
+\clearpage{}
+\begin{flushleft}
+\textbf{Lemma: (Substitution of Values in Values)}
+
+\begin{tabular}{ll}
+	If  	&  $\tyJudge{\Gamma, \ x : \tau_2}{\Sigma}{t}{\tau_1}{\sigma}$ \\
+	\ and  	&  $\tyJudge{\Gamma}{\Sigma}{v^\circ}{\tau_2'}{\bot}$ \\
+	\ and 	&  $\tau_2 \sim_\Sigma \tau_2'$ \\[1ex]
+	then 	&  $\tyJudge{\Gamma}{\Sigma}{t[v^\circ/x]}{\tau_1'}{\sigma'}$ \\
+	\ and  	&  $\tau_1 \sim_\Sigma \tau_1'$ \\
+	\ and  	&  $\sigma \: \sim_\Sigma \sigma'$ \\
+\end{tabular}
+
+\medskip
+\trb{Proof:} By induction over the derivation of \ $\tyJudge{\Gamma, \ x : \tau_2}{\Sigma}{t}{\tau_1}{\sigma}$
+
+\medskip
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(IH) 	\> Subst. Values/Values holds for all subterms of $t$.
+		\> (assume)
+\end{tabbing}
+
+\medskip
+
+% ---------------------
+$\rbCase: \ t = y$ / TyVar
+
+Trivial. $x \neq y$ so $t$ is unaffected.
+
+\bigskip
+
+
+% ---------------------
+$\rbCase: \ t = x$ / TyVar
+
+$$
+\qq \qq
+	\frac
+	{ (4) \ x : \tau_1 \in \Gamma, \ x : \tau_2 }
+	{ (\un{1}) \ 
+	  \tyJudge
+		{\Gamma, \ x : \tau_2}{\Sigma}
+		{x}
+		{\tau_1}
+		{\bot}
+	}
+$$	
+
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\> 	$(\un{2})$	\> $\tyJudge{\Gamma}{\Sigma}{v^\circ}{\tau_2'}{\bot}$ 
+			\> \pby{assume} 
+\\[1ex]
+\>	$(\un{3})$	\> $\tau_2 \sim_\Sigma \tau_2'$
+			\> \pby{assume}
+\\[1ex]
+\>	(5)		\> $\tau_1 \equiv \tau_2$
+			\> \pby{Def. Type Env 4}
+\\[1ex]
+\>	(6)		\> $\tyJudge{\Gamma}{\Sigma}{x[v^\circ/x]}{\tau_2'}{\bot}$
+			\> \pby{Def. Sub. 2}
+\\[1ex]
+\>	(7)		\> $\tau_1 \sim_\Sigma \tau_2'$
+			\> \pby{3 5}
+\end{tabbing}
+\bigskip
+
+
+% ---------------------
+$\rbCase: \ t = \teLAM{x}{\kappa}{t_1}$ / TyAbsT
+
+$$
+\qq \qq
+	\frac
+	{ (4) \ 
+	  \tyJudge
+		{\Gamma, \ x : \tau_2, \ a : \kappa}{\Sigma}
+		{t_1}
+		{\tau_1}
+		{\sigma}
+	}
+	{ (\un{1}) \ 
+	  \tyJudge
+		{\Gamma, \ x : \tau_2}{\Sigma}
+		{\teLAM{a}{\kappa}{t_1}}
+		{\tyForall{a}{\kappa}{\tau_1}}
+		{\sigma}
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 	\> $\tyJudge{\Gamma} {\Sigma} {v^\circ} {\tau_2'} {\bot}$
+			\> \pby{assume}
+\\[1ex]
+\>	(\un{3})	\> $\tau_2 \sim_\Sigma \tau_2'$
+			\> \pby{assume} 
+\\[1ex]
+\>	(5)		\> $\tyJudge{\Gamma, \ a : \kappa}{\Sigma}
+				{v^\circ}
+				{\tau_2'}
+				{\bot}$
+			\> \pby{Weak. Type Env 2} 
+\\[1ex]
+\>	(6..8)		\> $\tyJudge
+				{\Gamma, \ a : \kappa}{\Sigma}
+				{t_1[v^\circ/x]}
+				{\tau_1'}
+				{\sigma'},$ 
+\\[0.2ex]
+\>			\> $\qq	\tau_1   \sim_\Sigma \tau_1', \
+			  	\sigma \sim_\Sigma \sigma'$ 
+			\> \pby{IH 4 5 3} 
+\\[1ex]
+\>	(9)		\> $\tyJudge
+				{\Gamma}{\Sigma}
+				{\teLAM{a}{\kappa}{(t_1[v^\circ/x]})}
+				{\forall(a : \kappa). \tau_1'}
+				{\sigma'}$
+			\> \pby{TyAbsT 6} 
+\\[1ex]
+\>	(10) 		\> $\tyJudge
+				{\Gamma}{\Sigma}
+				{(\teLAM{a}{\kappa}{t_1})[v^\circ/x]}
+				{\forall(a : \kappa). \tau_1'}
+				{\sigma'}$
+			\> \pby{Def. Sub. 9}
+\end{tabbing}
+
+\bigskip
+
+\clearpage{}
+% ------------------
+\pCase{$t = t_1 \ \varphi_2$ / TyAppT}
+$$
+\frac
+	{ \begin{aligned}
+	  \\
+	  (4) \ \tyJudge{\Gamma, \ x : \tau_2} 
+			{\Sigma} 
+			{t_1} 
+			{\tyForall{a}{\kappa_{11}}{\varphi_{12}}} 
+			{\sigma} 
+	  \end{aligned}
+	  \tspace
+	  \begin{aligned}
+	  (6) \ \kappa_{11} \sim_\Sigma \kappa_2
+	  \\
+	  (5) \ \kiJudge{\Gamma, \ x : \tau_2} 
+	  		{\Sigma} 
+			{\varphi_2} 
+			{\kappa_2}
+	  \end{aligned}
+	}
+	{ (\un{1}) \ \tyJudge
+			{\Gamma, \ x : \tau_2} 
+			{\Sigma} 
+			{t_1 \ \varphi_2} {\varphi_{12}[\varphi_2/a]} 
+			{\sigma[\varphi_2/a]} 
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2})	\> $\tyJudge{\Gamma} {\Sigma} {v^\circ} {\tau_2'} {\bot}$
+			\> \pby{assume} 
+\\[1ex]
+\>	(\un{3})	\> $\tau_2 \sim_\Sigma \tau_2'$
+			\> \pby{assume}
+\\[1ex]
+\>	(7..9)		\> $\tyJudge
+				{\Gamma} {\Sigma} 
+				{t_1[v^\circ/x]}
+				{\tyForall{a}{\kappa_{11}'}{\varphi_{12}'}}
+				{\sigma'}$
+\\[0.2ex]
+\>			\> \qq 	$\tyForall{a}{\kappa_{11}}{\varphi_{12}}
+				\sim_\Sigma
+				\tyForall{a}{\kappa_{11}'}{\varphi_{12}'}$
+\\[0.2ex]
+\>			\> \qq	$\sigma[\varphi_2/a] \sim_\Sigma \sigma'$
+			\> \pby{IH 4 2 3}
+\\[1ex]
+\>	(10)		\> $\kappa_{11}  \sims \kappa_{11}'$
+			\> \pby{SimAll 8}
+\\[1ex]
+\>	(11) 		\> $\kappa_{11}' \sim_\Sigma \kappa_2$
+			\> \pby{SimTrans 6 10}
+\\[1ex]
+\>	(12) 		\> $\kiJudge
+				{\Gamma} 
+		  		{\Sigma} 
+				{\varphi_2} 
+				{\kappa_2} $
+			\> \pby{Str. Type Env 5}
+\\[1ex]
+\>	(13) 		\> $\tyJudge
+				{\Gamma} {\Sigma} 
+				{t_1[v^\circ/x] \ \varphi_2}
+				{\varphi_{12}'[\varphi_2/a]}
+				{\sigma'[\varphi_2/a]}$
+			\> \pby{TyAppT 7 12 11}
+\\[1ex]
+\>	(14) 		\> $\tyJudge
+				{\Gamma} {\Sigma}
+				{(t_1 \ \varphi_2)[v^\circ/x]}
+				{\varphi_{12}'[\varphi_2/a]}
+				{\sigma'[\varphi_2/a]}$
+			\> \pby{Def. Sub. 13}
+\end{tabbing}
+\bigskip
+
+% ---------------------
+\pCase{$t = \teLam{x}{\tau}{t_1}$ / TyAbs}
+
+Similarly to TyAbsT case.
+\bigskip
+
+
+% ---------------------
+\pCase{$t = t_1 \ t_2$ / TyApp}
+$$
+	\frac
+	{ \begin{aligned}
+	  \\
+	  (4) \ 
+	  \tyJudge
+		{\Gamma, \ x : \tau_3}
+		{\Sigma}
+		{t_1}
+		{\tau_{11} \funa{\sigma} \tau_{12}}
+		{\sigma_1}
+	  \end{aligned}
+	  \tspace
+	  \begin{aligned}
+	  (6) \
+   	  \tau_{11} \sims \tau_2
+	  \\
+	  (5) \ 
+	  \tyJudge
+	  	{\Gamma, \ x : \tau_3} 
+	  	{\Sigma}
+		{t_2}
+		{\tau_2}
+		{\sigma_2}
+	  &
+	  \end{aligned}
+	}
+	{ (\un{1}) \ \tyJudge 
+			{\Gamma, \ x : \tau_3}
+			{\Sigma} {t_1 \ t_2} {\tau_{12}}
+			{\sigma_1 \lor \sigma_2 \lor \sigma} 
+	}
+$$	
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 	\> $\tyJudge{\Gamma} {\Sigma} {v^\circ} {\tau_3'} {\bot}$
+			\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) 	\> $\tau_3 \sims \tau_3'$
+			\> \pby{assume}
+\\[1ex]
+\>	(7..9) 		\> $\tyJudgeGS
+				{t_1[v^\circ/x]}
+				{\tau_{11}' \funa{\sigma'} \tau_{12}'} {\sigma_1'}$
+\\[0.2ex]
+\>			\> \qq	${\tau_{11}' \funa{\sigma'} \tau_{12}'}
+				\sims
+				{\tau_{11} \funa{\sigma} \tau_{12}}$
+\\[0.2ex]
+\>			\> \qq	$\sigma_1 \sims \sigma_1'$
+			\> \pby{IH 4 2 3}
+\\[1ex]
+\>	(10..12) 	\> $\tyJudge{\Gamma} {\Sigma} {t_2[v^\circ/x]} {\tau_2'} {\sigma_2'}$
+\\[0.2ex]
+\>			\> \qq	$\tau_2 \sims \tau_2'$
+\\[0.2ex]
+\>			\> \qq	$\sigma_2 \sims \sigma_2'$
+			\> \pby{IH 5 2 3}
+\\[1ex]
+\>	(13)		\> $\tau_{11}' \sims \tau_2'$
+			\> \pby{SimApp, SimTrans 8 6 11} 
+\\[1ex]
+\>	(14) 		\> $\tyJudgeGS 
+				{t_1[v^\circ/x] \ t_2[v^\circ/x]} {\tau_{12}'} 
+				{ \sigma_1' \lor \sigma_2' \lor \sigma' }$
+			\> \pby{TyApp 7 10 13}
+\\[1ex]
+\>	(15) 		\> $\tyJudgeGS
+				{(t_1 \ t_2)[v^\circ/x]} {\tau_{12}'}
+				{ \sigma_1' \lor \sigma_2' \lor \sigma' }$
+			\> \pby{Def. Sub. 14}
+\end{tabbing}
+\bigskip
+
+
+% ---------------------
+\pCase{$t = (\teLet{x}{t_1}{t_2})$ / TyLet} \\
+\pCase{$t = (\teLetR{r}{\ov{w_i :: \delta_i}}{t_1})$ / TyLetRegion} \\
+\pCase{$t = (\teIf{t_1}{t_2}{t_3})$ / TyIf}
+
+Similarly to TyApp case.
+\bigskip
+
+
+% ---------------------
+\pCase{$t = \iTrue  \ \varphi$ / TyTrue} \\
+\pCase{$t = \iFalse \ \varphi$ / TyFalse} 
+
+Trivial. Types contain do not contain value variables.
+\bigskip
+
+
+% ---------------------
+\pCase{$t = \iupdate \ \delta \ t_1 \ t_2$ / TyUpdate} \\
+\pCase{$t = \isuspend \ \delta \ t_1 \ t_2$ / TySuspend} 
+
+Similarly to TyApp case.
+\bigskip
+
+% ---------------------
+\pCase{$t = ()$ / TyUnit} 
+
+Trivial. Unit does not contain value variables. 
+
+\bigskip
+
+% ---------------------
+\pCase{$t = \un{l}$ / TyLoc} 
+
+Trivial. Locations do not contain value variables.
+
+
+\end{flushleft}

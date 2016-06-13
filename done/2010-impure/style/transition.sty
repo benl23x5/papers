@@ -1,0 +1,17 @@
+% -- Utils for transition rules 
+
+\newcommand{\heap}		{\textrm{H}}
+
+\newcommand{\trRule}[3]{
+	\frac	{ #2 } { #3 }
+	\tag{#1}
+}
+
+\newcommand{\trAxiom}[2]{
+	#2
+	\tag{#1}
+}
+
+
+% -- evaluation rules
+\newcommand{\trEval}	[4]	{#1 \: ; \: #2 \: \longrightarrow \: #3 \: ; \: #4}

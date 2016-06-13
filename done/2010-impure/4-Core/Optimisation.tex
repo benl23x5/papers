@@ -1,0 +1,434 @@
+% -----
+\clearpage{}
+\section{Optimisations}
+\label{Core:Optimisations}
+
+For DDC, the primary purpose of tracking effect information is to support compiler optimisations. With that said, we don't present any new ones, nor do we make substantial improvements over existing ones. What we \emph{do} provide, is the ability to perform the same sort of optimisations previously reserved for purely functional languages such as Haskell, but now in the presence of side effects. The great enablers are the let-floating transforms discussed in \cite{peyton-jones:let-floating}. These allow bindings to be moved from their definition sites to their use sites. This in turn exposes opportunities for other simple, correctness preserving transforms, many of which are described in Santos's thesis \cite{santos:compilation}.  
+
+We will discuss how our effect and mutability information can be used to perform these transforms. The reader is advised to consult \cite{peyton-jones:let-floating} or \cite{santos:compilation} for matters not relating to effects.
+
+We distinguish four kinds of let-floating transforms, and will consider each in turn:
+\vspace{-1em}
+\begin{itemize}
+\item	Local transforms that are part of the language normalisation process.
+\item	Floating bindings to other positions at the same scope level.
+\item	Floating into if/case alternatives.
+\item	Floating outside lambda abstractions.
+\end{itemize}
+
+Although we present our examples in the core language discussed in \S\ref{Core:Simplified}, we elide type annotations when they do not contribute to the discussion. We also make use of standard features such as integers, case expressions and unboxed values.
+
+As DDC is still a research prototype, we do not present any concrete speed-up figures for these optimisations. Such figures would be skewed by the naive implementation of our runtime system. See \cite{santos:compilation} for data relating to a mature compiler. As the saying goes, ``what's amazing is not how well the bear dances -- what's amazing is that the bear dances at all!''
+
+
+% --------------------
+\subsection{Local transforms}
+
+Here is an example local transform, given in \cite{peyton-jones:let-floating}:
+
+\code{
+	$(\klet \ v \ = \ e \ \kin \ b) \ \ a \ \lfun \ \klet \ v \ = \ e \ \kin \ b \ a$
+}
+
+Although this is a valid transform, its applicability in a concrete implementation depends on whether the core program can ever contain a term of the initial form. There is also the question of whether a term in the resulting form can be directly translated to the back-end intermediate language (or machine code).
+
+In DDC, we keep the core program normalised so that the first term of an application is always a variable. We do this because we compile via C, and this process does not support more general forms of application. In this sense, the above transform is not an optimisation \emph{per se}, because it is part of the normalisation process, and must always be performed.
+
+% --------------------
+\subsection{Floating at the same level}
+\label{Core:Optimisation:floating-same-level}
+Floating bindings at the same scope level serves to expose opportunities for other transforms. Local unboxing is one such transform, and is a simple, well known technique for eliminating the majority of boxing and unboxing operations in numeric code. We discuss how to perform it in the presence of side effects by using the type information present in the core language. Local unboxing can also be expressed as a backwards dataflow analysis, but we use (forwards) let-floating as the presentation is simpler.
+
+Here is a simple program which takes the successor of an integer, as well as updating it:\footnote{This example has been kept simple to so that the typeset intermediate code is a managable size. Hopefully the reader can appreciate that the techniques also scale to more interesting programs.}
+
+\code{
+	\mc{2}{$\isuccUpdate \ x$} \\
+	 \ = $\kdo$ 
+		& $y$	= $\isucc \ x$ \\
+		& $x := 5$ \\
+		& $\isucc \ y$
+}
+
+Converting this program to the core language yields the following:
+
+\code{
+	\mc{3}{$\isuccUpdate$} \\
+	\ =	& \mc{3}{$\Lambda \ r_1 \ r_2 \ (w_1 : \iMutable \ r_1).$} \\
+		& \mc{3}{$\lambda \ x \ \ : \iInt \ r_1.$} \\
+		& \mc{3}{$\kletregion \ r_3 \ \kwith \ \{ w_3 = \iMkConst \ r_3 \} \ \kin$} \\
+		& \mc{3}{$\kletregion \ r_4 \ \kwith \ \{ w_4 = \iMkConst \ r_4 \} \ \kin$} \\
+	 	& $\kdo$ 
+		&   	$y$	= $\ibox \ r_3 \ (\isucc_{\#} \ (\iunbox \ r_1 \ (\iforce \ x)))$ \\
+		& & 	$\iupdateInt_{\#} \ r_1 \ w_1 \ (\iforce \ x) \ (\iunbox \ r_4 \ (\ibox \ r_4 \ 5_{\#}))$ \\
+		& & 	$\ibox \ r_1 \ (\isucc_{\#} \ (\iunbox \ r_3 \ (\iforce \ y)))$
+}
+
+In this translation we have expanded the boxed numeric functions $\isucc$ and $\iupdateInt$ into a combination of boxing, unboxing, and thunk forcing operators. Here are the types of these new operators:
+
+\code{
+	$\iunbox$ 	
+	& $::$		& $\forall r_1. \ \iInt \ r_1 \lfuna{\iRead \ r_1} \iInt_{\#}$ 
+	\\[1ex]
+	$\ibox$ 
+	& $::$		& $\forall r_1. \ \iInt_{\#} \to \iInt \ r_1$ 
+	\\[1ex]
+	$\isucc_{\#}$
+	& $::$		& $\iInt_{\#} \to \iInt_{\#}$ 
+	\\[1ex]
+	$\iupdateInt_{\#}$
+	& $::$		& $\forall r_1. \iMutable \ r_1 \Rightarrow \iInt \ r_1 
+				\lfuna{\iWrite \ r_1} \iInt_{\#} \to ()$ 
+}
+
+We use $\iInt_{\#}$ as the unboxed version of $\iInt$, and write unboxed literals as $5_{\#}$. A value of type $\iInt_{\#}$ can be held in a machine register. For the reasons discussed in \S\ref{System:Update}, plain unboxed integers are non-updatable and thus do not need a region variable. As an aside, when we wish to store updatable arrays of unboxed integers in the heap, we give the array the type $\iPtr_{\#} \ r_1 \ \iInt_{\#}$, and attach the mutability constraint to the pointer type instead.
+
+Note that $\iupdateInt_{\#}$ uses the value of an unboxed integer to update a boxed one. The boxed integer resides in the heap, not in a register.
+
+In this thesis we treat $\iforce$ as a primitive of the core language. $\iforce$ tests its argument to see if it is represented by an object with an outermost thunk, and forces that thunk if need be. We treat it as a primitive operator because our type system is not expressive enough to write a sensible type of $\iforce$ other than $\forall a. \ a \to a$. We could use this type, but doing so would introduce a large number of superfluous type applications in our example. See \S\ref{Evaluation:Limits:force} for a discussion of how we might give a better type to $\iforce$.
+
+From the above code, we can already see an obvious optimisation. In the second argument of $\iupdateInt_{\#}$ we can collapse the term $(\iunbox \ r_4 \ (\ibox \ r_4 \ 5_{\#}))$ into just $5_{\#}$.
+
+After we have exposed the primitive boxing, unboxing and forcing operators, the next step is to flatten the program so that each binding consists of a single application. This increases the mobility of each binding, that is, the probability that it will be safe to move it. Note that order of evaluation in the program runs left-to right, depth first, so the bindings come out in the following order:
+
+\bigskip
+\code{
+	\mc{6}{$\isuccUpdate \ x$} \\
+	\ =	& \mc{6}{$\Lambda \ r_1 \ r_2 \ (w_1 : \iMutable \ r_1).$} \\
+		& \mc{6}{$\lambda \ x \ \ : \iInt \ r_1.$} \\
+		& \mc{6}{$\kletregion \ r_3 \ \kwith \ \{ w_3 = \iMkConst \ r_3 \} \ \kin$} \\
+		& \mc{4}{$\kletregion \ r_4 \ \kwith \ \{ w_4 = \iMkConst \ r_4 \} \ \kin$} \\
+		& $\kdo$
+		&   	$x_1$	& $= \iforce \ x$ 				& & $\bot$ \\
+		& & 	$x_2$	& $= \iunbox \ r_1 \  x_1$ 			& & $\iRead \ r_1$ \\ 
+		& & 	$y_1$	& $= \isucc_{\#} \ x_2$			 	& & $\bot$ \\
+		& & 	$y$	& $= \ibox \ r_3 \ y_1$ 			& & $\bot$ \\
+		& & 	$u_1$	& $= 5_{\#}$					& & $\bot$ \\
+		& & 	$u_2$	& $= \iforce \ x$ 				& & $\bot$ \\
+		& & 	\mc{2}{$\iupdateInt_{\#} \ r_1 \ w_1 \ u_2 \ u_1$}	& & $\iWrite \ r_1$ \\
+		& & 	$z_1$	& $= \iforce \ y$				& & $\bot$ \\
+		& & 	$z_2$	& $= \iunbox \ r_3 \ z_1$			& & $\iRead \ r_3$ \\
+		& & 	$z_3$	& $= \isucc_{\#} \ z_2$				& & $\bot$ \\
+		& & 	\mc{2}{$\ibox \ r_2 \ z_3$}				& & $\bot$
+}
+
+We have recorded the effect of each binding on the right. The majority of these bindings are pure, so their position is constrained only by the data dependencies in the program. A special case is the binding for $x_2$. From its effect we see that it reads the $x$ value from the region named $r_1$. This interferes with the update operation, which writes to $r_1$. 
+
+Note that the binding for $x_1$ is a duplicate of $u_2$, so we can remove the second and substitute $u_2 = x_1$ into successive bindings. We can then float all bindings except $x_1$ and $x_2$ into their use sites. We do not float $x_1$ as it now has two bound occurrences, and we do not float $x_2$ as this would require moving it across the interfering update expression:
+
+\code{
+	\mc{6}{$\isuccUpdate \ x$} \\
+	\ =	& \mc{6}{$\Lambda \ r_1 \ r_2 \ (w_1 : \iMutable \ r_1).$} \\
+		& \mc{6}{$\lambda \ x \ \ : \iInt \ r_1.$} \\
+		& \mc{6}{$\kletregion \ r_3 \ \kwith \ \{ w_3 = \iMkConst \ r_3 \} \ \kin$} \\
+		& \mc{4}{$\kletregion \ r_4 \ \kwith \ \{ w_4 = \iMkConst \ r_4 \} \ \kin$} \\
+		& $\kdo$
+		& 	$x_1$	& $= \iforce \ x$ \\
+		& &	$x_2$	& $= \iunbox \ r_1 \ x_1$ \\
+		& & 	\mc{2}{$\iupdateInt_{\#} \ r_1 \ w_1 \ x_1 \ 5_{\#}$} \\
+		& & 	\mc{2}{$\ibox \ r_2 \ (\isucc_{\#} \ (\iunbox \ r_3 \ 
+					(\iforce \ (\ibox \ r_3 \ (\isucc_{\#} \ x_2)))))$}
+}
+
+Now, in the last statement we can eliminate the use of $\iforce$, because a freshly boxed integer is guaranteed not to be a thunk. We can then eliminate the $\iunbox$ $\ibox$ pair as well. This gives:
+
+\code{
+	\mc{6}{$\isuccUpdate \ x$} \\
+	\ =	& \mc{6}{$\Lambda \ r_1 \ r_2 \ (w_1 : \iMutable \ r_1).$} \\
+		& \mc{6}{$\lambda \ x \ \ : \iInt \ r_1.$} \\
+		& \mc{6}{$\kletregion \ r_3 \ \kwith \ \{ w_3 = \iMkConst \ r_3 \} \ \kin$} \\
+		& \mc{3}{$\kletregion \ r_4 \ \kwith \ \{ w_4 = \iMkConst \ r_4 \} \ \kin$} \\
+		& $\kdo$
+		& 	$x_1$	& $= \iforce \ x$ 				& $\bot$\\
+		& &	$x_2$	& $= \iunbox \ r_1 \ x_1$ 			& $\iRead \ r_1$  \\
+		& & 	\mc{2}{$\iupdateInt_{\#} \ r_1 \ w_1 \ x_1 \ 5_{\#}$} 	& $\iWrite \ r_1$ \\
+		& & 	\mc{2}{$\ibox \ r_2 \ (\isucc_{\#} \ (\isucc_{\#} \ x_2))$}	& $\bot$
+}
+
+Compared to the original version, we have eliminated two uses each of $\ibox$, $\iunbox$ and $\iforce$. If we were to constrain the original type of $\isuccUpdate$ so that its parameter was $\iDirect$, then we could eliminate the remaining use of $\iforce$ as well. Note that although the position of the $x_2$ binding is not constrained by data dependencies, it \emph{is} constrained by the interfering effect of the update statement.
+
+
+% --------------------
+\subsection{Effects and region aliasing}
+\label{Core:Optimisation:effects-and-region-aliasing}
+
+In the $\isuccUpdate$ example of the previous section, we could tell that the unboxing and update operations interfered because their effects mentioned the same region variable. If two atomic effects mention \emph{different} region variables, then we must consider whether the corresponding objects may alias when deciding whether the effects interfere. For example, say we had a function of the following type:
+
+\code{
+	$\ifun$	& :: 	& $\forall \ r_1 \ r_2$ \\
+		& .	& $\iInt \ r_1 \to \iInt \ r_2 \lfuna{e_1} ...$ \\
+		& $\rhd$ & $e_1 = ...$ \\
+		& ,	& $\iMutable \ r_1$ \\
+}
+
+The first part of its definition in the core language could well be:
+
+\code{
+	$\ifun$ \\
+	\ = 	& $\Lambda \ r_1 \ r_2 \ (w_1 : \iMutable \ r_1).$ \\
+		& $\lambda \ x : \iInt \ r_1.$ \\
+		& $\lambda \ y : \iInt \ r_2.$ \\
+		& $\kletregion \ r_3 \ \kwith \ ... \ \kin.$ \\
+		& $\kletregion \ r_4 \ \kwith \ ... \ \kin.$ \\
+		& $\iexp$
+}
+
+Assume that $\iexp$ is some interesting expression that reads the values of $x$ and $y$, and updates $x$ in the process. Now, there is nothing preventing the programmer from calling $\ifun$ with the same object for both arguments:
+
+\code{
+	$\klet \ x = 5 \ \kin \ \ifun \ x \ x$
+}
+		
+Because of this, when transforming $\iexp$, we cannot assume that two effects $\iRead \ r_2$ and $\iWrite \ r_1$ do not interfere. On the other hand, effects on $r_3$ and $r_4$ cannot interfere because they have been introduced by the function itself, and are known to be distinct. The type system ensures that objects in the region named $r_3$ are distinct from those that are in the region named $r_4$. Likewise, effects on $r_1$ and $r_3$, or $r_1$ and $r_4$ cannot interfere because an object with type $\iInt \ r_1$ must have been allocated by the caller, and thus cannot alias with locally allocated objects.
+
+However, suppose $r_1$ and $r_2$ were constrained to have differing mutabilities:
+
+\code{
+	$\ifun$	& :: 	& $\forall r_1 \ r_2$ \\
+		& .	& $\iInt \ r_1 \to \iInt \ r_2 \lfuna{e_1} ...$ \\
+		& $\rhd$ & $e_1 = ...$ \\
+		& ,	& $\iMutable \ r_1$ \\
+		& ,	& $\iConst \ r_2$
+}
+
+In this case the first part of the function definition could be:
+
+\code{
+	$\ifun$ \\
+	\ = 	& $\Lambda \ r_1 \ r_2 \ (w_1 : \iMutable \ r_1) \ (w_2 : \iConst \ r_2).$ \\
+		& $\lambda \ x : \iInt \ r_1.$ \\
+		& $\lambda \ y : \iInt \ r_2.$ \\
+		& $\kletregion \ r_3 \ \kwith \ ... \ \kin.$ \\
+		& $\kletregion \ r_4 \ \kwith \ ... \ \kin.$ \\
+		& $\iexp$
+}
+
+With this new definition the two effects $\iRead \ r_2$ and $\iWrite \ r_1$ are guaranteed not to interfere. The caller cannot pass the same object for both parameters because it cannot produce witnesses of mutability and constancy for the same region variable.
+
+In future work we intend to use this line of reasoning to extend the language with $\iNoAlias$ witnesses. This is discussed in \S\ref{Evaluation:Limits:aliasing}.
+
+
+
+% --------------------
+\subsection{Floating into alternatives}
+
+Consider the following program:
+
+\code{
+	$\kdo$	& $y$	= $f \ x$ \\
+		& $\kif \ \iexp \ \kthen \ y \ \kelse \ ...$
+}
+
+As Disciple uses call-by-value evaluation by default, the application $f \ x$ will always be evaluated. Note that in DDC, before we try to float bindings into alternatives we transform the program to administrative normal form. In this form the terms involved in an application are either variables or constants. 
+
+In the above example, if $f \ x$ and $\iexp$ are pure, or they only \emph{read} mutable data, then it is safe to move the $y$ binding into the alternative to give:
+
+\code{
+	$\kif \ \iexp \ \kthen \ f \ x \ \kelse \ ...$
+}
+
+This eliminates the need to evaluate $f \ x$ in the event the second branch of the if-expression is taken. Note that if the first alternative contains other function applications, then we need to consider whether $f \ x$ can interfere with them. 
+
+\clearpage{}
+For example:
+
+\code{
+	$\kdo$
+	& \mc{2}{$(x_1 : \iInt \ r_1) \ = 5 \ r_1$} 	 & \qq \qq & $\bot$ \\
+	& \mc{2}{$(x_2 : \iInt \ r_2) \ = \isucc \ x_1$} &  & $\iRead \ r_1$ 
+	\\[1ex]
+	& \mc{2}{$\kif \ ... \ $} 		 	 &  & $\bot$ \\
+	& \mc{2}{\quad $\kthen \ \kdo$} \\
+	& 	& $x_1 := 23 \ r_3$ 			 &  & $\iWrite \ r_1 \lor \iRead \ r_3$ \\
+	&	& $\isucc \ x_2$			 &  & $\iRead \ r_2$ 
+	\\[1ex]
+	& \quad $\kelse$	& $42 \ r_2$		 & & $\bot$
+}
+
+Recall that in the core language we use literal integers such as $5$ as constructors, so $(5 \ r_1)$ is equivalent to $\ibox \ r_1 \ 5_\#$. We have also added type annotations to the binding occurrences of variables to make the example clearer. Note that we cannot move the $x_2$ binding into its use site because it interferes with the expression \mbox{$x_1 := 23 \ r_1$}. However, we \emph{can} move the $x_2$ binding into the first alternative of the if-expression, so long as we place it before the update:
+
+\code{
+	$\kdo$
+	& \mc{2}{$(x_1 : \iInt \ r_1) \ = 5 \ r_1$} 		& \qq \qq & $\bot$ 
+	\\[1ex]
+	& \mc{2}{$\kif \ ... \ $} 				& \qq \qq & $\bot$ \\
+	& \mc{2}{\quad $\kthen \ \kdo$} \\
+	&	& $(x_2 : \iInt \ r_2) \ = \isucc \ x_1$ 	& & $\iRead \ r_1$ \\
+	&	& $x_1 := 23 \ r_3$ 				& & $\iWrite \ r_1 \lor \iRead \ r_3$ \\
+	&	& $\isucc \ x_2$ 				& & $\iRead \ r_2$ 
+	\\[1ex]
+	& \quad $\kelse$	& $42 \ r_2$			& & $\bot$
+}
+
+If a binding causes a top level effect then we cannot move it across another. Likewise, we cannot move such a binding inwards, as that would tend to reduce the number of times it was evaluated. For example:
+
+\code{
+	$\kdo$
+	& \mc{2}{$x_1 = \kdo \ \{ \ \iputStr \ ``\texttt{hello}"; \ 5 \ r_1 \ \}  $} 	& \qq & $\iConsole$ 
+	\\[1ex]
+	& \mc{2}{$\kif \ ... \ $} 						& & $\bot$ \\
+	& \quad $\kthen$	& $\isucc \ x_1$ 				& & $\iRead \ r_1$ \\
+	& \quad $\kelse$	& $42 \ r_1$					& & $\bot$
+}
+
+
+\subsection{Floating outside lambda abstractions}
+\label{Core:Optimisation:floating-out}
+
+Floating bindings outside of lambda abstractions, also known as the \emph{full laziness transform}, allows us to share the result of a computation between calls to a function. This is similar to the ``lifting expressions out of loops'' optimisation done in compilers for imperative languages.
+
+For example, consider the following program:
+
+\code{
+	\mc{2}{$\Lambda \ r_2 \ r_3.$} \\
+	\mc{3}{$\kletregion \ r_1 \ \kwith \ \{ w = \iConst \ r_1 \} \ \kin$} \\
+	$\kdo$	
+	& $(\ixs : \iList \ r_1 \ (\iInt \ r_3)) = ...$ 	& \qq \qq 	& $\bot$
+	\\[1ex]
+	& $f = \lambda (y : \iInt \ r_2). \ \kdo$ \\
+	& \qq \qq $(n : \iInt \ r_3) = \ilength \ xs$ 	& & $\bot$ \\			
+	& \qq \qq $n + y$ 				& & $\iRead \ r_2 \lor \iRead \ r_3$ 
+	\\[1ex]
+	& \mc{1}{$z_1 = f \ (5 \ r_2)$} 		& & $\iRead \ r_2 \lor \iRead \ r_3$ \\
+	& ... \\
+	& \mc{1}{$z_2 = f \ (23 \ r_2)$} 		& & $\iRead \ r_2 \lor \iRead \ r_3$  
+}	
+
+As the value of $n$ does not depend on the bound variable $y$, we can lift it out of the enclosing $\lambda$-abstraction. This eliminates the need to recompute it for each application of $f$:
+
+\code{
+	\mc{2}{$\Lambda \ r_2 \ r_3.$} \\
+	\mc{3}{$\kletregion \ r_1 \ \kwith \ \{ w = \iConst \ r_1 \} \ \kin$} \\
+	$\kdo$	
+	& $(\ixs : \iList \ r_1 \ (\iInt \ r_3)) = ...$ 	& \qq \qq 	& $\bot$ 
+	\\[1ex]
+	& $(n : \iInt \ r_3) = \ilength \ xs$ 		& 		& $\bot$
+	\\[1ex]
+	& $f = \lambda (y : \iInt \ r_2). \ n + y$ 	& &  $\iRead \ r_2 \lor \iRead \ r_3$ 
+	\\[1ex]
+	& \mc{1}{$z_1 = f \ (5 \ r_2)$} 		& & $\iRead \ r_2 \lor \iRead \ r_3$ \\
+	& ... \\
+	& \mc{1}{$z_2 = f \ (23 \ r_2)$} 		& & $\iRead \ r_2 \lor \iRead \ r_3$  
+}	
+
+Of course, in general this is only valid if the lifted expression is pure. Here, we must guarantee that the length of the list is not destructively changed between each application of $f$. For this example, the purity of the $n$ binding is guaranteed by the constancy of $r_1$, which is witnessed by $w$.
+
+
+\subsubsection{Only lift bindings that produce constant results}
+As it is only safe to increase the sharing of constant data, we must insure that the results of lifted bindings are constant. Here is an example where a binding is pure, and independent of the $\lambda$-bound variable, but it is not safe to float it outwards:
+
+\qq
+\begin{tabular}{lllll}
+	\mc{3}{$\Lambda \ r_4 \ r_6.$} \\
+	\mc{3}{$\kletregion \ r_5 \ \kwith \ \{ w = \iMutable \ r_5 \} \ \kin$} \\[0.5ex]
+	$\kdo$
+	& $(\ixs : \iList \ ...)$	& $= ...$ 
+	\\[1ex]
+	& \mc{2}{$(\iys : \iList \ r_4 \ (\iInt \ r_5))$} \\	
+	& \			& $= \imap \ (\lambda \_. \ \kdo \ \{ \ (m : \iInt \ r_5) = \isucc \ 0; \ m \ \}) \ \ixs$ 
+	\\[1ex]
+	& \mc{2}{$\iupdateInt \ r_5 \ r_6 \ w \ (\iys \ !! \ 2) \ (5 \ r_6)$} 
+	\\[0.5ex]
+	& \mc{2}{$(\iys \ !! \ 3)$}
+\end{tabular}
+
+\medskip
+Where $\iupdateInt$ has type:
+
+\qq
+\begin{tabular}{lllll}
+	$\iupdateInt :: \forall \ r_1 \ r_2. \
+		\iMutable r_1 \Rightarrow \iInt \ r_1 \to \iInt \ r_2 \lfuna{\iRead \ r_2 \lor \iWrite \ r_1} ()$
+\end{tabular}
+\bigskip
+
+The operator $!!$ is used to retrieve a numbered element of the list. This example creates a new list of integers, $\iys$, which is the same length as the original list $\ixs$. It then updates the second element of $\iys$, and returns the third. Note that the $m$ binding is pure, but as $\isucc$ allocates its result, each element of the list $\iys$ will be represented by a different run-time object. Even though we update the second element, the third element will still have the value $\isucc \ 0 = 1$.
+
+If we were to erroneously lift the $m$ binding out of the lambda abstraction, this would cause the same object to be used for every element of the list:
+
+\qq
+\begin{tabular}{lllll}
+	\mc{3}{$\Lambda \ r_4 \ r_6.$} \\
+	\mc{3}{$\kletregion \ r_5 \ \kwith \ \{ \ w = \iMutable \ r_5 \ \} \ \kin$} \\[0.5ex]
+	$\kdo$
+	& $(\ixs : \iList \ ...)$	& $= ...$
+	\\[0.5ex]
+	& $(m : \iInt \ r_5)$	& $= \isucc \ 0$ 
+	\\[1ex]
+	& \mc{2}{$(\iys : \iList \ r_4 \ (\iInt \ r_5))$} \\	
+	& 			& $= \imap \ (\lambda \_. \ m) \ \ixs$
+	\\[1ex]
+	& \mc{2}{$\iupdateInt \ r_5 \ r_6 \ w \ (\iys \ !! \ 2) \ (5 \ r_6)$} 
+	\\[0.5ex]
+	& \mc{2}{$(\iys \ !! \ 3)$}
+\end{tabular}
+
+In this case, when we update the second element of the list, this is the same as updating the third element as well, so we have changed the meaning of the program.
+
+\subsubsection{Suspend lifted bindings to reduce wasted computation}
+\label{Core:Optimisation:full-laziness}
+
+If we cannot guarantee that a particular $\lambda$-abstraction is applied at least once, then we should suspend the evaluation of any bindings that are lifted from it. This guards against the case where the abstraction is never applied, or the evaluation of the binding does not terminate. For example:
+\begin{tabbing}
+xMMMM \= MM \= MM \= MM \= MMMMM \= MMMMM\kill
+	\> $\Lambda \ r_3.$ \\
+	\> $\kletregion \ r_4 \ \kwith \ \{ \ w = \iConst \ r_4 \ \} \ \kin$ 
+	\\[0.5ex]
+	\> $\kdo$
+	   \> $(\ixs : \iList \ r_4 \ (\iInt \ r_3))$ \\
+	\> \>		\> $= ...$
+	\\[1ex]	
+	\> \> $f$	\> $= \lambda y. \ \kdo \ \{ \ n \ = \ilength \ \ixs; \ n + y \ \}$ \\
+	\> \> $g$	\> $= ...$ 
+	\\[1ex]
+	\> \> $\kif \ ...$ \\
+	\> \> \quad $\kthen$ \> \> $f \ 5 \ + \ f \ 23$ \\
+	\> \> \quad $\kelse$ \> \> $g \ 42$
+\end{tabbing}
+
+As $\ilength \ \ixs$ is pure, we can lift the $n$ binding out of the abstraction. This will save it being re-evaluated for each occurrence of $f$. However, if the $\kelse$ branch of the if-expression is taken, then the value of $n$ won't be needed. Due to this we should suspend the function application that produces it:
+\begin{tabbing}
+xMMMM \= MM \= MM \= MM \= MMMMM \= MMMMM\kill
+	\> $\Lambda \ r_3.$ \\
+	\> $\kletregion \ r_4 \ \kwith \ \{ \ w = \iConst \ r_4 \ \} \ \kin$ 
+	\\[0.5ex]
+	\> $\kdo$
+	   \> $(\ixs : \iList \ r_4 \ (\iInt \ r_3))$ \\
+	\> \>		\> $= ...$
+	\\[1ex]
+	\> \> $n$ 	\> $= \isuspendOne \ (\iMkPurify \ r_4 \ w)  \ \ilength \ \ixs$  \\
+	\> \> $f$	\> $= \lambda y. \ n + y$ \\
+	\> \> $g$	\> $= ...$ 
+	\\[1ex]
+	\> \> $\kif \ ...$ \\
+	\> \> \quad $\kthen$ \> \> $f \ 5 \ + \ f \ 23$ \\
+	\> \> \quad $\kelse$ \> \> $g \ 42$
+\end{tabbing}
+
+\clearpage{}
+In practice, we only want to introduce one thunk per binding. If the right of the binding is something other than a single function application, then we can wrap it in a dummy lambda abstraction and suspend that instead. For example, if the right of the $n$ binding was actually $\isucc \ (\ilength \ \ixs)$ then we could translate our original example to:
+
+\begin{tabbing}
+xMMMM \= MM \= MM \= MM \= MMMM \= MMMMM \kill
+	\> $\Lambda \ r_3.$ \\
+	\> $\kletregion \ r_4 \ \kwith \ \{ \ w = \iConst \ r_4 \ \} \ \kin$ 
+	\\[0.5ex]
+	\> $\kdo$
+	   \> $(\ixs : \iList \ r_4 \ (\iInt \ r_3))$ \\
+	\> \>		\> $= ...$
+	\\[1ex]
+	\> \> $n$ 	\> $= \isuspendOne$	\> \> $(\iMkPureJoin \ (\iMkPurify \ r_4 \ w) \ ...)$  \\
+	\> \>		\>			\> \> $(\lambda \_ . \isucc \ (\ilength \ \ixs))$ \\
+	\> \>		\>			\> \> $()$ 
+	\\[1ex]
+	\> \> $f$	\> $= \lambda y. \ n + y$ \\
+	\> \> $g$	\> $= ...$ 
+	\\[1ex]
+	\> \> $\kif \ ...$ \\
+	\> \> \quad $\kthen$ \> \> $f \ 5 \ + \ f \ 23$ \\
+	\> \> \quad $\kelse$ \> \> $g \ 42$
+\end{tabbing}
+
+Note that as we only lift pure bindings, we should always be able to create witnesses of purity for those bindings. This is an example of type information serving as an internal sanity check, rather than being used to guide optimisations. If we cannot create a witness of purity for a lifted binding, then there is a bug in our compiler implementation.
+
+
+

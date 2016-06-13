@@ -1,0 +1,11 @@
+\clearpage{}
+\section{Extensions to the simplified language}
+\label{Core:Bounded}
+
+The simplified core language of \S\ref{Core:Simplified} is not \emph{syntactically complete} with respect to the source language. This means that it cannot directly express all the possible well typed source programs. It does not include algebraic data types, case expressions, effect masking or bounded quantification. In addition, the typing rule for if-expressions does not allow us to choose between two functions that have the same value type, but differing effects.
+
+The additions needed for algebraic data types and case expressions are unsurprising, so we will not discuss them further. We discuss the others in turn.
+
+\input{4-Core/Extensions/Masking.tex}
+\input{4-Core/Extensions/Bounded.tex}
+\input{4-Core/Extensions/JoinMax.tex}

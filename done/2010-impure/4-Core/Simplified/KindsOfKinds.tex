@@ -1,0 +1,69 @@
+
+
+% -- Super-Kinds of Kinds --------------------------------------------------------------------------------
+\clearpage{}
+\subsection{Super-kinds of kinds}
+
+\ruleBox{
+	\begin{center}
+	\fbox{$\ksJudgeGS{\kappa}{\omega}$}
+	\end{center}
+	\begin{gather}
+	\ruleI	{KsAbs}
+		{\ksJudgeGS
+			{\kappa_1}
+			{\omega_1}
+		 \quad\quad
+		 \ksJudge
+			{\Gamma, \ a : \kappa_1}
+			{\Sigma}
+			{\kappa_2}
+			{\omega_2}
+		}
+		{\ksJudgeGS
+			{\Pi(a : \kappa_1) . \ \kappa_2}
+			{\omega_2}
+		}
+		\ruleSkip
+	\ruleI	{KsApp}
+		{\ksJudgeGS
+			{\kappa_1}
+			{\kappa_{11} \to \omega}
+		 \tspace
+		 \kiJudgeGS
+			{\varphi}
+			{\kappa_{11}}
+		}
+		{\ksJudgeGS
+		 	{\kappa_1 \ \varphi}
+		 	{\omega}
+		}
+		\ruleSkip
+	\ruleI	{KsAtom}
+		{ \kappa \in \{*, \ \%, \ ! \ \} }
+		{ \ksJudgeGS
+			{\kappa}
+			{\Box}
+		}
+	\end{gather}
+}
+
+\begin{center}
+\begin{tabular}{lll}
+	$\Gamma \ \arrowvert \ \Sigma \judgea{K}$ & $\iConst$	& $:: \% \tfun \Diamond$ \\
+	$\Gamma \ \arrowvert \ \Sigma \judgea{K}$ & $\iMutable$	& $:: \% \tfun \Diamond$ \\
+	$\Gamma \ \arrowvert \ \Sigma \judgea{K}$ & $\iPure$	& $:: \ \: ! \ \tfun \Diamond$ \\
+\end{tabular}
+\end{center}
+
+
+\bigskip
+The judgement form $\ksJudgeGS{\kappa}{\omega}$ reads: with environment $\Gamma$ and store typing $\Sigma$, kind $\kappa$ has super-kind $\omega$. 
+
+KsAbs is the rule for the dependent kind abstraction. Note that a kind signature such as $\% \to *$ is also desugared to this form, resulting in $\Pi(\_ : \%). \ *$.  Although $\omega_1$ is only mentioned once in this rule, inclusion of the $\ksJudgeGS{\kappa_1}{\omega_1}$ premise ensures that the kind $\kappa_1$ is well formed.
+
+KsApp is the application rule for super-kinds. As we (thankfully) do not need higher-order super kinds, the expression on the left of the super-kind arrow can always be a (non-super) kind.
+
+KsAtom says that the super-kind of atomic kinds is always $\Box$.
+
+The last three rules give super-kinds for the witness kind constructors. These allow us to check for malformed kind expressions such as  $\iPure \ (\iBool \ a)$ and $\iConst \ \iRead$.

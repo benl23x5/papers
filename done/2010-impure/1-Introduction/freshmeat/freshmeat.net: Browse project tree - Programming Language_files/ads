@@ -1,0 +1,26 @@
+{ 
+var google_ads = new Array(); 
+var google_ad; 
+var google_radlinks = new Array(); 
+var google_radlink; 
+var google_info = new Object(); 
+google_ad = new Object(); 
+google_ad.n = 1; 
+google_ad.type = "text"; 
+google_ad.bidtype = "CPM"; 
+google_ad.targeting_type = "contextual"; 
+google_ad.url = "http://pagead2.googlesyndication.com/pagead/iclk?sa=l&amp;ai=BTiKhdglRR5TrFYaIjQTl9dzVCKKb3R7ao9CoAv6k_pcDABABGAEg4eabAjgAUL3LpqABYKX4iICMAaABkJy7_wOqAQ5vc3RnX2ZyZXNobWVhdLIBDWZyZXNobWVhdC5uZXS6AQk3Mjh4OTBfanPIAQHaASBodHRwOi8vZnJlc2htZWF0Lm5ldC9icm93c2UvMTYwL5gChALAAgHIAvLudagDAegD2wXoA7kC6AMF&amp;num=1&amp;adurl=http://www.atlassian.com/software/jira/%3Fs_kwcid%3Djirapmawsitesp&amp;client=ca-ostg_js"; 
+google_ad.visible_url = "www.Atlassian.com/JIRA"; 
+google_ad.line1 = "Free for Open Source"; 
+google_ad.line2 = "The Most Advanced Issue/Task/Bug"; 
+google_ad.line3 = "Tracker. Used By GE, 3M, NASA, MIT."; 
+google_ad.regionname = ""; 
+google_ads[0] = google_ad; 
+google_info.feedback_url = "http://services.google.com/feedback/abg?url=http://freshmeat.net/browse/160/&amp;hl=en&amp;client=ca-ostg_js&amp;adU=www.Atlassian.com/JIRA&amp;adT=Free+for+Open+Source&amp;done=1"; 
+if (window.google_ad_request_done) { 
+google_ad_request_done(google_ads); 
+} 
+if (window.google_radlink_request_done) { 
+google_radlink_request_done(google_radlinks); 
+} 
+}

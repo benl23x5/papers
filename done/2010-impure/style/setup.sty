@@ -1,0 +1,92 @@
+
+% -- Imports.
+\usepackage{alltt}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsbsy}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{a4}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{graphics}
+\usepackage{fancyhdr}
+\usepackage{calc}
+\usepackage{epsf}
+\usepackage{style/general}
+\usepackage{style/utils}
+\usepackage{style/names}
+\usepackage{style/transition}
+\usepackage{style/type}
+\usepackage{style/proof}
+
+
+% -- Colors
+\usepackage{color}
+\definecolor{darkblue}{rgb}{0,0,.7}
+\definecolor{paleblue}{cmyk}{0.1,0.1,0,0}
+\definecolor{darkgreen}{rgb}{0,.5,0}
+\definecolor{darkred}{cmyk}{0.0,1.0,1.0,0.3}
+\definecolor{darkmagenta}{cmyk}{0.0,1.0,0.0,0.4}
+\definecolor{darkyellow}{cmyk}{0.0,0.0,1.0,0.4}
+\definecolor{paleyellow}{cmyk}{0.0,0.0,0.5,0}
+\definecolor{orange}{cmyk}{0.1,0.5,1.0,0.0}
+
+
+% -- Listings for Haskell style code
+\usepackage{listings}
+\lstset	{ language		= Haskell
+	, showstringspaces	= false
+	, tabsize		= 4 
+	, basicstyle		= \tt\small 
+	, aboveskip		= \bigskipamount
+	, belowskip		= \bigskipamount 
+	, xleftmargin		= 0.5cm }
+
+
+
+% -- Document formatting
+\raggedbottom
+
+\pagestyle{fancy}
+% \renewcommand{\headrulewidth}{1pt}
+
+\fancyhead{}
+\fancyhead[LE]{\thepage}
+\fancyhead[RE]{\leftmark}
+
+\fancyhead[LO]{\rightmark}
+\fancyhead[RO]{\thepage}
+
+\addtolength{\headheight}{\baselineskip}
+\fancyheadoffset[RO]{\marginparsep+20mm}
+\fancyheadoffset[RE]{\marginparsep+20mm}
+
+% \fancyhead[LO,RE]{\slshape \leftmark}
+% \fancyhead[LO,RE]{\thepage}
+
+\fancyfoot{}
+\cfoot{}
+
+% -- margins
+% -- shift page to the left to leave room for equation numbers on the left hand side.
+\setlength{\voffset}{-15mm}
+\setlength{\hoffset}{-25mm}
+\setlength{\oddsidemargin}{37mm}
+\setlength{\evensidemargin}{17mm}
+\setlength{\textheight}{25cm}
+
+% \setlength{\textwidth}{150mm}
+% \setlength{\topmargin}{2.5cm}
+
+% -- start new paragrphs flush left
+\parskip=1.5ex plus2pt minus2pt
+\parindent=0pt
+
+% use this if you don't want headers and page numbers on
+% blank pages at the end of chapters
+\newcommand{\blanknonumber}{\newpage\thispagestyle{empty}}
+
+

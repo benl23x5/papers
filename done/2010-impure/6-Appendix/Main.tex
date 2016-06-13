@@ -1,0 +1,36 @@
+\appendix
+
+\chapter{Proofs of Language Properties}
+\label{proofs}
+
+In this appendix we present the formal proofs of language properties for the system in \S\ref{Core:Simplified}, culminating in a proof of soundness. Each of these proofs is by induction over the derivation of a typing judgement. When presenting each case, we will assume the statement being considered and then invoke the standard inversion lemmas \cite{pierce:tapl} to fill in the appropriate premises.
+
+For example, the proof of Substitution of Values in Values starts with the case $t = x$. We assume the statement 
+\ $\tyJudge{\Gamma, \ x : \tau_2}{\Sigma}{x}{\tau_1}{\bot}$, and use the inversion lemma to give \ 
+$x : \tau_1 \in \Gamma, \ x : \tau_2$.
+
+$$
+	\frac
+	{ (2) \ x : \tau_1 \in \Gamma, \ x : \tau_2 }
+	{ (\un{1}) \ 
+	  \tyJudge
+		{\Gamma, \ x : \tau_2}{\Sigma}
+		{x}
+		{\tau_1}
+		{\bot}
+	}
+$$	
+
+Each statement is numbered for identification purposes, and we underline the numbers of statements which are assumptions. In some
+cases, not all statements obtained by the inversion lemmas will be used, but will include them as premises so that the typing rules maintain their familiar shapes.
+
+We will omit the quantifiers ``for all'' and ``for some'' when they are obvious from the context, as they clutter the proof without providing much additional information.
+
+Firstly, some standard lemmas:
+
+\input{6-Appendix/Lemmas.tex}
+\input{6-Appendix/ProofSubstValuesInValues.tex}
+\input{6-Appendix/ProofSubstTypesInValues.tex}
+\input{6-Appendix/ProofSubstTypesInTypes.tex}
+\input{6-Appendix/ProofProgress.tex}
+\input{6-Appendix/ProofPreservation.tex}

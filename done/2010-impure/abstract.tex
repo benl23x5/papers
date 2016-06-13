@@ -1,0 +1,36 @@
+\documentclass[a4paper,11pt]{report}
+
+% -- Document formatting
+\raggedbottom
+
+% -- margins
+% -- shift page to the left to leave room for equation numbers on the left hand side.
+\setlength{\voffset}{-10mm}
+\setlength{\hoffset}{0mm}
+\setlength{\oddsidemargin}{0cm}
+\setlength{\evensidemargin}{0cm}
+% \setlength{\textwidth}{150mm}
+\setlength{\textheight}{25cm}
+% \setlength{\topmargin}{2.5cm}
+
+% -- start new paragrphs flush left
+\parskip=1.5ex plus2pt minus2pt
+\parindent=0pt
+
+\begin{document}
+{\Large Type Inference and Optimisation}
+{\Large for an Impure World} 
+
+Ben Lippmeier, December 2008.
+
+We address the problem of reasoning about the behaviour of functional programs that use destructive update and other side effecting actions. All general purpose languages must support such actions, but adding them in an undisciplined manner destroys the nice algebraic properties that compiler writers depend on to transform code.
+
+We present a type based mutability, effect and data sharing analysis for reasoning about such programs. Our analysis is based on a combination of Talpin and Jouvelot's type and effect discipline, and Leroy's closure typing system. The extra information is added to our System-F style core language and we use it to guide code transformation optimisations similar to those implemented in GHC. We use a type classing mechanism to express constraints on regions, effects and closures and show how these constraints can be represented in the same way as the type equality constraints of System-Fc. 
+
+We use type directed projections to express records and to eliminate need for ML style mutable references. Our type inference algorithm extracts type constraints from the desugared source program, then solves them by building a type graph. This multi-staged approach is similar to that used by the Helium Haskell compiler, and the type graph helps to manage the effect and closure constraints of recursive functions. 
+
+Our language uses call-by-value evaluation by default, but allows the seamless integration of call-by-need. We use our analysis to detect when the combination of side effects and call-by-need evaluation would yield a result different from the call-by-value case. We contrast our approach with several other systems, and argue that it is more important for a compiler to be able to reason about the behaviour of a program, than for the language to be purely functional in a formal sense.
+
+As opposed to using source level state monads, effect typing allows the programmer to offload the task of maintaining the intended sequence of effects onto the compiler. This helps to separate the conceptually orthogonal notions of value and effect, and reduces the need to refactor existing code when developing programs. We discuss the Disciplined Disciple Compiler (DDC), which implements our system, along with example programs and opportunities for future work.
+
+\end{document}

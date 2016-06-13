@@ -1,0 +1,242 @@
+\section{State monads}
+\label{intro:monads}
+
+In the context of functional programming, a monad is an abstract data type for representing objects which include a notion of sequence. Introduced by Moggi~\cite{moggi:monads} and elaborated by Wadler and others~\cite{wadler:comprehending-monads, peyton-jones:ifp, launchbury:lazy-imperative, liang:monad-transformers}, they are a highly general structure and have been used for diverse applications such as IO, exceptions, strictness, continuations and parsers~\cite{leigen:parsec, hutton:monadic-parsing}.
+
+In Haskell, the primary use of the general monad structure is to hide the plumbing of state information such as world tokens, and the destructively updateable arrays from the previous section. For example, in thread-the-world style, a function to read an $\iInt$ from the console would have type:
+
+\code{
+	$\igetInt :: \iWorld \to (\iInt, \iWorld)$
+}
+
+This signature has two separate aspects. The $\iInt$ term in the tuple gives the type of the value of interest, while the two occurrences of $\iWorld$ show that this function also alters the outside world. We can separate these two aspects by defining a new type synonym:
+
+\code{
+	$\ktype \ \iIO \ a = \iWorld \to (a, \ \iWorld)$
+}
+
+We can then rewrite the type of $\igetInt$ as:
+
+\code{
+	$\igetInt :: \iIO \ \iInt$
+}
+
+This new type is read: ``$\igetInt$ has the type of an IO action which returns an $\iInt$''. Note that we have not altered the underlying type of $\igetInt$, only written it in a more pleasing form. We can also define a function $\iprintInt$, which prints an $\iInt$ back to the console:
+
+\code{
+	$\iprintInt :: \iInt \to \iIO \ ()$
+}
+
+By applying the $\iIO$ type synonym we can recover its thread-the-world version:
+
+\code{
+	$\iprintInt :: \iInt \to \iWorld \to ((), \ \iWorld)$
+}
+
+The magic begins when we introduce the $\ibind$ combinator, which is used to sequence two actions:
+
+\code{	
+	\mc{3}{$\ibindIO :: \iIO \ a \to (a \to \iIO \ b) \to \iIO \ b$} \\
+	\mc{3}{$\ibindIO \ m \ f$} 			\\
+ 	 	& $= \lambda \ world.$			\\
+ 		& \qq $\kcase \ m \ \iworld \ \kof$ 	\\
+ 		& \qq \qq  $(a, \iworld') \to f \ a \ \iworld'$
+}
+
+$\ibindIO$ takes an IO action $m$, a function $f$ which produces the next action in the sequence, and combines them into a new action which does both. In a lazy language such as Haskell we use a case-expression to force the first action to complete before moving onto the second. In a default-strict language like Disciple we could write $\ibind$ using a let-expression, which would have the same meaning:
+
+\code{
+	\mc{3}{$\ibindIO :: \iIO \ a \to (a \to \iIO \ b) \to \iIO \ b$}	\\
+	\mc{3}{$\ibindIO \ m \ f$}	\\
+		& $= \lambda \ world.$ \\
+		& \qq $\klet \  (a, \ \iworld') = \ m \ \iworld$	\\
+		& \qq $ \kin \ \ f \ a \ \iworld'$ 
+}
+
+We also need a top-level function to run the whole program, similar to $\irunProg$ from before:
+
+\code{
+	$\irunIO :: \iIO \ a \to a$ \\
+	$\irunIO \ m  = m \ \iTheWorld$
+}
+
+In this definition, $\iTheWorld$ is the actual world token value and is the sole member of type $\iWorld$. In a real implementation, $\iWorld$ could be made an abstract data type so that client modules are unable to manufacture their own worlds and spoil the intended single-threadedness of the program. We would also need to ensure that only a single instance of $\irunIO$ was used.
+
+Here is a combinator that creates an action that does nothing except return a value:
+
+\code{
+	$\ireturnIO :: a \to IO \ a$ \\
+	$\ireturnIO x = \lambda \iworld. \ (x, \iworld)$
+}
+
+Now we can write a program to read two integers and return their sum, without needing to mention the world token explicitly:
+
+\code{
+	\mc{2}{$\irunIO$} \\
+		&   $(\ibindIO \ \igetInt  \ (\lambda x. $ \\
+		& \  $\ibindIO \ \igetInt  \ (\lambda y. $ \\
+		& \  $\ireturnIO \ (x + y))))$
+}
+
+In Haskell we can use any function of two arguments infix by surrounding it with back-quotes. We can also use the function composition operator \$ to eliminate the outer parenthesis:
+
+\code{
+	\mc{2}{$\irunIO \ \$ $ } \\
+		& \ $\igetInt  \ `bindIO` \ \lambda x. $ \\
+		& \ $\igetInt  \ `bindIO` \ \lambda y. $ \\
+		& \ $\ireturnIO \ (x + y)$
+}
+
+Finally, by using \emph{do-notation} and the monad constructor class~\cite{jones:constructor-classes} we can hide the uses of $\ibindIO$ and write this program in a more familiar style:
+
+\code{	
+	\mc{2}{$\irunIO \ \$ $ } \\
+	\ $\kdo$
+		& $x$	& $\gets \ \igetInt$ \\
+		& $y$ 	& $\gets \ \igetInt$ \\
+		& \mc{2}{$\ireturnIO \ (x + y)$}
+}
+
+
+
+\subsubsection{Representing effects in value types is a double edged sword}
+
+The use of state monads in this way has several benefits. First and foremost, by using $\ibindIO$ we have eliminated the need to manually plumb the world token around our programs. We can also use state monads to manage \emph{internal} state by replacing the world token with references to these structures.  Additionally, because monads are a general data type whose application is not restricted to just IO and state, we can define combinators which work on \emph{all} monads including lists, exceptions, continuations and parsers.
+
+Including effect information in types also aids program documentation. Programmers often write code comments to record whether certain functions perform IO actions or use internal state. By including this information directly in type signatures we leverage the compiler to \emph{check} that this documentation remains valid while the program is developed.
+
+However, the fact that effect information is represented in the space of \emph{values} and \emph{value types} is a double edged sword. On one hand, we did not need any specific support from the language to define our IO monad. On the other hand, functions which perform IO actions (still) have different structural types compared to ones that do not. 
+
+For example, a function which doubles an integer and returns the result would have type:
+
+\code{
+	$\idouble :: \iInt \to \iInt$
+}
+
+A function which doubles an integer as well as printing its result to the console would have type:
+
+\code{
+	$\idoubleIO :: \iInt \to \iIO \iInt$
+}
+
+Imagine that during the development of a program we wrote a function that uses the first version, $\idouble$:
+
+\code{
+	\mc{4}{$\ifun :: \iInt \to \iInt$} \\
+	\mc{4}{$\ifun \ x$} \\
+ 	 \ = & \klet  & \dots  & = \dots \\
+             &        & $x'$     & = $\idouble x$ \\
+	     &        & $y$      & = \dots \\
+	     & \kin   & $x' + y$
+}
+
+Suppose that after writing half our program we then decide that $\ifun$ should be using $\idoubleIO$ instead. The definition of $\ifun$ we already have uses a let-expression for intermediate bindings, but now we must refactor this definition to use the do-notation, or use an explicit $\ibind$ combinator to plumb the world through. For the do-notation, we must change the binding operator for our monadic expression to $\gets$, as well as adding a $\klet$ keyword to each of the non-monadic bindings:
+
+\code{
+	\mc{5}{$\ifun :: \iInt \to \iIO \iInt$} \\
+	\mc{5}{$\ifun \ x$} \\
+ 	 \ = & \kdo   & \klet \ \dots    & $=$		& \dots \\
+             &        & $x'$             & $\gets$	& $\idoubleIO x$ \\
+	     &        & $\klet \ \dots$  & $=$		& \dots \\
+	     &        & $x' + y$ 
+}
+
+The type of $\ifun$ has also changed because now \emph{it} performs an IO action as well. We must now go back and refactor all other parts of our program that reference $\ifun$. In this way the \emph{IO} monad begins to infect our entire program, a condition colloquially known as \emph{monad creep}~\cite{louis:monads-hard-drugs} or \emph{monaditis}~\cite{karczmarczuk:monaditis}. Although we have hidden the world token behind a few layers of syntactic sugar, it is still there, and it still perturbs the style of our programs. The space of values and the space of effects are conceptually orthogonal, but by representing effects as values we have muddled the two together.
+
+One could argue that in a well written program, code which performs IO should be clearly separated from code which does the ``real'' processing. If this were possible then the refactoring problem outlined above should not arise too often. However, as monads are also used for managing \emph{internal} state, and such state is used in so may non-trivial programs, all serious Haskell programmers will have suffered from this problem at some point. In practice, the refactoring of programs between monadic and non-monadic styles can require a substantial amount of work~\cite{leucker:experience}.
+
+
+\subsubsection{Haskell has fractured into monadic and non-monadic sub-languages}
+
+Being a functional language, programs written in Haskell tend to make heavy use of higher-order functions. Higher-order functions serve as control structures similar to the $\kfor$ and $\kswitch$ statements in C, with the advantage that new ones can be defined directly in the source language.
+
+This heavy use of higher-order functions aggravates the disconnect between the monadic and non-monadic styles of programming. Every general purpose higher-order function needs both versions because monads are so often used to manage internal state. Consider the $\imap$ function which applies a worker to all elements of a list, yielding a new list:
+
+\code{
+	\mc{3}{$\imap :: (a \to b) \to [a] \to [b]$ } \\
+	$\imap f \ [\ ]$ 	& $ = [\ ]$ \\
+	$\imap f \ (x:xs)$	& $ = f \ x : map \ f \ xs$ 
+}
+
+This definition is fine for non-monadic workers, but if the worker also performs an IO action or uses monadic state then we must use the monadic version of $\imap$ instead:
+
+\code{
+	\mc{3}{$\imapM :: \iMonad m \Rightarrow (a \to m \ b) \to [a] \to m \ [b]$} \\
+	\mc{2}{$\imapM f \ [ \ ]$}	& $ = return \ [ \ ]$ \\
+	\mc{2}{$\imapM f \ (x:xs)$} \\
+	$ \ = \ \kdo$ 	& $x'$ 	& $\gets f \ x$ \\
+			& $xs'$ & $\gets mapM \ f \ xs$ \\
+			& \mc{2}{$\ireturn \ (x' : xs')$}
+}
+
+Interestingly, we can make the non-monadic definition of $\imap$ redundant by deriving it from this monadic one. We will use the identity monad, which contains no state and does not allow access to the outside world. This monad is just an empty shell which satisfies the definition:
+
+\code{
+	\mc{3}{$\imap :: (a \to b) \to [a] \to [b]$ } \\
+	$\imap \ f \ixx = \irunIdentity \ (\imapM \ (\lambda x. \ireturn \ (f \ x)) \ \ixx$
+}
+
+Although we have no proof, we believe that it is possible to transform at least all second order monadic functions to similar non-monadic versions in this way. It is a pity then that the standard Haskell libraries are missing so many monadic versions. For example, the \texttt{Data.Map} package of GHC 6.10.1, released in November 2008, defines a finite map collection type that includes the functions $\imap$, $\imapWithKey$ and $\imapAccum$ among others. The types of these functions are:
+
+\code{
+	$\imap$ 	& $:: (a \to b)$ 		& $\to \iMap \ k \ a 	\to \iMap \ k \ b$ \\
+	$\imapWithKey$	& $:: (k \to a \to b)$		& $\to \iMap \ k \ a	\to \iMap \ k \ b$ \\
+	$\imapAccum$	& $:: (a \to b \to (a, c))$	& $\to a \to \iMap \ k \ b	\to (a, \iMap \ k \ c)$ 
+}
+
+There are no equivalent $\imapM$, $\imapWithKeyM$ and $\imapAccumM$ functions in this library. In fact, there are no monadic versions for \emph{any} of the \texttt{Data.Map} functions. The $\iMap$ data type is also abstract, so if the programmer wants to apply a monadic worker function to all of its elements then life becomes troublesome. One solution is to convert the entire structure to a list and use $\imapM$ discussed earlier. Of course, doing this will incur a performance penalty if the compiler is unable to optimise away the intermediate lists.
+
+The lack of monadic versions of functions is not confined to the \texttt{Data.Map} library. GHC 6.10.1 also lacks monadic versions of the list functions $\ifind$, $\iany$ and $\ispan$. If monads were mostly used for domain specific applications, then the lack of library functions may not hurt in practice. For example, we have used the Parsec monadic parser combinator library~\cite{leigen:parsec} in the implementation of DDC. During development we mainly used the parser specific combinators provided by the library, and doubt that we could even think of a sensible use for $\imapAccumM$ in this context.
+
+On the other hand, the management of IO and internal state is not a domain specific problem. State monads permeate the source code for many well known Haskell applications such as darcs and the aptly named XMonad window manager~\cite{stewart:xmonad}. 
+
+We do not feel that the lack of monadic library functions is due to poor performance on the part of library developers. Similarly, the lack of a standard linked list library in C99 can easily be blamed on the absence of a polymorphic type system in the language. In C99 there is no way to express a type such as $\ilength :: [a] \to \iInt$, so programmers tend to roll their own list structures every time. A list of integers could be defined as:
+
+\begin{lstlisting}
+    struct ListInt { int x; struct ListInt* xs; };
+\end{lstlisting} 
+
+In C99, functions over lists can be succinctly written as for-loops:
+
+\begin{lstlisting}
+    int lengthListInt (struct ListInt* list)
+    {
+        int len	= 0;
+        for (struct ListInt* node = list; 
+             node != 0; 
+             node = node->xs)
+            len ++;
+        return len;
+    }
+\end{lstlisting}
+
+This works, but the programmer must then define a separate version of each list function for every element type in their program. Either that or abuse the \texttt{void*} type. More commonly, the definitions of simple list functions are typed out again and again, and more the complex ones are defined with macros. A library writer cannot hope to create functions for every possible element type, so we are left with no standard list library at all.
+
+Similarly, Haskell does not provide a convenient way to generate both monadic and non-monadic versions of a function, nor does it provide an easy way to abstract over the difference. Programmers are taught not to cut and paste code, so we are left with one version of each function but not the other.
+
+\subsubsection{Monad transformers produce a layered structure }
+
+Monad transformers~\cite{liang:monad-transformers} offer a convenient way of constructing a monad from several smaller components, each providing a different facet of its computational behavior. The resulting data type is known as a \emph{monad stack}, due to the layered way of constructing it. 
+
+\clearpage{}
+For example, version 0.8 of the XMonad window manager uses a stack providing configuration information, internal state and IO:
+$$
+\knewtype \ X \ a \ = \ X \ (\iReaderT \ \iXConf \ (\iStateT \ \iXState \ \iIO) \ a)
+$$
+
+This type is constructed by applying two monad transformers, $\iReaderT$ and $\iStateT$ to the \emph{inner monad}, $\iIO$. $\iStateT$ extends $\iIO$ with the ability to access the $\iXState$ record type, while $\iReaderT$ extends it with the ability to access configuration information stored in the $\iXConf$ record type.
+
+The implementation of DDC's type inferencer also uses a monad stack built with $\iStateT$ and $\iIO$. In this case, $\iStateT$ supplies access to the current state of the algorithm while $\iIO$ provides a destructively updatable array used to represent the type graph. Monad transformers save the programmer from the need to manually define their own monads. Without such a mechanism they would be forced to redefine primitive functions like $\ibind$ and $\ireturn$ each time a new monad was needed. 
+
+As mentioned by Filinski~\cite{filinski:representing-monads}, the structure created by monad transformers is distinctly hierarchical. In the $X$ type above, $\iIO$ is on the bottom, followed by $\iStateT$, followed by $\iReaderT$. This fact is reflected in programs using it, as explicit lifting functions must be used to embed computations expressed in lower monads into the higher structure. For example, the $\iliftIO$ function takes an $\iIO$ action and converts it into an equivalent action in a monad which supports IO:
+
+\code{
+	$\iliftIO :: \iMonadIO m \Rightarrow \iIO a \to m \ a$
+}
+
+For both XMonad and the DDC type inferencer, the fact that monad transformers produce a layered structure is of no benefit. Actions which supply configuration information, alter the internal state of the program, and interface with the outside world are all commutable with each other. On the other hand, monads which express computational behaviors such as back-tracking and exceptions are not similarly commutable~\cite{filinski:representing-monads}.
+
+The XMonad source code of November 2008 includes a binding which renames $\iliftIO$ into the shorter $\iio$. A hand count by the author yielded 57 separate uses of this lifting function, versus 65 occurrences of the keyword $\kdo$. If it were possible to collapse the monad stack into a single layer then we could avoid this explicit lifting of IO actions. Of course, we would want to achieve this without losing the behavioral information present in their types. The effect typing system we shall discuss in the next chapter does just this. 
+
+Interestingly, from the high occurrence of IO lifting functions and the pervasiveness of the $X$ type, we see that XMonad is in fact an imperative program.  It is imperative in the sense that its processing is well mixed with IO, though not in the sense that it is based around the destructive update of a global store. Although it is written in a ``purely functional language'', this does not change the fact that the construction of a window manager is an inherently stateful and IO driven problem, with a stateful and IO driven solution. 
+

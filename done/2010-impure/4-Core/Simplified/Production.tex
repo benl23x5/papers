@@ -1,0 +1,63 @@
+\clearpage{}
+\subsection{Witness production}
+\label{Core:Simplified:Production}
+\bigskip
+
+\ruleBox{
+	\begin{center}
+		\fbox{$\heap \with \delta \leadsto \delta'$}
+	\end{center}
+	\vspace{-1em}
+	\begin{gather}
+	\ruleA	{EwConst}
+		{ \heap, \rconst \ \rho
+		  \with \iMkConst \ \un{\rho} \leadsto \underline{\rconst \ \rho} 
+		}
+	\ruleSkip
+	\ruleA	{EwMutable}
+		{ \heap, \rmutable \ \rho
+		  \with \iMkMutable \ \un{\rho} \leadsto \underline{\rmutable \ \rho} 
+		}
+	\ruleSkip
+	\ruleA	{EwPure}
+		{ \heap \with \iMkPure \leadsto \un{\rpure \ \bot} 
+		}
+	\ruleSkip
+	\ruleA	{EwPurify}
+		{ \heap \with \iMkPurify \ \un{\rho} \ (\underline{\rconst \ \rho}) \leadsto
+		  \underline{\rpure \ (\iRead \ \rho)}
+		}
+	\ruleSkip
+	\ruleI	{EwPureJoin1}
+		{ \heap \with \delta_1 \leadsto \delta_1'
+		}
+		{ \heap \with \iMkPureJoin \ \sigma_1 \ \sigma_2 \ \delta_1  \ \delta_2 \leadsto 
+		              \iMkPureJoin \ \sigma_1 \ \sigma_2 \ \delta_1' \ \delta_2 
+		}
+	\ruleSkip
+	\ruleI	{EwPureJoin2}
+		{ \heap \with \delta_2 \leadsto \delta_2'
+		}
+		{ \heap \with \iMkPureJoin \ \sigma_1 \ \sigma_2 \ \delta_1  \ \delta_2 \leadsto 
+		              \iMkPureJoin \ \sigma_1 \ \sigma_2 \ \delta_1  \ \delta_2'
+		}
+	\ruleSkip
+	\ruleA	{EwPureJoin3}
+		{ \heap \with \iMkPureJoin \ \sigma_1 \ \sigma_2 \
+				\un{\rpure \ \sigma_1} \ \un{\rpure \ \sigma_2}
+		  \leadsto \un{\rpure \ (\sigma_1 \lor \sigma_2)} 
+		}
+	\end{gather}
+}
+\bigskip
+\bigskip
+
+The judgement form $\heap \with \delta \leadsto \delta'$ reads: with store $H$, type $\delta$ produces type $\delta'$. 
+
+The first two rules, EwConst and EwMutable are used to sample a particular property of the store. The idea is that a term like $\iMkMutable \ \rho$ cannot be reduced to a witness to that fact, unless the store really does support the required property. When proving soundness, we show that such a term can only be evaluated in a context that ensures the required property is true, so the evaluation can always progress.
+
+EwPure is a simple axiom allows us to construct a witness that the $\bot$ effect is pure.
+
+EwPurify is used to produce a witness that a read from a region is pure from a witness that the region is constant.
+
+The final three rules, EwPureJoin1, EwPureJoin2 and EwPureJoin are used to join two witnesses, showing the purity of seperate effects, into one that shows the purity of both.

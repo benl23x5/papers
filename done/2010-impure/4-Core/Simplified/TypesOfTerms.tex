@@ -1,0 +1,169 @@
+% -- Types of Terms --------------------------------------------------------------------------------
+\clearpage{}
+\subsection{Types of terms}
+\label{Core:Simplified:TypesOfTerms}
+
+\ruleBox{
+	\begin{center}
+	\fbox{ $\tyJudge {\Gamma} {\Sigma} {t} {\tau} {\sigma}$ } \\
+	\end{center}
+	\begin{gather}
+	\ruleI	{TyVar}
+		{ x : \tau \in \Gamma}
+		{ \tyJudge {\Gamma} {\Sigma} {x} {\tau} {\bot} }
+	\ruleSkip
+	\ruleI	{TyAbsT}
+		{ \tyJudge	{\Gamma, \ a : \kappa \: } {\Sigma} {t_2} {\tau_2} {\sigma_2} }
+		{ \tyJudgeGS	{\teLAM{a}{\kappa}{t_2}} {\tyForall{a}{\kappa}{\tau_2}} {\sigma_2} }
+	\ruleSkip
+	\ruleI	{TyAppT}
+		{ \begin{aligned}
+			  \tyJudge	{\Gamma}{\Sigma&} {t_1} {\tyForall{a}{\kappa_{11}}{\varphi_{12}}} {\sigma_1} 
+			  \\
+			  \kiJudge	{\Gamma}{\Sigma&} {\varphi_2} {\kappa_2} 
+		  \end{aligned}
+		  \tspace
+		  \begin{aligned}
+			  \\
+			  \kappa_{11} \sims \kappa_2
+		  \end{aligned}
+		}
+		{ \tyJudgeGS	{t_1 \ \varphi_2} {\varphi_{12}[\varphi_2/a]} {\sigma_1[\varphi_2/a]} 
+		}
+	\ruleSkip
+	\ruleI	{TyAbs}
+		{ \kiJudgeGS	{\tau_1}{*}
+		  \quad \quad
+		  \tyJudge	{\Gamma, \ x : \tau_1 \: } {\Sigma} {t} {\tau_2} {\sigma} }
+		{ \tyJudgeGS	{\teLam{x}{\tau_1}{t}} {\tau_1 \toa{\sigma} {\tau_2}} {\bot} }
+	\ruleSkip
+	\ruleI	{TyApp}	
+		{ \tyJudge	{\Gamma} {\Sigma&} {t_2} {\tau_2} {\sigma_2} \\
+		  \tyJudge	{\Gamma} {\Sigma&} {t_1} {\tau_{11} \toa{\sigma} \tau_{12}} {\sigma_1} 
+		  \tspace
+		  \tau_{11} \sim_\Sigma \tau_2
+		}
+		{ \tyJudgeGS	{t_1 \ t_2} {\tau_{12}} {\sigma_1 \lor \sigma_2 \lor \sigma} }
+	\ruleSkip
+	\ruleI	{TyLet}
+		{ \tyJudge	{\Gamma} 		{\Sigma&} {t_1} {\tau_1} {\sigma_1} \\
+		  \tyJudge	{\Gamma, \ x : \tau_3} {\Sigma&} {t_2} {\tau_2} {\sigma_2} 
+		  \tspace	
+		  \tau_1 \sim_\Sigma \tau_3
+		}
+		{ \tyJudgeGS	{\teLet{x}{t_1}{t_2}} {\tau_2} {\sigma_1 \lor \sigma_2} }
+	\ruleSkip
+	\ruleI	{TyLetRegion}
+		{ \ov{\delta_i} \ \trm{well formed}  
+		  \tspace \ \
+		  \ksJudgeGS	{& \ \kappa_i}{\Diamond}
+		  \\
+		  \tyJudge	{\Gamma, \ r : \%, \ \ov{w_i : \kappa_i}} {\Sigma} {t} {\tau} {\sigma} 
+		  \tspace \ \
+		  \kiJudgeGS	{& \ \delta_i}{\kappa_i}
+		  \tspace
+		}
+		{ \tyJudgeGS	{\teLetR{r}{\ov{w_i = \delta_i}}{t}} 
+				{\tau} 
+				{\sigma}
+		}
+	\ruleSkip
+	\ruleI	{TyIf}
+		{ \begin{aligned}
+			\\
+			\tyJudge	{\Gamma} {\Sigma} {t_1} {\iBool \ \varphi} {\sigma_1}
+		  \end{aligned}
+		  \tspace
+		  \begin{aligned}
+		  	\tyJudge	{\Gamma} {\Sigma&} {t_2} {\tau_2} {\sigma_2} \\
+			\tyJudge	{\Gamma} {\Sigma&} {t_3} {\tau_3} {\sigma_3} 
+		  \end{aligned}
+		  \tspace 
+		  \begin{aligned}
+		  	\\
+			\tau_2 \sim_\Sigma \tau_3
+		  \end{aligned}
+		}
+		{ \tyJudgeGS	{\teIf {t_1} {t_2} {t_3}} {\tau_2} 
+				{ \sigma_1 \lor \sigma_2 \lor \sigma_3 \lor \iRead \ \varphi }
+		}
+	\ruleSkip
+	\ruleI	{TyTrue}
+		{ \kiJudge	{\Gamma} {\Sigma} {\varphi} {\%} }
+		{ \tyJudgeGS	{\iTrue \ \varphi} {\iBool \ \varphi} {\bot} }
+	\ruleSkip
+	\ruleI	{TyFalse}
+		{ \kiJudge	{\Gamma} {\Sigma} {\varphi} {\%} }
+		{ \tyJudgeGS	{\iFalse \ \varphi} {\iBool \ \varphi} {\bot} }
+	\ruleSkip
+	\ruleI	{TyUpdate}
+		{ 
+		  \tyJudge	{\Gamma} {\Sigma&} {t_1} {\iBool \ \varphi_1} {\sigma_1} \\
+		  \kiJudge	{\Gamma} {\Sigma} {\delta} { \iMutable \ \varphi_1 }  \quad
+		  \tyJudge	{\Gamma} {\Sigma&} {t_2} {\iBool \ \varphi_2} {\sigma_2}
+		}
+		{ \tyJudgeGS	{\iupdate \ \delta \ t_1 \ t_2} 
+				{()}
+				{\sigma_1 \lor \sigma_2 \lor \iRead \ \varphi_2 \lor \iWrite \ \varphi_1 }
+		}
+	\end{gather}
+}
+
+\clearpage{}
+\ruleBox{
+	\begin{gather}
+	\ruleI	{TySuspend}
+		{ \tau_{11} \sim_\Sigma \tau_2
+		  \quad
+		  \tyJudge	{\Gamma} {\Sigma&} {t_1} {\tau_{11} \funa{\sigma} \tau_{12}} { \sigma_1 } \\
+		  \kiJudge	{\Gamma} {\Sigma}  {\delta} { \iPure \ \sigma } \quad
+		  \tyJudge	{\Gamma} {\Sigma&} {t_2} {\tau_2} {\sigma_2}
+		}
+		{ \tyJudgeGS	{\isuspend \ \delta \ t_1 \ t_2}
+				{\tau_{12}}
+				{\sigma_1 \lor \sigma_2}
+		}
+	\ruleSkip
+	\ruleA	{TyUnit}
+		{ \tyJudgeGS	{()}{()}{\bot} }
+	\ruleSkip
+	\ruleI	{TyLoc}
+		{ l : \tau \in \Sigma }
+		{ \tyJudgeGS{\un{l}}{\tau}{\bot} }
+	\end{gather}
+}
+
+\bigskip
+The judgement form \ $\tyJudge{\Gamma}{\Sigma}{t}{\tau}{\sigma}$ reads: with environment $\Gamma$ and store typing $\Sigma$ the term $t$ has type $\tau$ and effect $\sigma$.
+
+Many of these rules are standard, apart from the fact that we must use the similarity judgements $\kappa \sim_{\Sigma} \kappa'$ and $\varphi \sim_{\Sigma} \varphi'$ when performing comparisons. 
+
+TyAppT handles type application. Note that the type parameter is substituted into the resulting effect $\sigma_1[\varphi_2/a]$ as well as the resulting type $\varphi_{12}[\varphi_2/a]$. This ensures the effect term remains stable during evaluation. For example, if we were to omit this substitution then we could construct the evaluation:
+
+\bigskip
+\qq
+\begin{tabular}{lll}
+	&		& $\emptyset$ \\
+ 	& $|$		& $\emptyset$ \\
+	& $\vdash$ 	& $\rbletregion \ r_1 \ \rbin$ \\
+	&		& $(\teLAM{r_2}{\%}{\teIf {\iTrue \: r_2} {\dots} {\dots}}) \ r_1$ \\
+	& ::		& $\dots$ \\
+	& ; 		& $\iRead \: r_2$ 
+\\[2em]
+\eto	& 		& $\emptyset$ \\
+	& $|$		& $\un{\rho_1}, \ r_1 \sim \rho_1$ \\
+	& $\vdash$	& $(\teLAM{r_2}{\%}{\teIf {\iTrue \: r_2} {\dots} {\dots}}) \ \un{\rho_1}$ \\
+	& $::$		& $\dots$ \\
+	& $;$		& $\iRead \: r_2$
+\\[2em]
+\eto	& 		& $\emptyset$ \\
+	& $|$		& $\un{\rho_1}, \ r_1 \sim \rho_1$ \\
+	& $\vdash$	& $\teIf {\iTrue \: \un{\rho_1}} {\dots} {\dots}$ \\
+	& ::		& $\dots$ \\
+	& ;		& $\iRead \: \un{\rho_1}$ 
+\end{tabular}
+
+\bigskip
+
+When the term in the second step is evaluated, its effect changes from $\rRead \ r_2$ to $\rRead \ \un{\rho_1}$. As there is no element in the store typing specifying that $r_2$ and $\un{\rho_1}$ are similar, our preservation theorem would be violated.
+

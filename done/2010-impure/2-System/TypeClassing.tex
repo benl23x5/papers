@@ -1,0 +1,411 @@
+
+\clearpage{}
+\section{Type classing}
+\label{System:TypeClassing}
+In this section we discuss value type classes in Disciple. The general mechanism is similar to that used in Haskell, except that we need a special $\iShape$ constraint on types to be able to write useful class declarations.
+
+As our current implementation does not implement dictionary passing, we limit ourselves to situations where the overloading can be resolved at compile time. For this reason, none of our class declarations have superclasses, and we do not support value type classes being present in the constraint list of a type. This in turn allows us to avoid considering most of the subtle issues discussed in \cite{peyton-jones:type-class-design-space}. We have made this restriction because we are primarily interested in using the type class mechanism to manage our region, effect and closure information. Exploring the possibilities for interaction between the various kinds of constraints represents an interesting opportunity for future work. There is also the possibility of defining multi-parameter type classes that constrain types of varying kinds. 
+
+
+% -------------------------------------
+\subsection{Copy and counting}
+The need for a $\iShape$ constraint arises naturally when we consider functions that copy data. For example, the  $\icopyInt$ function which copies an integer value has type:
+
+\code{
+	$\icopyInt$ 
+		& $::$	 & $\forall r_1 \ r_2. \ \iInt \ r_1 \lfuna{e_1} \ \iInt \ r_2$ \\
+		& $\rhd$ & $e_1 = \iRead \ r_1$
+}
+
+We will assume that this function is defined as a primitive. As $r_2$ is quantified we know that $\icopyInt$ allocates the object being returned, which is what we expect from a copy function.
+
+In Disciple programs, $\icopyInt$ can be used to initialise mutable counters. For example:
+
+\code{
+	\mc{3}{$\istartValue :: \iInt \ r_1 \rhd \iConst \ r_1$} \\
+	\mc{3}{$\istartValue = 5$}
+\\[1em]
+	$\ifun \ ()$ \\
+	\ = $\kdo$	& $\icount$	& $= \icopyInt \istartValue$ \\
+			& $\dots$ \\
+			& $\icount$	& $:= \icount - 1$ \\
+			& \dots
+}
+
+$\istartValue$ is defined at top level. In Disciple, if a top level value is not explicitly constrained to be $\iMutable$ then $\iConst$ constraints are added automatically. We have included this one manually for the sake of example.
+
+In the definition $\ifun$ we have a counter that is destructively decremented as the function evaluates. As the type of $(:=)$ (sugar for $\iupdateInt$) requires its argument to be mutable, we cannot simply initialise the counter with the binding $\icount = \istartValue$. This would make the variable $\icount$ an alias for the object bound to $\istartValue$. This in turn would require both $\icount$ and $\istartValue$ to have the same type, creating a conflict between the mutability constraint on $\icount$ and the constancy constraint on $\istartValue$. We instead use $\icopyInt$ to make a fresh copy of $\istartValue$, and this use object to initialise $\icount$. 
+
+
+
+% -------------------------------------
+\subsection{Type classes for copy and update}
+\label{System:TypeClassing:copy-and-update}
+
+After integers, another common data type in functional programs is the list. In Disciple we can declare the list type as:
+
+\code{
+	\mc{3}{$\kdata \ \iList \ r_1 \ a$} \\
+	& $=$		& $\iNil$ \\
+	& $\ \mid$ 	& $\iCons \ a \ (\iList \ r_1 \ a)$
+}
+
+This declaration introduces the data constructors $\iNil$ and $\iCons$ which have the following types:
+
+\code{
+	$\iNil$		& $:: \forall r_1 \ a. \ \iList \ r_1 \ a$ 
+	\\[1ex]
+	$\iCons$	& $:: \forall r_1 \ a. \ a \to \iList \ r_1 \ a 
+					\lfuna{c_1} \iList \ r_1 \ a$ \\
+			& $\rhd \ c_1 = x : a$
+}
+
+Note that in the type of $\iNil$, the region variable $r_1$ is quantified. This indicates that $\iNil$ behaves as though it allocates a fresh object at each occurrence.\footnote{However, if the returned object is constrained to be constant then the compiler can reuse the same one each time and avoid the actual allocation.} On the other hand, in the type of $\iCons$ the region variable $r_1$ is shared between the second argument and the return type. This indicates that the returned object will contain a reference to this argument.
+
+Using our list constructors, and the $\icopyInt$ function from the previous section, we define $\icopyListInt$ which copies a list of integers:
+
+\code{
+	$\icopyListInt$
+	& $::$	 	& $\forall r_1 \ r_2 \ r_3 \ r_4$ \\
+	& $.$ 		& $\iList \ r_1 \ (\iInt \ r_2) \lfuna{e_1} \ \iList \ r_3 \ (\iInt \ r_4)$ \\
+	& $\rhd$ 	& $e_1 = \iRead \ r_1 \lor \iRead \ r_2$
+}
+
+\code{
+	\mc{2}{$\icopyListInt \ xx$} \\
+		& $= \kcase \ xx \ \kof$ \\
+		& \qq $\iNil$		& $\to \iNil$ \\
+		& \qq $\iCons x \ xs$	& $\to \iCons \ (\icopyInt \ x) \ (\icopyListInt \ xs)$ 
+}
+
+Once again, the fact that both $r_3$ and $r_4$ are quantified indicates that the returned object is freshly allocated. Note that $e_1$ includes an effect $\iRead \ r_1$ due to inspecting the spine of the list, as well as $\iRead \ r_2$ from copying its elements.
+
+As $\icopyInt$ and $\icopyListInt$ perform similar operations, we would like define a type class that abstracts them. If we ignore effect information for the moment, we could try something like:
+
+\code{
+	\mc{4}{$\kclass \ \iCopy \ a \ \kwhere$} \\
+	& $\icopy$	& $::$	&$a \to a$
+}
+
+Unfortunately, this signature for $\icopy$ does not respect the fact that the returned object should be fresh. Our $\icopyInt$ function produces a freshly allocated object, but $\iInt$ instance of the type in the class declaration would be:
+
+\code{
+	$\icopy_{\iInt}$ 
+		& $::$	 & $\forall r_1. \ \iInt \ r_1 \to \ \iInt \ r_1$ \\
+}
+
+This would prevent us from using our overloaded $\icopy$ function to make local, mutable copies of constant integers as per the previous section. As the argument and return types include the same region variable, any constraints placed on one must be compatible with the other. On the other hand, the following class declaration is too weak:
+
+\code{
+	\mc{4}{$\kclass \ \iCopy \ a \ \kwhere$} \\
+	& $\icopy$	& $::$	& $\forall b. \ a \to b$
+}
+
+If the argument of $\icopy$ is an integer, then we expect the return value to also be an integer. What we need is for the argument and return types of $\icopy$ to have the same overall \emph{shape}, while allowing their contained region variables to vary. 
+
+We enforce this with the $\iShape$ constraint:
+
+\code{
+	\mc{4}{$\kclass \ \iCopy \ a \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& $\forall b. \ a \to b$ \\
+	&		& $\rhd$	& $\iShape \ a \ b$
+}
+
+$\iShape \ a \ b$ can be viewed as functional dependency \cite{jones:functional-dependencies} between the two types $a$ and $b$. The functional dependency is bi-directional, so if $a$ is an $\iInt$ then $b$ must also be an $\iInt$, and if $b$ is an $\iInt$ then so must $a$. As we do not provide any mechanism for defining $\iShape$ from a more primitive structure, it is baked into the language. 
+
+This handles the argument and return types, though we still need to account for the effect of reading the argument. We do this with the $\iReadT$ (read type) effect:
+
+\code{
+	\mc{4}{$\kclass \ \iCopy \ a \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& $\forall b. \ a \lfuna{e_1} b$ \\
+	&		& $\rhd$	& $e_1 = \iReadT \ a$ \\
+	&		& $, $		& $\iShape \ a \ b$
+}
+
+In the class declaration, $\iReadT \ a$ says that instances of the $\icopy$ function are permitted to read any region variable present in the type $a$. Once this declaration is in place, we can add the instances for each of our copy functions:
+
+\code{
+	\mc{4}{$\kinstance \ \iCopy \ (\iInt \ r_1) \ \kwhere$} \\
+	& $\icopy$	& $= \icopyInt$ 
+	\\[2ex]
+	\mc{4}{$\kinstance \ \iCopy \ (\iList \ r_1 \ (\iInt \ r_2)) \ \kwhere$} \\
+	& $\icopy$ 	& $= \icopyListInt$
+}
+
+Along with $\iReadT$, there is a related $\iWriteT$ that allows a function to have a write effect on any region variable in a type. Similarly, $\iMutableT$ and $\iConstT$ place constraints on all the region variables in a type. 
+
+Next, we will use $\iWriteT$ and $\iMutableT$ to define the type class of objects that can be destructively updated:
+
+\code{
+	\mc{4}{$\kclass \ \iUpdate \ a \ \kwhere$} \\
+	& $(:=)$	& $::$		& $\forall b. \ a \to b \lfuna{c_1 \ e_1} ()$ \\
+	&		& $\rhd$	& $e_1 = \iWriteT \ a \ \lor \ \iReadT \ b$ \\
+	&		& $, $		& $c_1 = x : a$ \\
+	&		& $, $		& $\iShape \ a \ b$ \\
+	&		& $, $		& $\iMutableT \ a$ \\
+}
+
+This declaration says that instances of $(:=)$ may write to the first argument, read the second argument, hold a reference to the first argument during partial application, require both arguments to have the same overall shape, and require regions in the first argument to be mutable.
+
+Note that the types in class declarations are \emph{upper bounds} of the possible types of the instances. Instances of $(:=)$ must have a type which is at least as polymorphic as the one in the class declaration, and may not have an effect that is not implied by $\iWriteT \ a \ \lor \ \iReadT \ b$. Nor may they place constraints on their arguments other than $\iShape \ a \ b$ and $\iMutableT \ a$. Importantly, after a partial application of just their first arguments, they may not hold references to any material values other than these arguments. This last point is determined by the closure term $x : a$.
+
+
+% -------------------------------------
+\subsection{Shape and partial application}
+\label{System:TypeClassing:shape-and-partial-application}
+
+We now discuss how the $\iShape$ constraint works during partial application. We will use the overloaded equality function as an example. Here is the $\iEq$ class declaration:
+
+\code{
+	\mc{4}{$\kclass \ \iEq \ a \ \kwhere$} \\
+	& $(==)$	& $::$		& $\forall b \ r_1. \ a \to b \lfuna{e_1 \ c_1} \iBool \ r_1$ \\
+	&		& $\rhd$	& $e_1 = \iReadT \ a \ \lor \ \iReadT \ b$ \\
+	&		& $,$		& $c_1 = x : a$ \\
+	&		& $,$		& $\iShape \ a \ b$
+}
+
+This declaration says that instances of $(==)$ accept two arguments, and return a fresh boolean. Instances are permitted to read their arguments and hold a reference to the first one when partially applied. The arguments may also be required to have the same shape.
+
+Consider the following binding:
+
+\code{
+	$\iisEmpty$	& $=$	& $(==)\  [\ ]$
+}
+
+This binding partially applies $(==)$, resulting in a function that tests whether a list is empty. To determine the type of $\iisEmpty$ we first instantiate the type of $(==)$:
+
+\code{
+	$(==)$ \quad \	
+		& $::$		& $a' \to b' \lfuna{e_1 \ c_1} \iBool \ r_1'$ \\
+		& $\rhd$	& $e_1 = \iReadT \ a' \ \lor \ \iReadT\ b'$ \\
+		& ,		& $c_1 = x : a'$ \\
+		& ,		& $\iShape \ a' \ b'$
+}
+
+Taking $[ \ ]$ to have the type $\iList \ r_2 \ c$, we bind it to $a'$ and eliminate the outer function constructor:
+
+\code{
+	$((==) \ [\ ])$ 
+		& $::$		& $b' \lfuna{e_1 \ c_1} \iBool \ r_1'$ \\
+		& $\rhd$	& $e_1 = \iReadT \ (\iList \ r_2 \ c) \ \lor \ \iReadT\ b'$ \\
+		& ,		& $c_1 = x : \iList \ r_2 \ c$ \\
+		& ,		& \mc{2}{$\iShape \ (\iList \ r_2 \ c) \ b'$}
+}
+
+The $\iShape \ (\iList \ r_2 \ c) \ b'$ constraint requires $b'$ to have the same shape as $\iList \ r_2 \ c$. We satisfy this by giving $b$ the type $\iList \ r_3 \ d$, where $r_3$ and $d$ are fresh:
+
+\code{
+	$((==) \ [\ ])$ 
+		& $::$		& $\iList \ r_3 \ d \lfuna{e_1 \ c_1} \iBool \ r_1'$ \\
+		& $\rhd$	& $e_1 = \iReadT \ (\iList \ r_2 \ c) \ \lor \ \iReadT \ (\iList \ r_3 \ d)$ \\
+		& ,		& $c_1 = x : \iList \ r_2 \ c$ \\
+		& ,		& \mc{2}{$\iShape \ (\iList \ r_2 \ c) \ (\iList \ r_3 \ d)$}
+}
+
+The effect $\iReadT$ expresses a read on all region variables in its argument type. As we now know what this argument type is we can reduce the $\iReadT$ effect to a simpler form. Here, $\iReadT \ (\iList \ r_2 \ c)$ can be reduced to $\iRead \ r_2 \lor \iReadT \ c$ and $\iReadT \ (\iList \ r_3 \ d)$ can be reduced to $\iRead \ r_3 \lor \iReadT \ d$. As both arguments to our $\iShape$ constraint are list types, this constraint is partially satisfied, though we still need to ensure that $c$ has the same shape as $d$:
+
+\code{
+	$((==) \ [\ ])$ 
+		& $::$		& $\iList \ r_3 \ d \lfuna{e_1 \ c_1} \iBool \ r_1'$ \\
+		& $\rhd$	& $e_1 = \iRead \ r_2 \lor \iReadT \ c \lor \iRead \ r_3 \lor \iReadT \ d$ \\
+		& ,		& $c_1 = x : \iList \ r_2 \ c$ \\
+		& ,		& \mc{2}{$\iShape \ c \ d$}
+}
+
+This type can be reduced no further, so we will generalise it to create the scheme for $\iisEmpty$:
+
+\code{
+	$\iisEmpty$ 
+		& $::$		& $\forall c \ d \ r_1 \ r_3$ \\
+		& . 		& $\iList \ r_3 \ d \lfuna{e_1 \ c_1} \iBool \ r_1$ \\
+		& $\rhd$	& $e_1 = \iRead \ r_2 \lor \iReadT \ c \lor \iRead \ r_3 \lor \iReadT \ d$ \\
+		& ,		& $c_1 = x : \iList \ r_2 \ c$ \\
+		& ,		& \mc{2}{$\iShape \ c \ d$}
+}
+
+Note that as per \S\ref{System:Closure:shared-regions} we have not generalised $r_2$ because it appears in the outermost closure of the function. At runtime, the application of $(==)$ to $[\ ]$ will build a thunk containing a pointer to the function and the empty list. This empty list is shared between all uses of $\iisEmpty$.
+
+
+% -------------------------------------
+\subsection{Shape constraints and rigid type variables}
+Consider the following Haskell type class declaration:
+
+\code{
+	\mc{4}{$\kclass \ \iFoo \ a \ \kwhere$} \\
+	& $\ifoo$	& $::$	& $\forall b. \ a \to [b] \to [b]$
+}
+
+An instance of this class is:
+
+\code{
+	\mc{4}{$\kinstance \ \iFoo \ Bool \ \kwhere$} \\
+	& $\ifoo \ x \ y$	& $= \kif \ x \ \kthen \ \itail \ y \ \kelse \ \ireverse \ y$
+}
+
+The locally quantified type variable $b$ is called a \emph{rigid type variable}. This highlights the fact that every instance of $\ifoo$ must have a similarly general type. For example, the following instance is invalid:
+
+\code{
+	\mc{4}{$\kinstance \ \iFoo \ \iChar \ \kwhere$} \\
+		& $\ifoo \ x \ y = \kif \ x  == `a` \ \kthen \ \itail \ y \ \kelse \ [x]$
+}
+
+This non-instance tries to assign $\ifoo$ the following type:
+
+\code{
+	\mc{4}{$\ifoo_{\iChar} :: \iChar \to [\iChar] \to [\iChar]$}
+}
+
+This is strictly less general than the one in the type class declaration, because we cannot apply it to lists whose elements do not have type $\iChar$. 
+
+The $\iCopy$ type class declaration also contains a rigid type variable. Here it is again:
+
+\code{
+	\mc{4}{$\kclass \ \iCopy \ a \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& $\forall b. \ a \lfuna{e_1} b$ \\
+	&		& $\rhd$	& $e_1 = \iReadT \ a$ \\
+	&		& ,		& $\iShape \ a \ b$
+}
+
+Note the local $\forall b$ quantifier. We have said that $\icopyInt$ is a valid instance of $\icopy$ because it produces a freshly allocated object. Recall that $\icopyInt$ has the following type:
+
+\code{
+	$\icopyInt$	
+	& $::$		& $\forall r_1 \ r_2. \ \iInt \ r_1 \lfuna{e_1} \iInt \ r_2$ \\
+	& $\rhd$	& $e_1 = \iRead \ r_1$
+
+}	
+
+On the other hand, the following instance is \emph{not} valid:
+
+\code{
+	\mc{4}{$\kinstance \ \iCopy \ \iChar \ \kwhere$} \\
+	& $\icopy \ x$	& $= x$
+}
+
+This is so because it does not actually copy its argument. We can see this fact in its type:
+
+\code{
+	$\icopy_{\iChar} :: \forall r_1. \ \iChar \ r_1 \to \iChar \ r_1$ 
+}	
+
+This situation is very similar to the one with $\ifoo_{\iChar}$, because the signature of $\icopy_{\iChar}$ is not sufficiently polymorphic to be used as an instance for $\icopy$. 
+
+We now discuss how to determine the required type of an instance function from the type class declaration. The subtle point is in dealing with $\iShape$ constraints on rigid type variables.
+
+Here is the $\iCopy$ class declaration again. For the sake of example we have added the outer quantifier for $a$.
+
+\code{
+	\mc{5}{$\forall a. \ \kclass \ \iCopy \ a \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& $\forall b. \ a \lfuna{e_1} b$ \\
+	&		& $\rhd$	& $e_1 = \iReadT \ a$ \\
+	&		& $\ , $	& $\iShape \ a \ b$
+}
+
+Say that we wish to determine the required type of $\icopy_{\iInt}$. To do this we instantiate the type class declaration with $\iInt \ r_1$, where $r_1$ is fresh. We can then re-generalise the declaration for $r_1$, to get a $\forall r_1$ quantifier at top level:
+
+\code{
+	\mc{5}{$\forall r_1. \ \kclass \ \iCopy \ (\iInt \ r_1) \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& $\forall b. \ \iInt \ r_1 \lfuna{e_1} b$ \\
+	&		& $\rhd$	& $e_1 = \iReadT \ (\iInt \ r_1)$ \\
+	&		& $\ , $	& $\iShape \ (\iInt \ r_1) \ b$
+}
+
+Reducing the $\iReadT$ effect and the $\iShape$ constraint gives:
+
+\code{
+	\mc{5}{$\forall r_1. \ \kclass \ \iCopy \ (\iInt \ r_1) \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& \mc{2}{$\forall r_2. \ \iInt \ r_1 \lfuna{e_1} b$} \\
+	&		& $\rhd$	& $e_1$	& $= \iRead \ r_1$ \\
+	&		& $,$		& $b$	& $=  \iInt \ r_2$
+}
+
+Reduction of the shape constraint has introduced the new type constraint $b = \iInt \ r_2$ where $r_2$ is fresh. This makes $b$ have the same shape as the function's first argument. We have also replaced $\forall b$ with $\forall r_2$. Every time the reduction of a $\iShape$ constraint on a quantified type variable introduces a new region variable, we quantify the new variable instead of the old one. Substituting for $b$ completes the process:
+
+\code{
+	\mc{5}{$\forall r_1. \ \kclass \ \iCopy \ (\iInt \ r_1) \ \kwhere$} \\
+	& $\icopy$ 	& $::$		& $\forall r_2. \ \iInt \ r_1 \lfuna{e_1} \iInt \ r_2$ \\
+	&		& $\rhd$	& $e_1 = \iRead \ r_1$ 
+}
+
+We can now extract the required type for $\icopy_{\iInt}$ by appending the outer quantifier, and the top-level $\iCopy \ (\iInt \ r_1)$ constraint:
+
+\code{
+	$\icopy_{\iInt}$
+	& $::$		& $\forall \ r_1 \ r_2. \ \iInt \ r_1 \lfuna{e_1} \iInt \ r_2$ \\
+	& $\rhd$	& $e_1 = \iRead \ r_1$  \\
+	& $, $		& \mc{2}{$\iCopy \ (\iInt \ r_1)$}
+}
+
+If we are performing this process to check whether a given instance function is valid, then we have already satisfied the $\iCopy \ (\iInt \ r_1)$ constraint. Discharging it gives:
+
+\code{
+	$\icopy_{\iInt}$
+	& $::$		& $\forall \ r_1 \ r_2. \ \iInt \ r_1 \lfuna{e_1} \iInt \ r_2$ \\
+	& $\rhd$	& $e_1 = \iRead \ r_1$  \\
+}
+
+This is the expected type for an $\iInt$ instance of $\icopy$. If the type of a provided instance function cannot be instantiated to this type, then it is invalid.
+
+
+
+
+\subsection{Shape constraints and immaterial regions}
+\label{System:TypeClassing:shape-immaterial}
+
+Consider the $\iIntFun$ type from \S\ref{System:Closure:non-material-regions}:
+
+\code{
+	\mc{4}{$\kdata \ \iIntFun \ r_{1..4} \ e_1 \ c_1$} \\
+	& $=$		& $\iSInt$	& $(\iInt \ r_2)$ \\
+	& $\ |$ 	& $\iSFun$	& $(\iInt \ r_3 \lfuna{e_1 \ c_1} \iInt \ r_4)$ \\
+}
+
+Using the class instantiation process from the previous section, the type of a $\icopy$ instance function for $\iIntFun$ must be at least as polymorphic, and no more effectful, closureful\footnote{The author bags new word credit for ``closureful''.} or otherwise constrained than:
+
+\code{
+	\mc{3}{$\icopy_{\iIntFun}$} \\
+	& $::$	& $\forall r_{1..8} \ e_1 \ c_1$ \\
+	& $.$	& $\iIntFun \ r_{1..4} \ e_1 \ c_1 
+			\lfuna{e_2} \iIntFun \ r_{5..8} \ e_1 \ c_1$ \\
+	& $\rhd$ & $e_2 = \iRead \ r_1 \lor \iRead r_2 \lor \iRead \ r_3 \lor \iRead \ r_4$
+}
+
+Unfortunately, we don't have any way of writing a copy function for $\iIntFun$ that has this type. We could try something like:
+
+\code{
+	\mc{3}{$\icopy_{\iIntFun} \ xx$} \\
+		& $= \kcase \ xx \ \kof$ \\
+		& \qq $\iSInt \ i$	& $\to \iSInt \ (\icopyInt \ i)$ \\
+		& \qq $\iSFun \ f$	& $\to \iSFun \ f$
+}
+
+For the $\iSInt$ alternative we have just used $\icopyInt$ to copy the contained integer. However, we have no way of copying a function value, nor are we sure what it would mean to do so. Instead, we have simply reused the variable $f$ on the right of the second alternative. Unfortunately, this gives $\icopy_{\iIntFun}$ the following type:
+
+\code{
+	\mc{3}{$\icopy_{\iIntFun}$}	 \\
+	& $::$		& $\forall r_{1..6} \ e_1 \ c_1$ \\
+	& $.$		& $\iIntFun \ r_{1..4} \ e_1 \ c_1
+				\lfuna{e_2} \iIntFun \ r_{5..6} \ r_{3..4} \ e_1 \ c_1$ \\
+	& $\rhd$	& $e_2 = \iRead \ r_1 \lor \iRead \ r_2$
+}
+
+\bigskip
+Note that in the return type of this function, $r_5$ and $r_6$ are fresh but $r_3$ and $r_4$ are not. The first two parameters of $\iIntFun$ are material region variables that correspond to actual objects in the store. We could reasonably expect an instance function to copy these. On the other hand, the second two parameters are immaterial. For the $\iSFun$ alternative, the best we can do is to pass $f$ through to the return value, but doing this does not freshen the region variables in its type.
+
+Our solution is to modify the reduction rule for $\iShape$ so that all value type and region variables that are not strongly material are identified. That is, if a particular variable in a data type definition does \emph{not} always correspond to actual data in the store, then we will not freshen that variable when reducing $\iShape$.
+
+We also define the rule for reducing $\iReadT$ so that read effects on immaterial region variables are discarded. Immaterial regions do not correspond with real data in the store, so reading them does nothing. 
+
+Using these new rules, and the instantiation process from the previous section, the required type for $\icopy_{\iIntFun}$ becomes:
+
+\code{
+	\mc{3}{$\icopy_{\iIntFun}$} \\
+	& $::$		& $\forall r_{1..6} \ e_1 \ c_1$ \\
+	& $.$		& $\iIntFun \ r_{1..4} \ e_1 \ c_1 
+				\lfuna{e_2} \iIntFun \ r_{5..6} \ r_{3..4} \ e_1 \ c_1$ \\
+	& $\rhd$	& $e_2 = \iRead \ r_1 \lor \iRead r_2$
+}
+
+This is the same type as our instance function, so we can accept it as valid.
+
+

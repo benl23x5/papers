@@ -1,0 +1,15 @@
+\clearpage{}
+\subsection{Super-kinds}
+Starting at the top of the strata, we use super-kinds to classify witness kind constructors, and to ensure that they are applied to the right kind of type. For our three baked-in constructors we have the following super-kinds:
+
+\code{
+	$\iConst$	& $::$ & $\% \to \Diamond$ 	\\
+	$\iMutable$	& $::$ & $\% \to \Diamond$ 	\\
+	$\iPure$	& $::$ & $\ ! \: \to \Diamond$ 	\\
+}
+
+The first signature says that $\iConst$ may only be applied to a region type, such as with $\iConst \ r_1$. Applying it to a type of differing kind would not make sense, such as with $\iConst \ (\iRead \ r_1)$. We always use $\Diamond$, pronounced ``prop", as the result of witness kind constructors. A signature such as $\iConst :: \% \to \Diamond$ can be read ``a witness classified by $\iConst$ guarantees a property of a region''. We use $\Box$, pronounced ``box'', as the super-kind for kinds that do not encode such a property, such as $\%$ and $* \to *$.
+
+\bigskip
+\subsection{Kinds}
+As our system uses dependent kinds (types in kinds) we have the application and abstraction forms \mbox{$\Pi(a :: \kappa_1) . \ \kappa_2$} and $\kappa \ \varphi$. The function kind $\kappa_1 \to \kappa_2$ is encoded as a sugared form of $\Pi( \_ :: \kappa_1) . \ \kappa_2$, where the underscore indicates that the type variable is not present in $\kappa_2$ and can be safely ignored. The symbols $*, \ \%$ and $!$ give the kinds of types, regions and effects respectively. The witness kind constructors $\iConst$, $\iMutable$ and $\iPure$ are used to record the particular program property that a type level witness guarantees. 

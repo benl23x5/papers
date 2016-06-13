@@ -1,0 +1,426 @@
+% -- Theorem: Progress
+\clearpage{}
+\begin{flushleft}
+\textbf{Theorem: (Progress)} \\
+Suppose we have a state $\heap \with t$ with store $\heap$ and term $t$. 
+Let $\Sigma$ be a store typing which models $\heap$. 
+If $\heap$ is well typed, and $t$ is closed and well typed, and $t$ contains no fabricated region witnesses,
+then either $t$ is a value or $\heap \with t$ can transition to the next state.
+
+\medskip
+\begin{tabular}{ll}
+	If 	& $\tyJudge {\emptyset} {\Sigma} {t} {\tau} {\sigma}$  \\
+	\ and	& $\Sigma \models \heap$ \\
+	\ and	& $\Sigma \vdash  \heap$ \\
+	\ and 	& $\pnofab{t}$  
+	\\[1ex]
+	then	& $t$ $\in$ Value \\
+	\ or 	& {for some $\heap'$, $t'$ we have} \\
+		& \ ($\trEval {\heap} {t} {\heap'} {t'}$ \ and \ $\pnofab{t'}$) 
+\end{tabular}	
+		
+
+
+\bigskip
+\trb{Proof:} By induction over the derivation of \ \ $\tyJudge {\emptyset} {\Sigma} {t} {\tau} {\sigma}$
+
+Let $(\pstep{\heap}{t}) \equiv$ 
+	(for some $\heap$, $t$ we have $\trEval {\heap} {t} {\heap'} {t'}$ and $\pnofab{t'}$)
+
+We will not formally prove $\pnofab{t'}$ in the conclusion of each case. This property
+can be verified by inspecting (EvLetRegion) and noting that unevaluated applications
+of witness constructors are not substituted into the body of the term.
+
+\begin{tabbing}
+MM \= MMx \= MMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+	\> (IH) 
+	\> Progress holds for all subterms of $t$.
+	\> (assume) 
+\end{tabbing}
+
+
+\bigskip
+% ---------------------
+\pCase{$t$ is one of
+	$x$, 
+	\ $\Lambda(a :: \kappa). \ t'$, 
+	\ $\lambda (x :: \tau). \ t'$, 
+	\ (),
+	\ $\underline{l}$}
+
+\medskip
+$t \in \rValue$	
+\bigskip
+
+\bigskip
+% ---------------------
+\pCase{$t = (t_1 \ \varphi_2)$ / TyAppT}
+$$
+\qq 
+	\frac	
+	{ (5) \ 
+	  \tyJudgeES{t_1} {\tyForall {a} {\kappa_{11}} {\varphi_{12}}} {\sigma} 
+	  \tspace
+	  (6) \ 
+	  \kiJudgeES{\varphi_2} {\kappa_2}
+	  \tspace
+	  (7) \ 
+	  \kappa_{11} \sims \kappa_2
+	}
+	{ (\un{1}) \
+	  \tyJudgeES
+	  	{t_1 \ \varphi_2}
+		{\varphi_{12}[\varphi_2/a]}
+		{\sigma[\varphi_2/a]}
+	} 
+$$
+\begin{tabbing}
+MM \= MMx \= MMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2..4}) 
+	 	\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+ 		\> \pby{assume} 
+\\[1ex]
+\>	(5) 	\> $t_1 \in \rValue \por \pstep{\heap}{t_1}$	
+		\> \pby{IH 5 2..4} 	
+\\
+\\
+\>	(6) 	\> \emph{Case:} $\ \ t_1 \in \rValue$
+\\[1ex]
+\>	(7) 	\> \quad $t_1 = \teLAM{a}{\kappa_{11}}{t_{12}} $			
+		\> \pby{Forms of Terms 6 5} 
+\\[1ex]
+\>	(8) 	\> \quad $\pstep{\heap}{t}$				
+		\> \pby{EvTAppAbs 6} 
+\\
+\\
+\>	(8) 	\> \emph{Case:} $\ \ \pstep{\heap}{t_1}$
+\\[1ex]
+\>	(9) 	\> \quad $\pstep{\heap}{t}$				
+		\> \text{(EvTApp1 7)}
+\end{tabbing}
+
+
+\clearpage{}
+% ---------------------
+\pCase{$t = t_1 \ t_2$ / TyApp}
+$$
+\qq \qq	\frac	
+	{ (5) \ \tyJudgeES {t_1} {\tau_{11} \toa{\sigma} \tau_{12}} {\sigma_1} 
+	  \qq
+	  (6) \ \tyJudgeES {t_2} {\tau_2} {\sigma_2} 
+	  \qq
+	  (7) \ \tau_{11} \sims \tau_2
+	}
+	{ (\un{1}) 
+	  \ \tyJudgeES {t_1 \ t_2} {\tau_{12}} {\sigma_1 \lor \sigma_2 \lor \sigma} }
+$$	  
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2..4})
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+		\> \pby{assume} 
+\\[1ex]
+\>	(8)	\> $t_1 \in \rValue \por \pstep{\heap}{t_1}$		
+		\> \pby{IH 5 2..4} 
+\\[1ex]
+\>	(9) 	\> $t_2 \in \rValue \por \pstep{\heap}{t_2}$		
+		\> \pby{IH 6 2..4} 
+\\
+\\
+\>	(10) 	\> $\pcase {\ \pstep{\heap}{t_1}} $
+\\[1ex]
+\>	(11) 	\> \quad $\pstep{\heap}{t}$					
+		\> \pby{EvApp1 10} 
+\\
+\\
+\>	(12, 13)\> $\pcase {\ t_1 \in \rValue, \ \pstep{\heap}{t_2}}  $ 
+\\[1ex]
+\>	(14) 	\> \quad $\pstep{\heap}{t}$				
+		\> \pby{EvApp2 12 13} 
+\\
+\\
+\>	(15, 16)\> $\pcase {\ t_1 \in \rValue, \ t_2 \in \rValue}$
+\\[1ex]
+\>	(17) 	\> \quad $t_1 = \teLam{x}{\tau_{11}}{t_{12}}$			
+		\> \pby{Forms of Terms 15 5} 
+\\[1ex]
+\>	(18) 	\> \quad $\pstep{\heap}{t}$				
+		\> \pby{EvAppAbs 17 16} 
+\end{tabbing}
+\bigskip
+
+
+\bigskip
+% -------------------
+\pCase{$t = (\teLet{x}{t_1}{t_2})$ / TyLet} 
+
+Similarly to TyApp case.
+
+\bigskip
+\bigskip
+% -------------------
+\pCase{$t = (\teLetR{r}{\ov{w_i = \delta_i}}{t_1})$ / TyLetRegion}
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{1}) \> $\tyJudgeES{(\teLetR{r}{\ov{w_i = \delta_i}}{t_1})}
+				{\tau_1}
+				{\sigma_1}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{2..4}) 	
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+		\> \pby{assume} 
+\\[1ex]
+\>	(5) 	\> $\heap, \ \ov{\rpropOf(\Delta_i)} 
+				\with \ov{\delta_i \leadsto \Delta_i}$
+		\> \pby{Region Wit. Assert} 
+\\[1ex]
+\>	(6) 	\> $\pstep{\heap}{t}$
+		\> \pby{EvLetRegion 5}
+\end{tabbing}
+
+
+\clearpage{}
+% ------------------
+\pCase{$t = (\teIf{t_1}{t_2}{t_3})$ / TyIf}
+$$ 
+\qq \qq	\frac	
+	{ \begin{aligned}
+	  	\\
+	  	(5) \ \tyJudgeES {t_1} {\iBool \ \varphi} {\sigma_1}
+	  \end{aligned}
+	  \tspace
+	  \begin{aligned}
+		(6) \ \tyJudge {\emptyset} {\Sigma&} {t_2} {\tau_2} {\sigma_2}  \\
+   	  	(7) \ \tyJudge {\emptyset} {\Sigma&} {t_3} {\tau_3} {\sigma_3}
+	  \end{aligned}
+	  \tspace
+	  \begin{aligned}
+		\\
+	  	(8) \ \tau_2 \sims \tau_3
+	  \end{aligned}
+	}
+	{ (\un{1}) \ 
+	  \tyJudgeES
+	  	{(\teIf{t_1}{t_2}{t_3})} 
+		{\tau_2} 
+		{(\sigma_1 \lor \sigma_2 \lor \sigma_3 \lor \iRead \ \varphi)}
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2..4}) 	
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+		\> \pby{assume} 
+\\[1ex]
+\>	(9) 	\> $t_1 \in \rValue \por \pstep{\heap}{t_1}$	
+		\> \pby{IH 5 2..4} 
+\\
+\\[1ex]
+\>	(10) 	\> $\pcase {t_1 \in \rValue}$
+\\[1ex]
+\>	(11) 	\> \quad $t_1 = \un{l}$						
+		\> \pby{Forms of Terms 10 5} 
+\\[1ex]
+\>	(12) 	\> \quad $\tyJudgeES{\un{l}} {\iBool \ \varphi} {\bot}$
+		\> \pby{5 11}
+\\[1ex]
+\>	(13) 	\> \quad $\un{l} : \iBool \ r \in \Sigma$			
+		\> \pby{TyLoc 12} 
+\\[1ex]
+\>	(14) 	\> \quad $l \mapstoa{\rho} \trm{V} \in {\heap} \
+				\ \trm{for some} \ \ \trm{V} \in \{ \trm{T}, {\trm{F}} \}$
+		\> \pby{Def. Store Model 2 13} 
+\\[1ex]
+\>	(15) 	\> \quad $\pstep {H}{t}$						
+		\> \pby{EvIfThen, EvIfElse 14} 
+\\
+\\[1ex]
+\>	(16)	\> $\pcase {\pstep{H}{t_1}}$ 
+\\[1ex]
+\>	(17) 	\> \quad $\pstep {H}{t}$						
+		\> \pby{EvIf 16}
+\end{tabbing}
+
+
+\bigskip
+\bigskip
+% ------------------
+\pCase{$t = (\iTrue \ \varphi_1)$ / TyTrue}
+$$
+\qq \qq	\frac	
+	{ (5) \ \kiJudge{\emptyset} {\Sigma} {\varphi_1} {\%} }
+	{ (\un{1}) 
+	  \ \tyJudge{\emptyset} {\Sigma} {\iTrue \ \varphi_1} {\iBool \ \varphi_1} {\bot}}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2..4}) 	
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+		\> \pby{assume} 
+\\[1ex]
+\>	(6) 	\> $\varphi_1 = \un{\rho}$	
+		\> \pby{Forms of Types, $t$ is closed, 1} 
+\\[1ex]
+\>	(7) 	\> $\kiJudge{\emptyset} {\Sigma} {\un{\rho}} {\%}$
+		\> \pby{5 6} 
+\\[1ex]
+\>	(8) 	\> $\un{\rho} \in \Sigma$
+		\> \pby{KiHandle 7} 
+\\[1ex]
+\>	(9) 	\> $\rho \in \heap$	
+		\> \pby{Def. Store Model 2 8} 
+\\[1ex]
+\>	(10)	\> $\pstep{H}{t}$	
+		\> \pby{EvTrue 9 6}
+\end{tabbing}
+
+\bigskip
+\bigskip
+% ------------------
+\pCase{$t = (\iFalse \ \varphi_1)$ / TyFalse} 
+
+Similarly to TyTrue case.
+\bigskip
+
+\clearpage{}
+
+
+% ------------------
+\pCase{$t = (\iupdate \ \delta \ t_1 \ t_2)$ / TyUpdate}
+$$
+\qq \qq	
+	\frac	
+	{ \begin{aligned}
+	  \\
+	  (5) \ \kiJudgeES{\delta} {\iMutable \ \varphi_1}
+	  \end{aligned}
+	  \tspace
+	  \begin{aligned}
+	  (6) \ \tyJudgeES{t_1} {\iBool \ \varphi_1} {\sigma_1} \\
+	  (7) \ \tyJudgeES{t_2} {\iBool \ \varphi_2} {\sigma_2} \\
+	  \end{aligned}
+	}
+	{ (\un{1}) 
+	   \ \tyJudgeES
+		{(\iupdate \ \delta \ t_1 \ t_2)}
+		{()}
+		{(\sigma_1 \lor \sigma_2 \lor \iRead \ \varphi_2 \lor \iWrite \ \varphi_1)} 
+	}
+$$
+\begin{tabbing}
+MM \= MMMM \= MMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2..4}) 
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+		\> \pby{assume} 
+\\
+\\
+\>	(8, 9) 	\> $\pcase{t_1 \in \rValue, \ \ t_2 \in \rValue}$
+\\[1ex]
+\>	(10)	\> \quad $\delta = \un{\rmutable \ \rho_1}$			
+		\> \pby{Forms of Types 4 5} 
+\\[1ex]
+\>	(11)	\> \quad $\un{\rmutable \ \rho_1} \in \Sigma$		
+		\> \pby{KiMutable 5 10} 
+\\[1ex]
+\>	(12)	\> \quad $\rmutable \ \rho_1 \in \heap$				
+		\> \pby{Def. Store Model 2 11} 
+\\[1ex]
+\>	(13, 14)\> \quad $t_1 = \un{l_1}, \ t_2 = \un{l_2}$			
+		\> \pby{Forms of Terms 8 9 6 7} 
+\\[1ex]
+\>	(15) 	\> \quad $l_1 \mapstoa{\rho_1'} \trm{V}_1' \in {\heap} \
+				\trm{for some} \ \trm{V}_1' \in \{ \trm{T}, \trm{F} \}$
+		\> \pby{as per TyIf case 2 6 13} 
+\\[1ex]
+\>	(16) 	\> \quad $l_2 \mapstoa{\rho_2} \trm{V}_2 \in {\heap} \
+				\trm{for some} \ \trm{V}_2 \in \{ \trm{T}, \trm{F} \}$
+		\> \pby{as per TyIf case 2 7 14}  
+\\[1ex]
+\>	(17) 	\> \quad $\un{\rho_1} = \varphi_1$
+		\> \pby{KiMutable 5 10}
+\\[1ex]
+\>	(18) 	\> \quad $\tyJudgeES{\un{l_1}}{\iBool \ \un{\rho_1}}{\bot}$	
+		\> \pby{6 13 17}
+\\[1ex]
+\>	(19) 	\> \quad $\un{l_1} : \iBool \ \un{\rho_1} \in \Sigma$	
+		\> \pby{Tyloc 18}
+\\[1ex]
+\>	(20) 	\> \quad $l_1 \mapstoa{\rho_1} \trm{V}_1 \in {\heap} \
+				\trm{for some} \ \trm{V}_1 \in \{ \trm{T}, \trm{F} \}$
+		\> \pby{Def. Store Model 2 19} 
+\\[1ex]
+\>	(21) 	\> \quad $\un{\rho_1} = \un{\rho_1'}$
+		\> \pby{Def. Store 15 20}
+\\[1ex]		
+\>	(22) 	\> \quad $\pstep{\heap}{t}$					
+		\> \pby{EvUpdate3, 12 20 16 10 13 14}
+\end{tabbing}
+
+\smallskip
+Other cases via EvUpdate1 or EvUpdate2 as per TyApp case.
+
+\bigskip
+% ---------------------
+\pCase{$t = (\isuspend \ \delta \ t_1 \ t_2)$ / TySuspend}
+$$
+\qq \qq \frac	
+	{ \begin{aligned}
+	  (5) \ \tau_{11} \sims \tau_2 \\
+	  (6) \ \kiJudgeES {\delta} { \iPure \ \sigma }
+	  \end{aligned}
+	  \tspace
+	  \begin{aligned}
+	  (7) \ \tyJudge {\emptyset} {\Sigma&} {t_1} { \tau_{11} \toa{\sigma} \tau_{12} } {\sigma_1} \\
+	  (8) \ \tyJudge {\emptyset} {\Sigma&} {t_2} { \tau_2 } {\sigma_2} \\
+	  \end{aligned}
+	}
+	{ (\un{1}) \ \tyJudge{\emptyset}
+			{\Sigma}
+			{(\isuspend \ \delta \ t_1 \ t_2)}
+			{\tau_{12}}
+			{\sigma_1 \lor \sigma_2} 
+	}
+$$
+\begin{tabbing}
+MM \= MMMx \= MMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	$(\un{2..4})$
+		\> $\Sigma \models \heap, \ \Sigma \vdash \heap, \ \pnofab{t}$
+		\> \pby{assume} 
+\\[1ex]
+\>	(9) 	\> \quad $\delta \in \{ 
+				\iMkPurify \ \un{\rho} \ \delta_2, \
+				\iMkPureJoin \ \sigma_3 \ \sigma_4 \ \delta_3 \ \delta_4,$ 
+\\[1ex]
+\>		\> $\qq \qq	\iMkPure \ \bot, \ 
+				\un{\rpure \ \sigma} \}	$			
+		\> \pby{Forms of Types 6} 
+\\
+\\
+\>	(10) 	\> $\pcase{\delta_1 \in \{ 
+				\iMkPurify \ \un{\rho} \ \delta_2, \
+				\iMkPureJoin \ \sigma_3 \ \sigma_4 \ \delta_3 \ \delta_4, \ \iMkPure \ \bot \} }$
+\\[1ex]
+\>	(11) 	\> \quad $\heap \ ; \ \delta_1 \leadsto \delta_1'$		
+		\> \pby{Progress of Purity 6 3 10} 	
+\\[1ex]
+\>	(12) 	\> \quad $\pstep{\heap}{t}$					
+		\> \pby{EvSuspend1 11}		
+\\
+\\
+\>	(13..15) 	
+		\> $\pcase{\delta_1 = \un{\rpure \ \sigma}, \ t_1 \in \rValue, \ t_2 \in \rValue}$
+\\[1ex]
+\>	(16) 	\> \quad $t_1 = \teLam{x}{\tau}{t_3}$				
+		\> \pby{Forms of Terms 6 16} 
+\\[1ex]
+\>	(17) 	\> \quad $\pstep{\heap}{t_1}$				
+		\> \pby{EvSuspend4 13 16 15} 
+\end{tabbing}
+
+\smallskip
+Other cases via EvSuspend2 or EvSuspend3 as per TyApp case.
+
+\bigskip
+
+\end{flushleft}

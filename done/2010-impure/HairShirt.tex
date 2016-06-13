@@ -1,0 +1,16 @@
+
+\section{The Hair Shirt}
+
+When I started this project back in 2004, one of the first things I came across were the slides for Simon Peyton Jones's 15 year Haskell retrospective entitled ``Wearing the Hair Shirt'' \cite{peyton-jones:wearing-the-hair-shirt}. When I looked up what a ``hair shirt'' was, it turned out to be a device of penance. Certain practitioners of the Christian faith wear (or wore) shirts made out of animal hair, because they are uncomfortable, and help to isolate the wearer from worldly passions.
+
+Designing programming languages is almost too much fun. In the words of Aleister Crowley: ``We ignore what created us; we adore what we create''. It is all too easy to come up with a reasonable idea, fall in love with it, then begin to treat that idea as the one true way of solving any particular problem. Slide 41 of Wearing the Hair Shirt is titled ``What really matters?''. Four things are listed: Laziness, Purity and Monads, Type Classes, and Sexy Types. ``Laziness'' has a big red cross through it, and ``Purity and Monads'' are listed as one thing. I thought about that for some time, and that thinking turned into this thesis.
+
+Five years later, I'd argue that in the context of functional programming, laziness and monads are merely tools, not universal truths. Purity is important to the extent that it reflects an understanding and control over side effects, and type classes and Sexy Types are one and the same. What matters, at least the way I see it, is the Curry-Howard isomorphism, but everyone knew that already.
+
+I find the fact that we can leverage the Curry-Howard isomorphism to express relationships between region, effect and closure information to be highly reassuring. The core axioms, such as the fact that a read of a constant region is pure, are expressed in the kinds of witness constructors. The ambient type system does the rest.
+
+The concrete implementation of DDC still has some wrinkles, but all the ones I know about are cosmetic and do not represent flaws in the overall approach or theory. The type system in this thesis, with its regions, effects, closures and various constraints is large in volume, but the various parts share much common ground. The type inferencer took a long time to work out, mainly because when I started I didn't know what I was doing, but the end result is surprisingly straightforward. 
+
+If I were to distill this thesis into one single point, it would be that the distinction between ``pure'' and ``impure'' languages is an artificial one. As we can express information about effects and mutability directly in the type system, using a standard framework, the difference between pure and impure is no greater than the difference between $\iBool$ and $\iFloat$. Effect typing, closure typing, type classing, regions, dependent kinds and projections were all invented by other, eminently clever people. I've spent the last while pasting them together into a pleasing collage and smoothing out the corners. Now the world seems shiny and new.
+
+

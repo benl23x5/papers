@@ -1,0 +1,91 @@
+
+% -- Type Rules -----------------------------------------------------------------------------------
+% -- Spill contents into right margin
+\newcommand{\ruleBox}[1]{
+	\hspace{-1.5cm}
+	\begin{minipage}{1.25\textwidth}
+	#1
+	\end{minipage}
+}
+
+\newcommand{\ruleSkip}{ \\[2.5ex] }
+
+% -- A type axiom with tag
+\newcommand{\ruleA}[2]{
+	\begin{aligned}
+	#2
+	\end{aligned}
+	\tag{#1}
+}
+
+% -- A type rule with a tag
+\newcommand{\ruleI}[3]{
+	\frac	{ \begin{aligned}
+		  #2
+		  \end{aligned}
+		}
+		{ \begin{aligned}
+		  #3
+		  \end{aligned}
+		}
+	\tag{#1}
+}
+
+% -- A type axiom
+\newcommand{\taxiom}[2]{
+	\begin{aligned}#2\end{aligned} \ \ (\textrm{\small{#1}})
+}
+
+
+% -- Judgements -----------------------------------------------------------------------------------
+% -- type judgement
+%	ENV ; ST :- TERM :: TYPE ; EFFECT
+\newcommand{\tyJudge}	[5]	{#1 \: \arrowvert \: #2 \: \vdash \: #3 \: :: \: #4 \: ; \: #5 }
+\newcommand{\tyJudgeGS}	[3]	{\tyJudge{\Gamma}   {\Sigma}{#1}{#2}{#3}}
+\newcommand{\tyJudgeES} [3]	{\tyJudge{\emptyset}{\Sigma}{#1}{#2}{#3}}
+
+% -- kind judgement
+%	ENV :- TYPE :: KIND
+\newcommand{\kiJudge}	[4]	{#1 \: \arrowvert \: #2 \: \vdash_\textrm{\tiny{T}}#3 \: :: \: #4}
+\newcommand{\kiJudgeGS}	[2]	{\kiJudge{\Gamma}   {\Sigma}{#1}{#2}}
+\newcommand{\kiJudgeES}	[2]	{\kiJudge{\emptyset}{\Sigma}{#1}{#2}}
+\newcommand{\kiJudgeS}	[2]	{\boldsymbol{\vdash}_\textrm{\tiny{T}}#1 \: :: \: #2 }
+
+% -- superkind judgement
+\newcommand{\ksJudge}	[4]	{#1 \: \arrowvert \: #2 \: \vdash_\textrm{\tiny{K}}#3 \: :: \: #4}
+\newcommand{\ksJudgeGS}	[2]	{\ksJudge{\Gamma}{\Sigma}{#1}{#2}}
+
+% -- type similarity judgement
+\newcommand{\siJudge}	[3]	{#1 \: \vdash \: #2 \sim #3}
+\newcommand{\siJudgeS}	[2]	{\siJudge{\Sigma}{#1}{#2}}
+
+\newcommand{\sims}		{\sim_\Sigma}
+
+% -- kind similarity judgement
+\newcommand{\skJudge}	[3]	{#1 \: \vdash_\textrm{\tiny{T}} \: #2 \sim #3}
+\newcommand{\skJudgeS}	[2]	{\skJudge{\Sigma}{#1}{#2}}
+
+
+% -- subsumption judgement
+\newcommand{\suJudge}	[4]	{#1 \: \arrowvert \: #2 \: \vdash \: #3 \: \sqsubseteq \: #4} 
+\newcommand{\suJudgeGS}	[2]	{\suJudge{\Gamma}{\Sigma}{#1}{#2}}
+
+\newcommand{\subs}		{\tle_\Sigma}
+
+
+% -- Kind Macros -----------------------------------------------------------------------------------
+\newcommand{\kiPi}	[3]{\Pi(#1 : #2). \: #3}
+
+
+
+% -- Type Macros -----------------------------------------------------------------------------------
+\newcommand{\tyForall}	[3]	{\forall(#1 : #2). \: #3}
+\newcommand{\tyForallB}	[3]	{\forall(#1 \sqsupseteq #2). \: #3}
+
+\newcommand{\tyMutable}	[1]	{\iMutable \: #1}
+\newcommand{\tyConst}	[1]	{\iConst \: #1}
+
+\newcommand{\tyInt}	[1]	{\iInt \: #1}
+\newcommand{\tyList}	[2]	{\iList \: #1 \: #2}
+\newcommand{\tyPair}	[3]	{\iPair \: #1 \: #2 \: #3}
+\newcommand{\tyChar}	[2]	{\iChar \: #1 \: #2}

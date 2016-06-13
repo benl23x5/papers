@@ -1,0 +1,103 @@
+\clearpage{}
+\subsection{Similarity}
+
+\ruleBox{
+	\begin{center}
+	\fbox{ $\skJudge{\Sigma}{\kappa}{\kappa'}$ }
+	\end{center}
+	\begin{gather}
+	\ruleA	{SkmRefl}
+		{ \skJudge{\Sigma}{\kappa}{\kappa} }
+	\ruleSkip
+	\ruleI	{SkmApp}
+		{ \siJudgeS{\varphi_1}{\varphi_2} }
+		{ \skJudge
+			{\Sigma}
+			{\kappa \ \varphi_1}
+			{\kappa \ \varphi_2}
+		}
+	\end{gather}
+}
+\bigskip
+
+
+\ruleBox{
+	\begin{center}
+	\fbox{ $\siJudge{\Sigma}{\varphi}{\varphi'}$ }
+	\end{center}
+	\begin{gather}
+	\ruleI	{SimHandle}
+		{ r \sim \rho \in \Sigma }
+		{ \siJudgeS{r}{\rho} }
+	\ruleSkip
+	\ruleA	{SimRefl}
+		{ \siJudgeS{\varphi_1}{\varphi_2} }
+	\ruleSkip
+	\ruleI	{SimTrans}
+		{ \siJudgeS{\varphi_1}{\varphi_2}
+		  \tspace
+		  \siJudgeS{\varphi_2}{\varphi_3}
+		}
+		{ \siJudgeS{\varphi_1}{\varphi_3} }
+	\ruleSkip
+	\ruleI	{SimCommute}
+		{ \siJudgeS{\varphi_1}{\varphi_2} }
+		{ \siJudgeS{\varphi_2}{\varphi_1} }
+	\ruleSkip
+	\ruleI	{SimAll}
+		{ \skJudgeS{\kappa_1}{\kappa_2}
+		  \tspace
+		  \siJudgeS{\tau_1}{\tau_2} }
+		{ \siJudgeS
+			{\tyForall{a}{\kappa_1}{\tau_1}}
+			{\tyForall{a}{\kappa_2}{\tau_2}}
+		}
+	\ruleSkip
+	\ruleI	{SimApp}
+		{ \siJudgeS{\varphi_{11}}{\varphi_{21}}
+		  \tspace
+		  \siJudgeS{\varphi_{21}}{\varphi_{22}}
+		}
+		{ \siJudgeS
+			{ \varphi_{11} \ \varphi_{12} }
+			{ \varphi_{21} \ \varphi_{22} }
+		}
+	\ruleSkip
+	\ruleI	{SimJoin}
+		{ \siJudgeS{\sigma_{11}}{\sigma_{21}}
+		  \tspace
+		  \siJudgeS{\sigma_{12}}{\sigma_{22}}
+		}
+		{ \siJudgeS
+			{ \sigma_{11} \lor \sigma_{12} }
+			{ \sigma_{21} \lor \sigma_{22} }
+		}
+	\ruleSkip
+	\ruleI	{SimMutable}
+		{ \siJudgeS{\varphi_1}{\varphi_2} }
+		{ \siJudgeS
+			{\un{\rmutable \ \varphi_1}}
+			{\un{\rmutable \ \varphi_2}}
+		}	
+	\ruleSkip
+	\ruleI	{SimConst}
+		{ \siJudgeS{\varphi_1}{\varphi_2} }
+		{ \siJudgeS
+			{\un{\rconst \ \varphi_1}}
+			{\un{\rconst \ \varphi_2}}
+		}	
+	\ruleSkip
+	\ruleI	{SimPure}
+		{ \siJudgeS{\varphi_1}{\varphi_2} }
+		{ \siJudgeS
+			{\un{\rpure \ \varphi_1}}
+			{\un{\rpure \ \varphi_2}}
+		}	
+	\end{gather}
+}
+
+The judgement form $\skJudge{\Sigma}{\kappa}{\kappa'}$ reads: with store typing $\Sigma$, kind $\kappa$ is similar to kind $\kappa'$. We also write this as $\kappa \sim_{\Sigma} \kappa'$. The judgement form $\siJudge{\Sigma}{\varphi}{\varphi'}$ is similar.
+
+The rules for similarity should be self explanatory. The only interesting one is SimHandle. This rule says that region variables are similar to their associated region handles, provided the mapping is present in the store typing.
+
+

@@ -1,0 +1,411 @@
+
+\clearpage{}
+% -------------------------
+\section{The problem with polymorphic update}
+
+\label{System:PolyUpdate}
+A well known problem can arise when destructive update is added to a language with a Hindley-Milner style polymorphic type system. The classic example is as follows:
+
+\code{	$\iid$ 	& $:: \forall a. \ a \to a$ 	\\
+	$\isucc$	& $:: \iInt \to \iInt$	 	
+}
+
+\code{	\mc{2}{$\ibroken \ ()$} \\
+	\ $= \kdo$ 	& $\iref = \inewRef \ \iid$		\\
+			& $\iwriteRef \ \iref  \ \isucc$	\\
+	 		& $(\ireadRef \ \iref) \ \iTrue$	\\
+}
+
+
+If we treated this function as though it were written in Standard ML, we could argue that it is not type safe and would likely crash at runtime. The first line creates a reference to a polymorphic function $\iid$, while the second updates it to hold a less general function $\isucc$. This invalidates the original type of $\iref$. The problem appears to center on the type inferred for $\iref$:
+
+\code{
+	$\iref :: \forall a. \ \iRef \ (a \to a)$
+}
+
+The $\forall$-quantifier allows us to instantiate this type differently for each use of $\iref$. However, our static type system is unable to track the fact that once we update the reference we can no longer treat it has having this general type.
+
+% --------------------
+\subsection{Fighting the value restriction}
+After winning out over several other systems \cite{garrigue:relaxing} the standard way of addressing the problem with polymorphic update is to apply the \emph{value restriction} \cite{wright:polymorphism-imperative}. The value restriction states that the type of a let-bound variable should only be generalised if the right of the binding is a syntactic value, such as a variable, literal, lambda abstraction, or application of a data constructor to another value. These expressions are called \emph{non-expansive} because their evaluation will neither generate an exception or extend the domain of the store \cite{milner:sml, tofte:polymorphic-references}. 
+
+The value restriction has the advantages that it is simple, easy to implement, and does not require extra information to be attached to the structure of types. This last point is especially important for ML-style languages in which the programmer must write full type signatures when defining module interfaces.
+
+The down side is that a class of expressions that were previously assigned polymorphic types lose their polymorphism. For example:
+
+\code{
+	$f = \imap \ \iid$
+}
+
+The type of $f$ is not generalised because the right of the binding is not a syntactic value. To regain polymorphism we must $\eta$-expand it to give:
+
+\code{
+	$f = \lambda x. \ \imap \ \iid \ x$
+}
+
+or equivalently, write it as a function binding:
+
+\code{
+	$f \ x = \imap \ \iid \ x$
+}
+
+In \cite{wright:polymorphism-imperative} it was argued that as the number of modifications needing to be performed to existing ML programs was small compared to the overall size of the code, the value restriction does not place an undue burden on the programmer in practice. However, in light of more recent languages such as Haskell \cite{haskell98-report}, the value restriction would interfere with applications such as parser combinator libraries, which make heavy use of polymorphic values \cite{leigen:parsec}.
+
+More recently, a variant named the \emph{relaxed value restriction} \cite{garrigue:relaxing} uses a subtyping based approach to recover some of the polymorphism lost by the simpler restriction. Unfortunately,  straight-forward examples like $(\imap \ \iid)$ remain monomorphic.
+
+
+% --------------------
+\subsection{Don't generalise variables free in the store typing}
+\label{System:PolyUpdate:dontgeneralise}
+In \cite{tofte:polymorphic-references} Tofte uncovers the crux of the problem with polymorphic update by attempting to prove the soundness of an ML-style type system with mutable references, and showing where the proof breaks down.
+
+Unsurprisingly, the offending case is the one for let-bindings. The dynamic rule is as follows:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI
+	{MLEvLet}
+	{ s \s E \vdash t_1 \longrightarrow v_1 \s s_1 \qq
+	  s_1 \s E + \{x \mapsto v_1\} \ \vdash t_2 \longrightarrow v \s s' }
+	{ s \s E \vdash \textbf{let} \ x = t_1 \ \textbf{in} \ t_2 \longrightarrow v \s s'}
+	\end{gather}
+}
+
+\medskip
+The judgement form $s \s E \vdash t \longrightarrow v \s s'$ is read: starting with store $s$ and environment $E$, the expression $t$ evaluates to value $v$ and a (perhaps changed) store $s'$. The store $s$ maps locations to values while the environment $E$ maps variables to values. Store locations are created when we allocate a new reference cell, and modifying the contents of a reference cell corresponds to changing the value bound to a particular location. The corresponding type rule is:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI
+	{MLTyLet}
+	{ \Gamma \vdash t_1 :: \tau_1 \qq
+          \Gamma, \ x : \textrm{Gen}(\Gamma, \ \tau_1) \vdash t_2 :: \tau }
+	{ \Gamma \vdash \textbf{let} \ x = t_1 \ \textbf{in} \ t_2 :: \tau }
+	\end{gather}
+}
+
+\medskip
+Here, $\textrm{Gen}(\Gamma, \ \tau_1)$ performs generalisation and is short for $\forall a_1 .. a_n. \ \tau_1$, where $a_1 ...  a_n$ are the type variables in $\tau_1$ that are not free in $\Gamma$. 
+
+In general, $t_1$ may contain location variables, so we need to know the types of the values bound to these locations before we can check the type of the whole expression. This information is held in the \emph{store typing} which maps locations to types. 
+
+If we have an expression $t_1$ of type $\tau_1$, then reducing it relative to a particular store $s_1$ should yield a value $v_1$. We desire this value to have the same type as the original expression, and express this fact with the statement:
+
+\code{
+	$s_1 :: ST_1 \models v_1 :: \tau_1$
+}
+
+This statement reads: in store $s_1$ with typing $ST_1$, $v_1$ has type $\tau_1$. Now the trouble starts. Although we know that $v_1$ has type $\tau_1$, when evaluating a let-expression we must satisfy the the second premise of (MLTyLet). 
+
+\clearpage{}
+This requires that we strengthen the previous statement to:
+
+\code{
+	$s_1 :: ST_1 \models v_1 :: \textrm{Gen}(\Gamma, \ \tau_1)$
+}
+
+This says that we're now considering the value to have a more general type than it used to. An example of this would be to first treat the term $(\lambda x. \ x)$ as having the monomorphic type $b \to b$, and then later deciding that it has the more general, polymorphic type \ $\forall b. \ b \to b$. In a language without references, as long as $b$ is not free in the type environment then this generalisation is justified. 
+
+If $b$ is not free in the type environment, then there is nothing stopping us from $\alpha$-converting any local uses of it, and thus eliminating all mention of this particular variable from our typing statements. By doing this we could be sure that no other parts of the program are treating $b$ as being any specific, concrete type, because they have no information about it.
+
+However, when we introduce mutable references we must also introduce the concept of a store and its associated store typing. This store typing includes type variables, and when we try to strengthen the original statement the proof falls apart. Consider again our $\ibroken$ example that creates a reference to the polymorphic function $\iid$. Expanding out the definition of $\iid$ gives:
+
+\code{
+	$\klet \ \iref = \inewRef \ (\lambda x. \ x)$	 \\
+	$\kin \ \ \dots$
+}
+
+Once $\inewRef \ (\lambda x. \ x)$ has been reduced to a value, the statement we need to strengthen is:
+
+\code{
+	$\{ \iloc_1 \mapsto \lambda x. \ x \} :: \{ \iloc_1 \mapsto (a \to a) \}
+	\ \models \ loc_1 :: a \to a$
+}
+
+Notice how the reduction of $\inewRef \ (\lambda x. \ x)$ has created a new location in the store and bound the identity function to it. In the \emph{store typing} this function has the type $(a \rightarrow a)$ which includes the free variable $a$. 
+
+However, during generalisation this fact is ignored and we end up with:
+
+\code{
+	$\{ \iloc_1 \mapsto \lambda x. \ x \} :: \{ \iloc_1 \mapsto (a \rightarrow a) \}
+	\ \models \ loc_1 :: \mbox{\boldmath $\forall a. \ a \rightarrow a$}$
+}
+
+This statement is clearly suspect because the type assigned to $\iloc_1$ no longer models its type in the store. When we update the reference to hold $\isucc$, the type of the binding in the store changes. Unfortunately, the static typing rules still treat $\iloc_1$ as having the more general type:
+
+\code{
+	$\{ \iloc_1 \mapsto \isucc \} :: \{ loc_1 \mapsto (\iInt \to \iInt) \}
+	\ \models \ \iloc_1 :: \mbox{\boldmath $\forall a. \ a \rightarrow a$}$
+}
+
+If we were to then read the $\isucc$ function back from the store and apply it to a non-$\iInt$ value like $\iTrue$, the runtime result would be undefined.
+
+Tofte sums up the problem with the following observation:
+\begin{center}
+\begin{minipage}{30em}
+\emph{The naive extension of the polymorphic type discipline} [with mutable references] \emph{fails because
+it admits generalisation on type variables that occur free in the store typing.}
+\end{minipage}
+\end{center}
+
+
+\subsection{Generalisation reduces data sharing in System-F}
+\label{System:PolyUpdate:Sharing}
+The value restriction does not solve the fundamental problem of a static analysis being unable to track runtime changes in the type of data. What it does is to limit polymorphism, and to prevent the user from writing a certain class of programs.
+
+Issues of \emph{soundness} can only arise in relation to a well defined semantics. The usual formulation being ``Soundness = Progress + Preservation'' \cite{pierce:tapl}, meaning that a well-typed expression must either be a value or be able to progress to the next step in its evaluation; and that its well-typing is preserved during evaluation.
+
+With an ML style semantics, if we fail to deal adequately with the issue of polymorphic update then the last line in $\ibroken$ from \S\ref{System:PolyUpdate} reduces as:
+
+\code{
+  	\mc{2}{$(\ireadRef \iref) \ \iTrue$}		\\
+	& $\lfun \ \isucc \ \iTrue$			\\
+ 	& $\lfun \ (\lambda x. \ x + 1) \ \iTrue$ 	\\
+ 	& $\lfun \ \iTrue + 1$
+}
+
+This term is not a value and cannot be evaluated further as there is no reduction rule specifying how to add one to a boolean value. It is the \emph{combination} of operational and static semantics which is unsound.
+
+On the other hand, if we consider a System-F style translation of $\ibroken$ which has been typed without restricting generalisation then we would have:
+\begin{displaymath}
+\begin{split}
+\ibroken & = \lambda \ (). \\
+   & \klet \ \iref \ 	    = \Lambda b. \ \inewRef \ \{b \to b\} \ (\iid \ \{b\}) \ \ \kin \\
+   & \klet \ \_  \ \ \ \ \: = \iwriteRef \ \{ \iInt \rightarrow \iInt \} \ (\iref \ \{\iInt \}) \ \isucc \ \ \kin \\
+   & \ireadRef \ \{ \iBool \to \iBool\} \ (\iref \ \{ \iBool \}) \ \iTrue \\
+\end{split}
+\end{displaymath}
+
+We have inserted type lambdas $\Lambda$ and type arguments \texttt{\{\}} at generalisation and instantiation points respectively. Notice that $\iref$ now binds a \emph{function value} instead of an application expression. 
+
+From the operational semantics of DDC's core language \S\ref{Core:Simplified:Transitions} we have:
+
+\ruleBox{
+	\begin{gather}
+	\ruleI	{EvLet1}
+		{ \heap  \with t_1 \eto
+		  \heap' \with t_1' 
+		}
+		{ \heap  \with \rblet \ x = t_1  \ \rbin \ t_2 \eto
+		  \heap' \with \rblet \ x = t_1' \ \rbin \ t_2 
+		}
+	\ruleSkip
+	\ruleA	{EvLet}
+		{ \heap  \with \rblet \ x = v^\circ \ \rbin \ t \eto
+		  \heap  \with t[v^\circ/x] 
+		}
+	\end{gather}	
+}
+
+When combined, these two rules say that to evaluate a let-expression we should first reduce the right of the binding to a (weak) value and then substitute this value into the body. While evaluating $\ibroken$, as the right of the $\iref$ binding is already a value we substitute and end up with:
+\begin{displaymath}
+\begin{split}
+   & \klet \ \_  \ \ \ \  
+   	= \iwriteRef \ \{ \iInt \to \iInt \} 
+		\ ((\Lambda b. \ \inewRef \ \textbf{...} )\ \{\iInt \}) \ \isucc \ \ \kin \\
+   &  \ireadRef \ \{\iBool \to \iBool\} \ ((\Lambda b. \ \inewRef \ \textbf{...} ) \ \{\iBool\}) \ \iTrue \\
+\end{split}
+\end{displaymath}
+
+Note the duplication of the term involving $\inewRef$ and the fact that a new reference containing $\iid$ will be allocated at each occurrence. The re-evaluation of polymorphic terms corresponds with \emph{polymorphism-by-name}~\cite{leroy:polymorphism-by-name}. Also note that the first reference will be updated, but only the second one will be read. Admittedly, the behavior of this expression could be confusing to the programmer, but allowing it does not make our system unsound. Demonstration of unsoundness would require that an expression was well typed, not a value, and could not be reduced further. This expression can be reduced to $\iTrue$, and is not a problem in this respect.
+
+Although polymorphism-by-name keeps our System-F style \emph{core} language sound in the presence of polymorphic update, we expect it to be too confusing for the programmer to use in practice. If a value appears to be shared in the source program, then we do not want this sharing to be reduced depending on whether it is assigned a polymorphic type by the type inferencer. As in \cite{gifford:integrating} we restrict generalisation to preserve the data sharing properties of programs during translation to and from core. However, as mentioned earlier we don't want to use the value restriction. The next section discusses the possibility of leveraging effect typing to control generalisation, but as we shall see in \S\ref{System:Closure} we use another method, namely \emph{closure typing}, to achieve this. Closure typing will help us deal with the problem with polymorphic update, as well as more accurately reason about the sharing properties of data.
+
+
+% --------------------
+\subsection{Restricting generalisation with effect typing}
+As we don't want to rely on the value restriction to control generalisation, we must find another way of identifying variables that are free in the store typing. In a language with ML-style references, the sole means of extending the store is by explicitly allocating them with a function such as $\inewRef$. In this case, the problem of identifying variables free in the store typing reduces to identifying calls to $\inewRef$ and collecting the types of values passed to it. If we treat reference allocation as a computational effect, then we can use effect inference to perform the collection \cite{wright:references-effect}. The rules for the polymorphic type and effect system \cite{talpin:polymorphic, talpin:discipline} are as follows:
+
+\vspace{-1em}
+\begin{displaymath}
+\tfbox{\Gamma \judge t \hastype \tau \with \sigma}
+\end{displaymath}
+\ruleBox{
+	\begin{gather*}
+	\ruleA	{Var}
+		{\Gamma, \ x : \tau &
+			\judge x
+			\hastype \textrm{Inst}(\tau)
+			\with \emptyset} 
+	\ruleSkip
+	\ruleI	{Abs}
+		{ \Gamma, \ x : \tau_1 &
+			\judge t_2
+			\hastype \tau_2
+			\with \sigma }
+		{ \Gamma &
+			\judge \lambda (x : \tau_1). \ t_2 	
+			\hastype \tau_1 \funa{\sigma} \tau_2
+			\with \emptyset}
+	\ruleSkip
+	\ruleI	{App}
+		{ \Gamma & 
+			\judge t_1 
+			\hastype \tau_{11} \funa{\sigma} \tau_{12}
+			\with \sigma_1  \\
+	  	\Gamma & 
+			\judge t_2 			
+			\hastype \tau_{11}
+			\with \sigma_2 \\ }
+		{ \Gamma & 
+			\judge t_1 \ t_2
+			\hastype \tau_{12}
+			\with \sigma_1 \cup \sigma_2 \cup \sigma }
+	\ruleSkip
+	\ruleI	{Let}
+		{ \Gamma &
+			\judge t_1
+			\hastype \tau_1
+			\with \sigma_1 \\
+	  	\Gamma, \ x : \textrm{Gen}(\sigma_1, \Gamma, \tau_1) & 
+		  	\judge t_2
+			\hastype \tau_2
+			\with \sigma_2 \\ }
+		{ \Gamma
+			\judge \textbf{let} \ x = t_1 \ \textbf{in} \ t_2
+			\hastype \tau_2
+			\with \sigma_1 \cup \sigma_2 }
+	\ruleSkip
+	\ruleI	{Sub}
+		{ \Gamma & \judge t \hastype \tau \with \sigma_1 \tspace \sigma_1 \subseteq \sigma_2}
+		{ \Gamma & \judge t \hastype \tau \with \sigma_2 }
+	\end{gather*}
+}
+
+
+ 
+The judgement \ $\Gamma \judge e \hastype \tau \with \sigma$ \ reads: In the environment $\Gamma$ the expression $e$ has type $\tau$ and effect $\sigma$. The environment $\Gamma$ maps variables to types. In this presentation effects are gathered together with the set union operator $\cup$ and a pure expression is assigned the effect $\emptyset$. Also note the term $\textrm{Gen}(\sigma_1, \Gamma, \tau_1)$ in the rule (Let). Generalisation is restricted to variables that are not free in either the type environment or the effect caused by evaluating the body of a let-binding.
+
+These rules describe the ``plumbing'' of how effects are attached to types. What's missing is a description of how atomic effects are introduced to the system via $\inewRef$.
+
+In Wright's system \cite{wright:references-effect}, $\inewRef$ is given the type:
+
+\code{
+	$\inewRef :: \forall a \ e. \ a \lfuna{a \ e} \iRef a$
+}
+
+Here, $a$ is a type variable and its presence on the function arrow indicates that it has the effect of allocating a new reference containing a value of that type. The effect variable $e$ combined with the subsumption rule (Sub) allows the function to be treated as causing \emph{any} effect so long as it includes $a$. This is used when passing arguments to higher order functions, which is discussed in \S\ref{System:Effects:constraint-strengthening}. Although this system collects the requisite type variables, it is limited by the fact that \emph{all} the effects caused by the allocation of references appear in a function's type, even if they are used entirely locally to that function. 
+
+For example, with the following program:
+
+\code{
+	$\iid$		& $ :: \forall a \ e. \ a \funa{e} a$ \\
+	$\iid$		& $ = \lambda x. \ x$ 
+	\\[1ex]
+	$\iidRef$	& $:: b \funa{b} b$ \\
+	$\iidRef$ 	& $= (\lambda x. \ \klet \ \iref = \inewRef \  x \ \kin \ \ireadRef \ \iref)$
+}
+
+In the type for $\iid$, we can generalise $a$ because it does not appear free in either the type environment or the effect caused by the function. The second function $\iidRef$ behaves identically to $\iid$, except that it creates a reference to its argument before returning it. Even though this reference is not accessible once $\iidRef$ returns, the effect caused by allocating it appears in its type, which prevents $b$ from being generalised. Although these two functions behave identically from a \emph{callers} point of view, they cannot be used interchangeably as they have different types.
+
+
+
+% --------------------
+\subsection{Observation criteria}
+\label{System:PolyUpdate:observation}
+In \cite{talpin:discipline} Talpin and Jouvelot extend Wright's effect system with regions. As in Disciple, their regions denote sets of locations which may alias, but they attach region variables to reference types only. In their system, effects are caused when references are read and written to, but also when they are allocated. Each effect carries with it the type of the reference being acted upon, as well as the region it is contained within. The types of the primitive operators are:
+% -- Type schemes
+
+\code{
+	$\inewRef $
+	& $::$	& $\forall a \ r \ e. \ (a \lfuna{e} \iRef \ r \ a)$
+	 	  $\rhd \ e \supseteq \iInit \ r \ a$
+	\\[1ex]
+	$\ireadRef$ 
+	& $::$	& $\forall a \ r \ e.	\ (\iRef \ r \ a \lfuna{e} a)$
+	 	  $\rhd \ e \supseteq \iRead \ r \ a$
+	\\[1ex]
+	$\iwriteRef$ 
+	& $::$	& $\forall a \ r \ e. \ (\iRef \ r \ a \lfuna{e_1} a \lfuna{e_2} ())$
+	 	  $\ \rhd \ e_2 \supseteq \iWrite \ r \ a$
+}
+
+\medskip
+Similarly to Wright's system, $\inewRef$ can be treated has having \emph{any} effect, so long as that effect includes $\iInit \ r \ a$. The effect $\iInit \ r \ a$ records that a reference in region $r$ was initialised to contain a value of type $a$. However, in this system the subsumption rule (Sub) is modified to include an observation criterion which allows effects which are not visible to a caller to be masked.
+
+% -- sub-obs
+\ruleBox{
+	\begin{gather*}
+	\ruleI	{Sub-Obs}
+		{ \Gamma & \judge e \hastype \tau \with \sigma_1 
+			\tspace \sigma_2 \supseteq \iObserve(\Gamma, \sigma_1, \tau)}
+		{ \Gamma & \judge e \hastype \tau \with \sigma_2 }
+	\end{gather*}
+}
+
+where
+
+\code{
+	\mc{2}{$\iObserve(\Gamma, \tau, e)$} 
+	\\[1ex]
+ 	& $= \{ \ \iInit \ r \ \tau_1, \ \iRead \ r \ \tau_1, \ \iWrite \ r \ \tau_1 \in \sigma \ 
+ 			| \ r \in \ifr(\Gamma) \cup \ifr(\tau) \ \}$ 
+	\\[1ex]
+ 	& $\cup \ \{ \ \varsigma \in \sigma \ | \ \varsigma \in \ifv(\Gamma) \cup fv(\tau) \ \}$
+}
+
+The function $\ifv$ computes the free type, region and effect variables in its argument, while $\ifr$ returns free region variables only.
+
+With this system, when we type check the definition of $\iidRef$ the body of the $\lambda$-expression yields the statement:
+
+\code{
+	$\Gamma, \ x :: a$ 
+		& $\judge (\klet \ \iref = \inewRef \ x \ \kin \ \ireadRef \ r) :: a$ \\
+		& $\ ; \ \iInit \ r_1 \ a \ \cup \ \iRead \ r_1 \ a$
+}
+
+Note that although the right of the let-binding allocates and then reads a reference, the region into which the reference is allocated is entirely local to the binding. Applying (Sub-Obs) yields:
+
+\code{
+	$\Gamma, \ x :: a$
+		& $\judge (\klet \ \iref = \inewRef \ x \ \kin \ \ireadRef \ r) :: a$ \\
+		& $\ ; \ \emptyset$
+}
+
+This allows us to infer the same type for $\iid$ as we do for $\iidRef$. Leaving the formal proof of soundness in \cite{talpin:discipline}, we can see why the observation criteria works by inspecting our original statement:
+
+\code{
+	$\Gamma, \ x :: a$ 
+		& $\judge (\klet \ \iref = \inewRef \ x \ \kin \ \ireadRef \ r) :: a$ \\
+		& $\ ; \ \iInit \ r_1 \ a \ \cup \ \iRead \ r_1 \ a$
+}
+
+Notice that $r_1$ is not present in the type environment, and is therefore not visible to the expression's calling context. Also, as the type of the expression does include $r_1$ there will be no ``handle'' on this region after the expression has finished evaluating. Indeed, as the allocated reference is unreachable after this evaluation, it could be safely garbage collected. Returning to Tofte's (un)proof in \S\ref{System:PolyUpdate:dontgeneralise}, this garbage collection corresponds to removing the associated binding from the store and its store typing, which allows $a$ to be safely generalised.
+
+
+% --------------------
+\subsection{Effect typing versus arbitrary update}
+Talpin and Jouvelot's system works well for a language with ML-style references. As update is limited to a distinguished $\iRef$ type, it is easy for the type system to decide when to introduce $\iRead$, $\iWrite$ and $\iInit$ effects. However, in Disciple, update is not restricted to data of a special type. In our system all data has the potential to be updated. 
+
+\clearpage{}
+For example the simple data type $\iMaybe$ is defined as follows:
+
+\code{
+	$\kdata \ \iMaybe \ r \ a \ = \iNothing \ | \ \iJust \ a$
+}
+
+Defining this type furnishes us with a data constructor which can be used to allocate a $\iJust$.
+
+\code{
+	$\iJust :: \forall \ a \ r. \ a \to \iMaybe \ r \ a$
+}
+
+Once a $\iJust$ has been allocated, we can then use the field projection syntax of \S\ref{System:Projections} to update it, or not, as we see fit. If we were to use an effect system to control generalisation, how would we know whether this constructor should cause an $\iInit$ effect? Only the allocation of a mutable value should cause an effect, but mutability depends on whether or not the value may ever be updated, not \emph{vice versa}. The mutability of the object will be inferred by our type system, but this property is not immediately visible at the point where the object is allocated.
+
+
+% --------------------
+
+% \subsection{Value versus monomorphism restrictions in Haskell}
+% Although Haskell does not suffer problems with polymorphic update, there is a related problem involving data sharing. This problem also involves the conversion of pattern bindings to function bindings and is addressed by the infamous monomorphism restriction \cite{haskell98-report}.
+
+% \begin{itemize}
+% \item	Adding dictionary parameters to values changes them into functions. 
+%	This reduces sharing which can cause performance problems.
+%\item	It is important not to reduce sharing of mutable data. Doing so can cause the meaning 
+%	of the program to change. If the body of a loop updates a mutable value at an outer scope, 
+%	and we shift it into the body, then successive iterations of the loop cannot see results
+%	from the previous ones.
+% \item	Haskell doesn't suffer problems with polymorphic update because the translation of monadic bindings
+%	does not use let, so there is no generalisation.
+% \end{itemize}
+

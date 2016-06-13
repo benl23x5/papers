@@ -1,0 +1,164 @@
+
+
+% ---------------------
+\lemma{Forms of Terms and Types}
+
+When a term is in normal form we can determine its shape by inspecting its type \cite{pierce:tapl}. Similarly, when a type is in normal form we can determine its shape by inspecting its kind.
+
+For example:
+
+\begin{tabular}{ll}
+	If	& $t$ is a value \\
+	 \ and	& $\tyJudge{\emptyset}{\Sigma}{t}{\tau_1 \to \tau_2}{\sigma}$ \\
+	then	& $t = \teLam{x}{\tau_1}{t'}$
+\end{tabular}
+
+By inspection of the typing rules. The only values which can have function types are lambda abstractions and variables, but if the type environment is empty the value cannot be a variable. 
+
+\clearpage{}
+% ---------------------
+\lemma{No free witness variables in effects}
+
+\begin{tabular}{ll}
+	If 	& $\tyJudge{\Gamma}{\Sigma}{t}{\varphi}{\sigma}$ \\
+	\ and	& $\kiJudge{\Gamma}{\Sigma}{w}{\kappa}$ and $\ksJudgeGS{\kappa}{\Diamond}$ \\[1ex]
+	then	& $\sigma[\delta/w] \equiv \sigma$
+\end{tabular}
+
+By inspection of the kinding rules for effect constructors.
+
+
+% ---------------------
+\lemma{No free witness variables in term types}
+
+\begin{tabular}{ll}
+	If 	& $\tyJudge{\Gamma}{\Sigma}{t}{\varphi}{\sigma}$ \\
+	\ and	& $\kiJudge{\Gamma}{\Sigma}{w}{\kappa}$ and $\ksJudgeGS{\kappa}{\Diamond}$ \\[1ex]
+	then	& $\varphi[\delta/w] \equiv \varphi$
+\end{tabular}
+
+By inspection of the kinding rules for value type constructors.
+
+
+% ---------------------
+\lemma{Weaken Store Typing}
+
+If we can assign a term $t$ some type and effect, then we can also assign $t$ the same type
+and effect under a larger store typing. This property is also true for kind and similarity judgements.
+
+\medskip
+\begin{tabular}{ll}
+	If 	& $\tyJudge{\Gamma}{\Sigma}{t}{\tau}{\sigma}$ 	\\
+	\ and	& $\Sigma' \supseteq \Sigma$			\\[1ex]
+	then	& $\tyJudge{\Gamma}{\Sigma'}{t}{\tau}{\sigma}$
+\end{tabular}
+\medskip
+
+By induction over the derivation of \ $\tyJudge{\Gamma}{\Sigma}{t}{\tau}{\sigma}$. At the top of the
+derivation tree we will have uses of (TyLoc) which include statements such as $l : \tau \in \Sigma$. 
+These statements remain true when $\Sigma$ is extended.
+
+
+% ---------------------
+\lemma{Strengthen Type Environment}
+
+\medskip
+\begin{tabular}{ll}
+	If	& $\kiJudge{\Gamma, \ x : \tau}{\Sigma}{\varphi}{\kappa}$ \\
+	 \ then	& $\kiJudge{\Gamma}{\Sigma}{\varphi}{\kappa}$
+\end{tabular}
+\medskip
+
+By inspection of the forms of types. Types to not contain value variables.
+
+
+% ---------------------
+\lemma{Similarity under Substitution}
+
+\begin{tabular}{ll}
+	If	& $\varphi_1 \sims \varphi_1'$ \\
+	 \ and	& $\varphi_2 \sims \varphi_2'$ 
+	\\[1ex]
+	then	& $\varphi_1[\varphi_2/a] \sims \varphi_1'[\varphi_2'/a]$
+\end{tabular}
+
+Easy induction.
+
+
+% ---------------------
+\lemma{Region Witness Assertion}
+
+If we add a property to the heap, then we can always evaluate the witness constructor that
+tests for it. 
+
+The statement \ $\heap, \ \ov{\trm{propOf}(\Delta)} \ ; \ \ov{\delta \leadsto \Delta}$ 
+	and $\delta \in \{ \iMkConst \ r, \iMkMutable \ r \}$ \ for some $r$, $\Delta$ is true.
+
+By inspection of the transition rules (EwConst) and (EwMutable).
+
+\clearpage{}
+% ---------------------
+\lemma{Progress of Purity}
+
+\begin{tabular}{ll}
+	If 	& $\kiJudge{\emptyset}{\Sigma}{\delta}{\iPure \ \sigma}$ \\
+	 \ and 	& $\text{nofab}(\delta)$ \\
+	then 	& $\delta = \un{\rpure \ \sigma}$ \\
+ 	 \ or	& $\heap \with \delta \leadsto \delta'$ for some $\heap, \ \delta'$.
+\end{tabular}
+
+\bigskip
+\rbProof:
+\begin{tabbing}
+MM \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	$(\un{1})$
+		\> $\kiJudge{\emptyset}{\Gamma}{\delta}{\iPure \ \sigma}$
+		\> \pby{assume}
+\\[1ex]	
+\>	(\un{2}) 
+		\> $\text{nofab}(\delta)$
+		\> \pby{assume}
+\\[1ex]	
+\>	(3) 	\> $\delta \in 
+			\{ \iMkPure \ \bot
+			 , \ \iMkPurify \ \un{\rho} \ \delta_1,$ 
+\\[1ex]	
+\>		\> $\qq  \iMkPureJoin \ \sigma_2 \ \sigma_3 \ \delta_2 \ \delta_3 \}$
+		\> \pby{Forms of Types 1}
+\\
+\\
+\>	$\emph{Case:}  \ \ \delta = \iMkPure \ \bot$
+\\[1ex]	
+\>	(5) 	\> \quad $\heap \ ; \ \iMkPure \ \bot \leadsto \un{\rpure \ \bot}$
+		\> \pby{EwPure}
+\\
+\\
+\>	$\emph{Case:}  \ \ \delta = \iMkPurify \ \un{\rho} \ \delta_1$
+\\[1ex]	
+\>	(6) 	\> \quad $\delta_1 = \un{\rconst \ \rho}$
+		\> \pby{Kind of $\iMkPurify$ \ 2}
+\\[1ex]	
+\>	(7) 	\> \quad $\heap \ ; \ \iMkPurify \ (\un{\rconst \ \rho}) \leadsto \un{\rpure \ (\iRead \ \rho)}$
+		\> \pby{EwPurify 6 7}
+\\
+\\
+\>	$\emph{Case:}  \ \ \delta = \iMkPureJoin \ \sigma_2 \ \sigma_3 \ \delta_2 \ \delta_3$
+\\[1ex]	
+\>	(8) 	\> \quad $\kiJudge{\emptyset}{\Sigma}{\delta_2}{\iPure \ \sigma_2}$
+		\> \pby{Kind of $\iMkPureJoin$}
+\\[1ex]	
+\>	(9) 	\> \quad $\text{nofab}(\delta_2)$
+		\> \pby{Def. nofab 2}
+\\[1ex]	
+\>	(10)	\> \quad $\delta_2 = \un{\rpure \ \sigma_2} \ \ \text{or} \ \
+		   \heap \with \delta_2 \leadsto \delta_2'$
+		\> \pby{IH 8 9}
+\\[1ex]	
+\>	(11)	\> \quad $\delta_3 = \un{\rpure \ \sigma_3} \ \ \text{or} \ \
+		   \heap \with \delta_3 \leadsto \delta_3'$
+		\> \pby{Similarly}
+\\[1ex]	
+\>	(12)	\> \quad Either (EwPureJoin1), (EwPureJoin2)
+\\[1ex]	
+\> 		\> \quad \qq  or (EwPureJoin3) applies
+\end{tabbing}

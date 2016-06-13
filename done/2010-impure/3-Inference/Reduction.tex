@@ -1,0 +1,204 @@
+\pagebreak{}
+\section{Constraint reduction}
+\label{Inference:Reduction}
+
+Our immediate goal is to determine a type for $\imap$. However, the equivalence class corresponding to $s_{\imap}$ currently contains two different type expressions. Although union typing systems \cite{dunfield:intersections-and-unions} provide a join operator on value types, we do not consider these systems here and will instead take the standard approach of unifying all the types in a particular equivalence class. Unifying all types corresponds to a ML style system, which is usually expressive enough for our needs. We will consider union typing again in \S\ref{Evaluation:Limitations:blocked-regions}.
+
+The unification of types may generate more constraints. These new constraints must be added back to the graph, possibly resulting in more unifications, which may generate more constraints, and so on. In DDC we call this process \emph{grinding} the graph, and we take this to include performing unifications as well as reducing type class constraints and compound effects. 
+
+\subsection{Constraint entailment}
+We use entailment rules to describe operations on constraint sets. Entailment rules have the form $P \vvdash Q$, where $P$ and $Q$ are both sets. $P \vvdash Q$ can be read: ``$P$ entails $Q$'', or perhaps ``$P$ produces $Q$''. If we have a constraint set $R$ and a rule $P \vvdash Q$ where $P \subseteq R$, then we can replace the constraints $P$ in $R$ by the new constraints $Q$. Any variables present in $P$ match the corresponding types in $R$. For example, we could apply transitivity rule:
+
+\begin{tabbing}
+MMM \= MMMMMMM \= MMMMMMMMMMMMMMMMMM \kill
+	\> (trans)	 \> $\{s_1 = s_2, \ s_2 = s_3 \}$ \\
+	\> \qq $\vvdash$ \> $\{ s_1 = s_2, \ s_2 = s_3, \ s_1 = s_3 \}$
+\end{tabbing}
+
+To the following constraint set:
+
+\code{
+	$\{ s_{a} = s_{b}, \ s_{b} = \iInt \ r_1 \}$
+}
+
+to get:
+
+\code{
+	$\{ s_{a} = s_{b}, \ s_{b} = \iInt \ r_1, \ s_{a} = \iInt \ r_1 \}$
+}
+
+
+When we apply an entailment rule $P \vvdash Q$, we take any variables present in $Q$ but not $P$ or $R$ to be fresh.
+
+Note that our entailment rules are expressed as operations on constraint sets, not on type graphs. To apply a rule to the type graph we must imagine it being converted to a constraint set and back again. As discussed in \S\ref{Inference:Constraints:sets-and-equiv-classes} the two forms are not totally equivalent, but the fact that we lose information when converting a constraint set to a type graph will only matter when we come come to discuss type error messages in \S\ref{inference:errors}. We use the graph representation until then as it is more compact and simplifies the presentation.
+
+\clearpage{}
+\subsection{Unification}
+
+
+The entailment rules for unification are:
+
+\begin{tabbing}
+MMM \= MMMMMMM \= MMMMMMMMMMMMMMMMMM \kill
+	\> (unify fun)	 \> $\{ \ s = a_1 \lfuna{e_1 \ c_1} b_1, \ s = a_2 \lfuna{e_2 \ c_2} b_2 \ \}$ \\
+	\> \qq $\vvdash$ \> $\{ \ s = a_1 \lfuna{e_1 \ c_1} b_1, \ a_1 = a_2, \ b_1 = b_2, \ e_1 = e_2, \ c_1 = c_2 \ \}$	
+\end{tabbing}
+
+\begin{tabbing}
+MMM \= MMMMMMM \= MMMMMMMMMMMMMMMMMM \kill
+	\> (unify data)	 \> $\{ \ s = T_1 \ \ov{a}, \ s = T_1 \ \ov{b} \ \}$	\\[1ex]
+	\> \qq $\vvdash$ \> $\{ \ s = T_1 \ \ov{a}, \ \ov{a = b} \ \}$
+\end{tabbing}
+
+The first rule is applicable when there are two function type constraints on a particular variable $s$. Applying the rule causes the second constraint to be discarded, while generating four new ones. These new constraints equate the type variables for the argument, return value, effect and closure of each function. The second rule is similar.
+
+When we come to add a constraint like $a_1 = a_2$ to our type graph, if the two variables are already in the same equivalence class then we just ignore the constraint. If they are in separate classes then we add all the variables and types in the first one to the second, and delete the first (or \emph{vice-versa}). For example, our graph for $\imap$ includes the following:
+
+\bigskip
+\qq\qq
+\begin{tabular}{lllllll}
+*1 	& $\sim \quad s_{map}$, & $s_1, \ s_{16}$ &		
+	& \quad	$=$	& $s_{f} \lfuna{e_{15a} \ c_{15}} s_{15}$, 
+			& $s_f \lfuna{e_2 \ c_1} s_2$
+\\[0.5ex]
+*2	& $\sim \quad s_f$,	& $s_{17}, \ s_{12}$ &		& \quad $=$	& $s_x \lfuna{e_{11a} \ c_{11}} s_{11}$
+\\[0.5ex]
+*5	& $\sim \quad s_2$	& 		&		& \quad $=$	& $s_{xx} \lfuna{e_3 \ c_2} s_3$
+\\[0.5ex]
+*13	& $\sim \quad s_{15}$	&		&		& \quad $=$	& $s_{xs} \lfuna{e_{14a} \ c_{14}} s_{14}$
+\\[0.5ex]
+\ !7	& $\sim \quad e_{15a}$	& 		&		& \quad $\tme$	& $\bot$ 
+\\[0.5ex]
+\ !8	& $\sim \quad e_{2}$	& 		&		& \quad $\tme$	& $\bot$ 
+\\[0.5ex]
+\$1	& $\sim \quad c_1$	&		&		& \quad $\tme$	& $\imap : s_{\imap}$
+\\[0.5ex]
+\$4	& $\sim \quad c_{15}$	&		&		& \quad $\tme$ 	& $\bot$
+\end{tabular}
+\bigskip
+
+Applying the unification rule to *1 allows us to delete the first function type, while generating the new constraints $s_f = s_f$, $s_{15} = s_2$, $e_{15a} = e_2$ and $c_{15} = c_1$. We can safely discard the trivial identity $s_f = s_f$. 
+
+To add $s_{15} = s_2$ back to the graph we add the elements of *5 to *13 and discard *5. Likewise, to add $e_{15a} = e_2$ we will add the elements of !7 to !8 and delete !7. This yields:
+\qq\qq
+\begin{tabbing}
+MMMMM 	\= MM 	\= MMMMM 		 	\= MMMMMM 		\= MMx \= MMM \= MMM \kill
+	\> *1	\> $\sim \quad s_{map}$,	\> $s_1, \ s_{16}$ 	
+		\> $\quad =$			\> $s_{f} \lfuna{e_2 \ c_1} s_{2}$ 
+	\\
+	\> *2	\> $\sim \quad s_f$,		\> $s_{17}, \ s_{12}$
+		\> $\quad =$			\> $s_x \lfuna{e_{11a} \ c_{11}} s_{11}$ 
+	\\
+	\> *13	\> $\sim \quad s_{15}$,		\> $s_{2}$		
+		\> $\quad =$			\> $s_{xs} \lfuna{e_{14a} \ c_{14}} s_{14},$
+						 \  $s_{xx} \lfuna{e_3 \ c_2} s_3$ 
+	\\
+	\> \ !8	\> $\sim \quad e_2$, 	 	\> $e_{15a}$		
+		\> $\quad \tme$			\> $\bot \lor \bot$ 
+	\\
+	\> \$1	\> $\sim \quad c_{1},$		\> $c_{15}$
+		\> $\quad \tme$ 		\> $\imap : s_{\imap} \lor \bot$
+\end{tabbing}
+
+Note that when there are multiple types in a value type equivalence class we separate them by a comma. On the other hand, multiple types in an effect or closure equivalence class are separated by $\lor$. This follows naturally from the fact that constraints on value types are always expressed with =, but constraints on effects and closures are always expressed with $\tme$. Using the definition of $\lor$ we can then go on to simplify $\bot \lor \bot$ to just $\bot$. Note that in the constraint set representation this simplification isn't needed. If we have both $e_1 \tme \bot$ and $e_1 \tme \bot$, then putting these constraints in a set automatically `merges' them.
+
+The application of (unify fun) to *1 has caused a new type to be added to *1. We keep applying our unification rules until no further progress can be made, and when this is done we have:
+
+\bigskip
+\qq
+\begin{tabular}{llllllll}
+*0 	& $\sim \quad s_0$,	& $s_{19}$	&		& \quad $=$	& $\bot$ 
+	\\[0.5ex]
+*1 	& $\sim \quad s_{map}$, & $s_1, \ s_{16}$ &		& \quad	$=$	& $s_f \lfuna{e_2 \ c_1} s_{15}$
+	\\[0.5ex]
+*2	& $\sim \quad s_f$,	& $s_{17}, \ s_{12}$ &		& \quad $=$	& $s_x \lfuna{e_{11a} \ c_{11}} s_{11}$
+	\\[0.5ex]
+*3	& $\sim \quad s_x$,	& $s_{13}, \ a_7, \ a_5$ & 	& \quad $=$	& $\bot$
+	\\[0.5ex]
+*6	& $\sim \quad s_3$,	& $s_6, \ s_8, s_{14}, s_{10b}, s_{10c}$	
+				&	& \quad $=$	& $\iList \ r_6 \ s_{11}$
+	\\[0.5ex]
+*7	& $\sim \quad s_{xx}$,	& $s_4, \ s_5, \ s_7, s_{xs}, s_{18}$	
+							&	& \quad $=$	& $\iList \ r_5 \ s_x$
+	\\[0.5ex]
+*9	& $\sim \quad s_{10}$	&		&		& \quad $=$	& $s_{11} \lfuna{e_{9a} \ c_9} s_{10a}$
+	\\[0.5ex]
+*10	& $\sim \quad s_{10a}$	& $s_9$		&		& \quad $=$	& $s_3 \lfuna{e_{8a} \ c_3} s_3$
+	\\[0.5ex]
+*13	& $\sim \quad s_{15}$, 	& $s_{2}$	&		& \quad $=$	& $s_{xx} \lfuna{e_3 \ c_2} s_3$
+	\\[0.5ex]
+*14	& $\sim \quad s_{11}$,	& $a_{10}, \ a_6$ &		& \quad $\tme$	& $\bot$
+	\\
+\%0	& $\sim \quad r_5,$	& $r_7$ 
+	\\
+\%1	& $\sim \quad r_6,$	& $r_{10}$ 
+	\\
+\ !0	& $\sim \quad e_0$	&		&		& \quad $\tme$	& $e_1 \lor e_{19}$
+	\\[0.5ex]
+\ !1	& $\sim \quad e_3,$	& $e_{14a}$	&		& \quad $\tme$	& $\iReadH \ s_{xx} \lor e_6 \lor e_8$
+	\\[0.5ex]
+\ !2	& $\sim \quad e_8$	&		&		& \quad $\tme$	& $e_9 \lor e_{14} \lor e_{8a}$
+	\\[0.5ex]
+\ !3	& $\sim \quad e_9$	&		&		& \quad $\tme$	& $e_{10} \lor e_{11} \lor e_{9a}$
+	\\[0.5ex]
+\ !4	& $\sim \quad e_{11}$	&		&		& \quad $\tme$	& $e_{12} \lor e_{13} \lor e_{11a}$
+	\\[0.5ex]
+\ !5	& $\sim \quad e_{14}$	&		&		& \quad $\tme$	& $e_{15} \lor e_{18} \lor e_{3}$
+	\\[0.5ex]
+\ !6	& $\sim \quad e_{15}$	&		&		& \quad $\tme$	& $e_{16} \lor e_{17} \lor e_{2}$
+	\\[0.5ex]
+\ !7	& $\sim \quad e_2,$	& $e_{15a}$	&		& \quad $\tme$	& $\bot$
+	\\[1ex]
+\$1	& $\sim \quad c_1$	&		&		& \quad $\tme$	& $\imap : s_{\imap}$
+	\\[0.5ex]
+\$2	& $\sim \quad c_2$	&		&		& \quad $\tme$	& $\imap : s_{\imap} \lor f : s_f$
+	\\[0.5ex]
+\$3	& $\sim \quad c_{10}$	&		&		& \quad $\tme$	& $x : a_{10}$
+
+\end{tabular}
+
+
+%--
+\subsection{Head read}
+
+When unification is complete we have a constraint $s_{xx} = \iList \ r_5 \ s_x$ in *7. This allows us to reduce the $\iReadH s_{xx}$ effect in !1 that was generated by the case-expression in the original program. In DDC we call the process of reducing effect types or type class constraints \emph{crushing}.
+
+The entailment rule for $\iReadH$ is :
+\begin{tabbing}
+MMM \= MMMMMMM \= MMMMMMMM \= MMMMM \kill
+	\> (read head)		\> $\{ \ e \tme \iReadH \ s,$ 	\> $s = T \ r \ \ov{s} \ \}$ \\
+	\> \qq $\vvdash$	\> $\{ \ e \tme \iRead \ r,$	\> $s = T \ r \ \ov{s} \ \}$	
+\end{tabbing}
+This says that the effect of reading the primary region of a data type can be reduced to a simple read of that region once the region is known. This lets us reduce:
+\qq\qq
+\begin{tabbing}
+MMMMM 	\= MM 	\= MMMMM 	\= MMMMMMMMMM 		\= MMx \= MMM \= MMM \kill
+	\> *7	\> $\sim \quad s_{xx}$,	\> $s_4, \ s_5, \ s_7, \ s_{xs}, \ s_{18}$	
+		\> \quad $=$		\> $\iList \ r_5 \ s_x$
+	\\
+	\> \ !1	\> $\sim \quad e_3,$	\> $e_{14a}$		
+		\> \quad $\tme$		\> $\iReadH \ s_{xx} \lor e_6 \lor e_8$ 
+\end{tabbing}
+\vspace{-1em}
+to:
+\qq\qq
+\begin{tabbing}
+MMMMM 	\= MM 	\= MMMMM 	\= MMMMMMMMMM 		\= MMx \= MMM \= MMM \kill
+	\> *7	\> $\sim \quad s_{xx}$,	\> $s_4, \ s_5, \ s_7, \ s_{xs}, \ s_{18}$	
+		\> \quad $=$	\> $\iList \ r_5 \ s_x$
+	\\
+	\> \ !1	\> $\sim \quad e_3,$	\> $e_{14a}$		
+		\> \quad $\tme$	\> $\iRead \ r_5 \lor e_6 \lor e_8$ 
+\end{tabbing}
+
+Recall that when applying an entailment rule, we must imagine the type graph being converted to a constraint set and back. The two equivalence classes *7 and !1 correspond to the set:
+
+\code{
+	$\{$	
+	&  $s_{xx} = s_4$,	& $s_{xx} = s_5$,		& $s_{xx} = s_7$,	& $s_{xx} = s_{xs}$, \\
+	& $s_{xx} = s_{18}$,	& $s_{xx} = \iList \ r_5 \ s_x$,&			& \\
+	& $e_3 = e_{14a}$,	& $e_3 \tme \iReadH \ s_{xx}$,	& $e_3 \tme e_6$,	& $e_3 \tme e_8$ 
+	& $\}$
+}
+
+Expressing the graph in this form separates out the constraints $e_3 \tme \iReadH \ s_{xx}$ and $s_{xx} = \iList \ r_5 \ s_x$, which match the premise of the (read head) rule.

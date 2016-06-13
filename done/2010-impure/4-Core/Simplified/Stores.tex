@@ -1,0 +1,80 @@
+% ---------------------
+\subsection{Stores, machine states and region handles}
+\label{Core:Language:region-handles}
+
+We model the store as a set of bindings of the form $l \mapstoa{\rho} V$, where $l$ is a location, $V$ is an atomic value, and $\rho$ is the handle of the region the value is in. As we have limited ourselves to boolean as the only updatable type, only booleans values are present in the store. This means $V$ can be either $T$ or $F$ for true or false values respectively. 
+
+Stores may also contain elements of the form $(\rmutable \ \rho)$ and $(\rconst \ \rho)$ which specify the associated property of the region with that handle. Note the distinction between properties and witnesses. Properties exist in the store and are not underlined, whereas witnesses exist in the expression being reduced, and are underlined. To convert a witness to its equivalent property we use the $\trm{propOf}$ function. 
+
+For example:
+
+\code{
+	$\trm{propOf}(\un{\rmutable \ \rho}) \equiv \rmutable \ \rho$
+}
+
+A \emph{machine state} is a combination of a store and the term being evaluated. We write machine states as $\heap \ ; \ t$, where $\heap$ is the store (also known as the heap) and $t$ is the term. When the program starts evaluating the store is empty, so we use $\emptyset \ ; \ t$ as the \emph{initial state}.
+
+Region witnesses are witnesses to the fact that a particular region is present in the store, and is available to have things allocated into it. Note that the region witnesses in the \emph{store} are written $\rho$, but when used as a type-level witness they are written with an underline, $\un{\rho}$. We use $\kletregion$ to create a new region, and the $\iTrue$ and $\iFalse$ constructors to allocate values into it. We must pass a region handle to these constructors to prove that the required region exists for them to allocate their value into.
+
+For example, to create a new region and allocate a $\iTrue$ value into it we could start with the following machine state:
+
+\medskip
+\qq
+\begin{tabular}{lll}
+		& $\emptyset \ ; \ \kletregion \ r \ \kwith \ \{ w = \iMkConst \ r \} \ \kin \ \iTrue \ r$
+\end{tabular}
+\medskip
+
+To reduce the $\kletregion$, we create fresh region handle $\rho$, along with its witness $\un{\rho}$ and substitute the witness for all occurrences of the bound region variable $r$. If there are witnesses to mutability or constancy attached, then we also construct those and add them to the heap. For example:
+
+\medskip
+\qq
+\begin{tabular}{lll}
+		& $\emptyset$			& $ ; \ \kletregion \ r \ \kwith \ \{ w = \iMkConst \ r \} \ 
+								\kin \ \iTrue \ r$ \\
+	$\eto$	& $\rho, \ \rconst \ \rho$	& $ ; \ \iTrue \ \un{\rho}$
+\end{tabular}
+\medskip
+
+Note that the term $\iTrue \ \un{\rho}$ is closed. If we had not substituted the witness $\un{\rho}$ for $r$ then $r$ would be free, which would violate the progress theorem we discuss in \S\ref{Core:Language:Soundness}.
+
+\clearpage{}
+To reduce the application of a data constructor, we create a fresh location in the store and bind the associated value to it:
+
+\qq
+\begin{tabular}{lll}
+		& $\rho, \ \rconst \ \rho$		
+		& $ ; \ \iTrue \ \un{\rho}$ \\
+	$\eto$	& $\rho, \ \rconst \ \rho, \ l \mapstoa{\rho} T$	
+		& $ ; \ \un{l}$
+\end{tabular}
+
+Note again that the location in the store is written $l$, but in the term it is written $\un{l}$. We can think of $\un{l}$ as a value level witness, or evidence, that there is an associated location in the store. This must be true, because the only way can acquire an $\un{l}$ is by performing an allocation.
+
+Importantly, in a concrete implementation there is no need to actually record properties like $\rho$ and $(\rconst \ \rho)$ \ in the store. A term such as $(\rconst \ \rho)$ expresses a property which the running program will honor, but we do not need privilege bits, tables, locks, or other low level machinery to achieve this -- it's taken care of statically by the type system. The fact a well typed program will not update data in a constant region is part of the guarantee that it will not ``go wrong''.
+
+On the other hand, we do need to record bindings such as $l \mapstoa{\rho} T$, because they correspond to physical data in the store.
+
+
+\bigskip
+% ---------------------------------------------------------
+\subsection{Region allocation versus lazy evaluation}
+\label{Core:Language:lazy-evaluation}
+
+Note that $\kletregion$ example from the last section would be invalid in systems such as \cite{tofte:region-inference} which use regions for memory management. Here it is again:
+
+\medskip
+\qq
+\begin{tabular}{lll}
+		& $\emptyset \ ; \ \kletregion \ r \ \kwith \ \{ w = \iMkConst \ r \} \ \kin \ \iTrue \ r$
+\end{tabular}
+\medskip
+
+This expression has type $\iBool \ r$, which indicates that it returns a boolean value in a region named $r$. The trouble is that the value will exist in the store after the term has finished evaluating. Systems such as \cite{tofte:region-inference} use the syntactic scope of the variable bound by a $\kletregion$ to denote the lifetime of the associated region. In these systems, once the body of a $\kletregion$ term has finished evaluating, the region named $r$, along with all the objects in it, is reclaimed by the storage manager. The type checker ensures that the surrounding program cannot hold references to objects in reclaimed regions, by requiring that the region variable $r$ is not free in the type environment, or the type of the return value. This is an observation criteria similar to the one discussed in \S\ref{System:PolyUpdate:observation}.
+
+Unfortunately, this simple criteria only works for strict languages. In Disciple, even though a value may have type $\iBool \ r$, if it is a lazy value then it may be represented by a thunk. This thunk can hold references to regions that are not visible in its type, and if we were to deallocate those regions before forcing the thunk, then the result would be undefined. This is discussed further in \S\ref{Evaluation:Limits:sharing-and-constraint-masking}.
+
+As we do not use regions for allocation, we do not enforce the observation criteria mentioned above. However, this requires us to relax our notion of type equality to account for the fact that region handles are substituted for region variables during evaluation. We use the notion of \emph{region similarity}, written $r \sim \rho$ to represent this, and the mechanism is discussed in the coming sections.
+
+
+

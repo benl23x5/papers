@@ -1,0 +1,536 @@
+
+\clearpage{}
+\begin{flushleft}
+\textbf{Lemma: (Substitution of Types in Values)}
+
+\begin{tabular}{ll}
+ 	If  	& $\tyJudge{\Gamma, \ a : \kappa_3}{\Sigma}{t}{\tau_1}{\sigma}$ 
+	\\
+ 	\ and  	& $\kiJudge{\Gamma}{\Sigma}{\varphi_2}{\kappa_2}$ 
+	\\
+	\ and	& $\kappa_3 \sims \kappa_2$ 
+	\\[1ex]
+	then	& $\tyJudge{\Gamma[\varphi_2/a]}{\Sigma}
+				{t[\varphi_2/a]}{\tau_1[\varphi_2/a]}{\sigma[\varphi_2/a]}$ \\
+\end{tabular}
+
+\medskip
+\trb{Proof:} by induction over the derivation of $\tyJudge{\Gamma, \ a : \kappa_3}{\Sigma}{t}{\tau_1}{\sigma}$
+
+\medskip
+\begin{tabbing}
+M \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	 (IH) 
+	\> Substitution holds for all subterms of $t$.
+	\> (assume) 
+\end{tabbing}
+
+% ---------------------
+\pCase{$t = x$ / TyVar}
+
+Trival. No type vars in value vars.
+
+
+\bigskip
+% ---------------------
+\pCase{$t = \teLAM{a}{\kappa}{t}$ / TyAbsT}
+$$
+\qq \qq	\infer
+	{ (\un{1}) \
+	  \tyJudge
+		{\Gamma, \ a : \kappa_3}
+		{\Sigma}
+		{\teLAM{a_{11}}{\kappa_{11}}{t_{12}}}
+		{\tyForall{a_{11}}{\kappa_{11}}{\tau_{12}}}
+		{\sigma_1}
+	}
+	{ (4) \
+	  \tyJudge
+	  	{\Gamma, \ a : \kappa_3, \ a_{11} : \kappa_{11}}
+		{\Sigma}
+		{t_{12}}
+		{\tau_{12}}
+		{\sigma_1}
+	}
+$$
+\begin{tabbing}
+M \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 
+		\> $\kiJudgeGS{\varphi_2}{\kappa_2}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) 
+		\> $\kappa_3 \sims \kappa_2$
+		\> \pby{assume}
+\\[1ex]
+\>	(5) 	\> $\kiJudge
+			{\Gamma, \ a_{11} : \kappa_{11}}
+			{\Sigma}
+			{\varphi_2}
+			{\kappa_2}$
+		\> \pby{Weak. Type Env 2}
+\\[1ex]
+\>	(6) 	\> $\ \ \ \ \ \: 
+			{(\Gamma, \  a_{11} : \kappa_{11})[\varphi_2/a]} 
+			\ \vert \ 	{\Sigma} 
+			\judge 		{t_{12}[\varphi_2/a]}$
+\\[0.2ex]
+\>		\> \hspace{12em}	
+			$:: \	{\tau_{12}[\varphi_2/a]}
+			 \ ; \  {\sigma_1[\varphi_2/a]}$
+		\> \pby{IH 4 5 3}
+\\[1ex]
+\>	(7)	\> $	{\Gamma[\varphi_2/a], \ a_{11} : \kappa_{11}[\varphi_2/a]} 
+			\ \vert \ 	{\Sigma}
+			\judge 		{t_{12}[\varphi_2/a]}$
+\\[0.2ex]
+\>		\> \hspace{12em}
+			$:: \	{\tau_{12}[\varphi_2/a]}
+			 \ ; \	{\sigma_1[\varphi_2/a]}$
+		\> \pby{Def. Sub. 6}
+\\[1ex]
+\>	(8)	\> ${\Gamma[\varphi_2/a]} \ \arrowvert \ {\Sigma} \ \vdash
+			{(\teLAM
+				{a_{11}}
+				{\kappa_{11}}
+				{t_{12}})
+				[\varphi_2/a]
+			}$
+\\[1ex]
+\>		\> $\hspace{5em}
+			:: \
+			{(\tyForall 
+				{a_{11}}
+				{\kappa_{11}}
+				{\tau_{12}})
+				[\varphi_2/a]
+			}
+			\ ; \ 
+			{\sigma_1[\varphi_2/a]}$
+		\> \pby{Def. Sub, TyAbsT 7}
+\end{tabbing}
+
+
+\bigskip
+% ---------------------
+\pCase{$t = t_{11} \ \varphi_{12}$ / TyAppT}
+$$
+	\infer
+	{ (\un{1}) \
+	  \tyJudge
+		{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{t_1 \ \varphi_2}
+		{\varphi_{12}[\varphi_2/a_1]}
+		{\sigma_1[\varphi_2/a_1]}
+	}
+	{ (4) \
+	  \tyJudge
+	  	{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{t_1}
+		{\tyForall{a_1}{\kappa_{11}}{\varphi_{12}}}
+		{\sigma_1}	
+	  \quad
+	  (5) \ 
+	  \kiJudge
+	  	{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{\varphi_2}
+		{\kappa_2}
+	  \quad
+	  (6) \ 
+	  \kappa_{11} \sims \kappa_{2}
+	}
+$$
+\begin{tabbing}
+M \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2})
+		\> $\kiJudgeGS{\varphi_3}{\kappa_3}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3})
+		\> $\kappa_4 \sims \kappa_3$
+		\> \pby{assume}
+\\[1ex]
+\>	(7)	\> ${\Gamma[\varphi_3/a]} 
+			\ \vert \ 	{\Sigma}
+			\ \vdash \	{t_1[\varphi_3/a]}$
+\\[0.2ex]
+\>		\> $\hspace{5.6em} 
+			  :: \ { (\tyForall{a_1}{\kappa_{11}}{\varphi_{12}})[\varphi_3/a] }
+			\ ; \ { \sigma_1[\varphi_3/a] }$
+		\> \pby{IH 4 2 3}
+\\[1ex]
+\>	(8)	\> ${\Gamma[\varphi_3/a]}
+			\ \vert \	{\Sigma}
+			\ \vdash \ 	{t_1[\varphi_3/a]}$
+\\[0.2ex]
+\>		\> $\hspace{5.6em} ::
+			{ \tyForall
+				{a_1}
+				{\kappa_{11}[\varphi_3/a]}
+				{\varphi_{12}[\varphi_3/a] }
+			}
+			\ ; \ { \sigma_1[\varphi_3/a] }$
+		\> \pby{Def. Sub. 7}
+\\[1ex]
+\>	(9)	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{\varphi_2[\varphi_3/a]}
+			{\kappa_2[\varphi_3/a]}$
+		\> \pby{Sub. Type/Type 5 2 3}
+\\[1ex]
+\>	(10)	\> $\kappa_{11}[\varphi_3/a] \sims 
+		  \kappa_{2}[\varphi_3/a]$
+		\> \pby{Def. Sub, Def. ($\sim$), 6}
+\\[1ex]
+\>	(11)	\> ${\Gamma[\varphi_3/a]} \ \arrowvert \ {\Sigma} \ \vdash \
+			{t_1[\varphi_3/a] \ \ \varphi_2[\varphi_3/a]}$
+\\[0.2ex]
+\>		\> $\hspace{5.6em} :: \ {(\varphi_{12}[\varphi_3/a])[\varphi_2[\varphi_3/a]/a_1]}$
+\\[0.2ex]
+\>		\> $\hspace{5.6em} ; \ \  {(\sigma_1    [\varphi_3/a])[\varphi_2[\varphi_3/a]/a_1]}$
+		\> \pby{TyAppT 8 9 10}
+\\[1ex]
+\>	(12)	\> $a \ne a_1$
+		\> \pby{No Var Capture 4}
+\\[1ex]
+\>	(13)	\> ${\Gamma[\varphi_3/a]} \ \arrowvert \ {\Sigma} \ \vdash \
+			{(t_1 \ \varphi_2)[\varphi_3/a]}$
+\\[0.2ex]
+\>		\> $\hspace{5.4em} :: \ {(\varphi_{12}[\varphi_2/a_1])[\varphi_3/a]}
+			\ \ ; \ {(\sigma_1[\varphi_2/a_1])[\varphi_3/a]}$
+		\> \pby{Def. Sub. 11 12}
+\end{tabbing}
+
+\clearpage{}
+% ----------------------
+\pCase{$t = \teLam{x}{\tau_{11}}{t_{12}}$ / TyAbs} \\
+\pCase{$t = (t_1 \ t_2)$ / TyApp} \\
+\pCase{$t = (\teLet{x}{t_1}{t_2})$ / TyLet}
+
+Similarly to TyAbsT Case
+
+\bigskip
+% ----------------------
+\pCase{$t = \teLetR{r}{\ov{w_i = \delta_i}}{t_1}$ / TyLetRegion}
+
+$$
+\qq	\infer
+	{ (\un{1}) \
+	  \tyJudge
+		{\Gamma, \ a : \kappa_3}
+		{\Sigma}
+		{\teLetR{r}{\ov{w_i = \delta_i}}{t_1}}
+		{\sigma}
+	}
+	{
+	  \begin{aligned}
+		(6) \
+		\ov{\delta_i} \ \text{well formed}
+		\\
+	  	(4) \
+	  	\tyJudge
+			{\Gamma, \ a : \kappa_3, \ r : \%, \ \ov{w_i = \kappa_i}}
+			{\Sigma}
+			{t_1}
+			{\tau}
+			{\sigma}
+	  \end{aligned}
+	  \quad
+	  \begin{aligned}
+		(7) \
+	        \ksJudge
+			{\Gamma}
+			{\Sigma&}
+			{\kappa_i}
+			{\Diamond}
+		\\
+	        (5) \
+	  	\kiJudge
+			{\Gamma, \ a : \kappa_3}
+			{\Sigma&}
+			{\delta_i}
+			{\kappa_i}
+	  \end{aligned}
+	}
+$$
+
+\begin{tabbing}
+M \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 
+		\> $\kiJudgeGS{\varphi_2}{\kappa_2}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) 
+		\> $\kappa_3 \sims \kappa_2$
+		\> \pby{assume}
+\\[1ex]
+\>	(8) 	\> $\kiJudge
+			{\Gamma, \ r : \%, \ \ov{w_i : \kappa_i}}
+			{\Sigma}
+			{\varphi_2}
+			{\kappa_2}$
+		\> \pby{Weak. Type Env 2}
+\\[1ex]
+\>	(9)	\> $\tyJudge
+			{(\Gamma, \ r : \%, \ \ov{w_i : \kappa_i})[\varphi_2/a]}
+			{\Sigma}
+			{t[\varphi_2/a]}
+			{\tau[\varphi_2/a]}
+			{\sigma[\varphi_2/a]}$
+		\> \pby{IH 4 8 3}
+\\[1ex]
+\>	(10)	\> ${\Gamma[\varphi_2/a], \ r : \%, \ (\ov{w_i : \kappa_i[\varphi_2/a]})} \arrowvert {\Sigma} 
+				\judge 	{t[\varphi_2/a]}$
+\\[0.2ex]
+\>		\> $\hspace{14.5em} :: {\tau[\varphi_2/a]} \ ; \ 
+		    {\sigma[\varphi_2/a]}$
+		\> \pby{Def. Sub. 9}
+\\[1ex]
+\>	(11)	\> $\kiJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{\delta_i[\varphi_2/a]}
+			{\kappa_i[\varphi_2/a]}$
+		\> \pby{Sub. Type/Type 5 2 3}
+\\[1ex]
+\>	(12)	\> $\ksJudge
+			{\Gamma}
+			{\kappa_i[\varphi_2/a]}
+			{\Diamond}$
+		\> \pby{Insp. Kinding Rules}
+\\[1ex]
+\>	(13)	\> $\ov{\delta_i}[\varphi_2/a] \ \text{well formed}$
+		\> \pby{Def. Well Formed 6}
+\\[1ex]
+\>	(14)	\> ${\Gamma[\varphi_2/a]} \ 
+			\arrowvert \ {\Sigma}
+			\vdash \ {\teLetR{r}{\ov{w_i = \delta_i[\varphi_2/a]}}{t[\varphi_2/a]}}$
+\\[0.2ex]
+\>		\> $\hspace{5em}
+			:: \ {\tau[\varphi_2/a]} \ ; {\sigma[\varphi_2/a]}$
+		\> \pby{TyLetRegion 10..13}
+\\[1ex]
+\>	(15)	\> ${\Gamma[\varphi_2/a]} \
+			\arrowvert \ {\Sigma}
+			\vdash \ {(\teLetR{r}{\ov{w_i = \delta_i}}{t})[\varphi_2/a]}$
+\\[0.2ex]
+\>		\> $\hspace{5em}
+			:: \ {\tau[\varphi_2/a]} \ ; {\sigma[\varphi_2/a]}$
+		\> \pby{Def. Sub. 14}
+\end{tabbing}
+
+\bigskip
+% --------------------
+\pCase{$t = \teIf{t_1}{t_2}{t_3}$ / TyIf}
+
+Similarly to TyAbsT case.
+
+\bigskip
+% -------------------
+\pCase{$t = \iTrue \ \varphi$ / TyTrue}
+$$
+\qq	\infer
+	{ (\un{1}) \
+	  \tyJudge
+		{\Gamma, \ a : \kappa_3}
+		{\Sigma}
+		{\iTrue \ \varphi}
+		{\iBool \ \varphi}
+		{\bot}
+	}
+	{ (4) \
+	  \kiJudge
+		{\Gamma, \ a : \kappa_3}
+		{\Sigma}
+		{\varphi}
+		{\%}
+	}	
+$$
+\begin{tabbing}
+M \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 
+		\> $\kiJudgeGS{\varphi_2}{\kappa_2}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) 
+		\> $\kappa_3 \sims \kappa_2$
+		\> \pby{assume}
+\\[1ex]
+\>	(5) 	\> $\kiJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{\varphi[\varphi_2/a]}
+			{\%[\varphi_2/a]}$
+		\> \pby{Sub Type/Type 4 2 3}
+\\[1ex]
+\>	(6) 	\> $\kiJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{\varphi[\varphi_2/a]}
+			{\%}$
+		\> \pby{Def. Sub. 5}
+\\[1ex]
+\>	(7) 	\> $\tyJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{\iTrue \ (\varphi[\varphi_2/a])}
+			{\iBool \ (\varphi[\varphi_2/a])}
+			{\bot}$
+		\> \pby{TyTrue 6}
+\\[1ex]
+\>	(8) 	\> $\tyJudge
+			{\Gamma[\varphi_2/a]}
+			{\Sigma}
+			{(\iTrue \ \varphi)[\varphi_2/a]}
+			{(\iBool \ \varphi)[\varphi_2/a]}
+			{\bot}$
+		\> \pby{Def. Sub. 7}
+\end{tabbing}
+
+\clearpage{}
+% --------------------
+\pCase{$t = \iFalse \ \varphi$}
+
+Similarly to TyTrue Case.
+
+\bigskip
+% --------------------
+\pCase{$t = \iupdate \ \delta \ t_1 \ t_2$ / TyUpdate}
+$$
+\qq	\infer
+	{ (\un{1}) \
+	  \tyJudge
+		{\Gamma, \ a : \kappa_4}
+		{\Sigma}
+		{\iupdate \ \delta \ t_1 \ t_2}
+		{()}
+		{\sigma_1 \lor \sigma_2 \lor \iRead \ \varphi_2 \lor \iWrite \ \varphi_1}
+	}
+	{
+	  \begin{aligned}		
+	 	\\
+		(4) \
+	 	\kiJudge
+			{\Gamma, \ a : \kappa_4}
+			{\Sigma}
+			{\delta}
+			{\iMutable \ \sigma}
+	  \end{aligned}
+	  \quad
+	  \begin{aligned}
+	  	(5) \
+	 	\tyJudge
+			{\Gamma, \ a : \kappa_4}
+			{\Sigma}
+			{t_1}
+			{\iBool \ \varphi_1}
+			{\sigma_1}
+		\\
+		(6) \
+		\tyJudge
+			{\Gamma, \ a : \kappa_4}
+			{\Sigma}
+			{t_2}
+			{\iBool \ \varphi_2}
+			{\sigma_2}
+	  \end{aligned}
+	}
+$$
+\begin{tabbing}
+M \= MMx \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM  \kill
+\>	(\un{2}) 
+		\> $\kiJudgeGS{\varphi_3}{\kappa_3}$
+		\> \pby{assume}
+\\[1ex]
+\>	(\un{3}) \
+		\> $\kappa_4 \sims \kappa_3$
+		\> \pby{assume}
+\\[1ex]
+\>	(7) 	\> $\kiJudge
+			{\Gamma, \ a : \kappa_4}
+			{\Sigma}
+			{\varphi_3}
+			{\kappa_3}$
+		\> \pby{Weak. Type Env 2}
+\\[1ex]
+\>	(8) 	\> $\tyJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{t_1[\varphi_3/a]}
+			{\iBool \ (\varphi_1[\varphi_3/a])}
+			{\sigma_1[\varphi_3/a]}$
+		\> \pby{IH, Def. Sub. 5 7 3}
+\\[1ex]
+\>	(9) 	\> $\tyJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{t_2[\varphi_3/a]}
+			{\iBool \ (\varphi_2[\varphi_3/a])}
+			{\sigma_2[\varphi_3/a]}$
+		\> \pby{IH, Def. Sub. 6 7 3}
+\\[1ex]
+\>	(10) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{\delta[\varphi_3/a]}
+			{(\iMutable \ \delta)[\varphi_3/a]}$
+		\> \pby{Sub. Type/Type 4 2 3}
+\\[1ex]
+\>	(11) 	\> $\kiJudge
+			{\Gamma[\varphi_3/a]}
+			{\Sigma}
+			{\delta[\varphi_3/a]}
+			{\iMutable \ (\delta[\varphi_3/a])}$
+		\> \pby{Def. Sub. 10}
+\\[1ex]
+\>	(12) 	\> $\Gamma[\varphi_3/a] \: \arrowvert \: \Sigma
+			\ \vdash \ 
+			{\iupdate 
+				\ (\delta[\varphi_3/a])
+				\ (t_1[\varphi_3/a])
+				\ (t_2[\varphi_3/a])}$
+\\[0.2ex]
+\>		\> $\hspace{5em} \ :: \ ()$
+\\[0.2ex]
+\>		\> $\hspace{5em} \ ; \ \
+			\sigma_1[\varphi_3/a] \lor \sigma_2[\varphi_3/a]
+			\lor \iRead  \ (\varphi_2[\varphi_3/a])$
+\\[0.2ex]
+\>		\> $\hspace{14.8em} \lor \iWrite \ (\varphi_1[\varphi_3/a])$
+		\> \pby{TyUpdate 8 9 11}
+\\[1ex]
+\>	(13) 	\>$ \Gamma[\varphi_3/a] \: \arrowvert \: \Sigma
+			\ \vdash \ 
+			{(\iupdate \ \delta \ t_1 \ t_2)[\varphi_3/a]}$
+\\[0.2ex]
+\>		\> $\hspace{5em} \ :: \ ()$
+\\[0.2ex]
+\>		\> $\hspace{5em} \ ; \ \
+			{(\sigma_1 \lor \sigma_2 \lor \iRead \ \varphi_2 \lor \iWrite \ \varphi_1)
+				[\varphi_3/a]}$
+		\> \pby{Def. Sub. 12}
+\end{tabbing}
+
+\bigskip
+% --------------------
+\pCase{$t = \isuspend \ \delta \ t_1 \ t_2$ / TySuspend}
+
+Similarly to TyApp / TyUpdate case.
+
+\bigskip
+% --------------------
+\pCase{$t = ()$ / TyUnit} \\
+\pCase{$t = \un{l}$ / TyLoc}
+
+Trivial. No free type vars.
+
+
+\end{flushleft}
+
+
+
+
