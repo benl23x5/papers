@@ -1,0 +1,643 @@
+%
+%
+%
+%
+
+\documentclass{llncs}
+\begin{document}
+
+\title{An AMPLE Implementation}
+
+\author{Benjamin Lippmeier \and Clem Baker-Finch}
+
+\institute{
+	Faculty of Computer Science,
+	Australian National University
+	\email{b.lippmeier@cs.anu.edu.au, c.baker-finch@cs.anu.edu.au}}
+
+\maketitle
+
+
+\begin{abstract}
+Ample is a .... Ample was created for ... experimental environment. Ample draws on work by Sestoft and Baker-Finch.
+\end{abstract}
+
+\section{Introduction}
+Ample is a ... 
+Ample was created as a demonstration of the operational semantics for parallel lazy evaulation given by Clem Baker-Finch, David J. King and Phil Trinder \cite{baker-finch:osple}. Ample is also an experimental environment that can be used to study the behaviour of parallel programs in terms of an abstract machine without needing to worry about details particular to a native implementation.
+
+Ample has been written entierly in Haskell. ....
+
+
+\subsection{Outline of the Implementation}
+Two versions of Ample have been implemented, denoted Ample1 and Ample2. Ample1 is based on Sestoft's Mark-1 machine which uses variable substitution to perform application. Ample2 is based on Sestoft's Mark-3 machine which uses a separate environment to model substitution \cite{sestoft}. Ample2 also implements environment trimming for let expressions and constructors. 
+
+The two versions of Ample accept a familiar source language which is expressive enough to write medium sized programs without too much trouble. There are some slight differences in the source language between the two different versions, though these differences are contained within expressions which \emph{must} have knowlege of the underlying implementation in order to work. An example of this is the code which forces the arguments of a function to normal form before invoking a primitive operation. These differences are encapsulated within the standard prelude for each machine and do not influence user code.
+
+Ample implements parallism as described by Baker-Finch et al \cite{baker-finch:osple}, \cite{baker-finch:plam}. This model of parallism consists of a pool of threads which communicate via a common heap. Ample supports three different execution models - single threaded, fully speculative and par-seq. In the single threaded model only a single thread exists and all reductions proceed in a sequential manner. In the fully speculative model a new thread is created during each application. In the par-seq model parallism is controlled explicitly by inserting the \texttt{par} and \texttt{seq} combinators into source in a manner similar to that used in GpH \cite{GpH}.
+
+Ample provides a rich set of profiling and tracing tools....
+
+
+\section{Compilation of AMPLE Source Language}
+
+Mention normalisation
+
+Mention debruijn indicies
+
+Mention trimmers
+
+Mention flattened program representation
+
+Program is compiled to a core language, program cells.. 
+
+Program is a single expression. let [ prelude ] in expression, expression provided at the interactive AMPLE prompt.
+
+
+\begin{figure}
+
+\hrule
+\begin{verbatim}
+module CoreType (...) where
+
+data Exp
+  = Lambda     Eix
+  | ExpVar     Eix               Vix
+  | Var        Vix
+  | Let        [(Eix, Trimmer)]  (Eix, Trimmer)
+  | Construct  String            Int
+  | Case       (Eix, Trimmer)    [((Name, Int), (Eix, Trimmer))]
+  | Constant   Constant
+  | PrimFunc   String
+  | Seq        Eix               Eix
+  | Par        Vix               Eix
+
+type Eix     = Int    -- expression index, offset into the program heap
+type Vix     = Int    -- de Bruijn variable index
+type Env     = [Vix]  -- environment
+type Trimmer = [Int]
+\end{verbatim}
+\hrule
+\caption{data-types used to represent the parse tree and the core language}
+\label{figExp}
+\end{figure}
+
+
+
+\section{Evaluation}
+
+Explain basic Mark-3 evaulation
+
+\subsection{IO}
+mention io.. untyped language
+
+io output operations return Done constructor, case match or seq on Done to force IO
+
+
+
+\subsection{Base Value Handling}
+Ample handles base values in essentially the same way as Sestoft's first approach \cite{sestoft}. Ample uses a boxed representation of base values where a boxed integer is represented as the application of the \texttt{Int} constructor to the unboxed value. The \texttt{Constant} expression is used to introduce unboxed values from the source, whereafter they reside in the environment.
+
+At the start of a garbage collection cycle, the machine must gather a list of heap pointers present in the environments and stacks of all threads. To facilitate this process, special values known as 'type-tags' are included in the environment to indicate which elements are base values and which are heap pointers. The type tags are simply values which are outside the normal range of heap pointers. If we assume that the pointer width, the width of the base values and the width of the type-tag are identical then the environment can be represented by a stack of machine words. After a base value is pushed onto the environment, the tag co-responding to that base value's type is also pushed on. When the garbage collector needs to make its list it can look for these type tags in order to determine which elements of the environment are heap pointers and which are not.
+
+As per Sestoft's approach, case expressions are used to force the arguments of primitive operations to normal form. As there are now two elements on the environment for each base value, this must be accounted for in the forcing functions.
+
+
+\begin{verbatim}
+    add x y = 
+        case x of { Int xt xv -> 
+        case y of { Int yt yv -> #intAdd; }; };
+\end{verbatim}
+
+All useful operations over integers are provided, trivial to add more. 
+
+
+
+
+\subsection{Parallel Evaulation}
+Two seperate machines. par, seq.. fully spec is fine grained, but can find maximum parallism present in an algorithm. single threadded version simply ignores par statements
+
+
+
+
+\subsection{Thread syncronisation}
+If one was to implement an abstract machine for single threaded evaulation then the natural way of expressing the reduction rules would be to make use of the pattern matching mechanism provided by a standard functional language. 
+
+\begin{verbatim}
+reduce :: (Control, Env, Stack, Heap) 
+       -> (Control, Env, Stack, Heap)
+\end{verbatim}
+
+Unfortunately, this straight forward implementation does not take into account the causality which must be enforced between machine steps. The definition of the abstract machine given in \cite{baker-finch:plam} includes a rule to combine the effects of computation steps performed on the threads in the abstract machine. When implementing this rule it is important to ensure that effects that each of the threads have on the global machine are combined in such a way that any updates to the global state are only visible to other threads at the beginning of the next step. By doing this a concrete notion of time is introduced into the system. In the basic model, each computation step takes one unit of time to carry out and after this period the results of the computation are available.
+
+To do this we must somehow seperate aspects of the reduction which are local to a specific thread from the aspects that are global in nature. The challenge is to maintain the simplicity of the original \texttt{reduce} function and not become pre-occupied with low level details that are beyond the scope of an abstract machine. What we certainly don't want to do is to keep a seperate instance of the global machine state for each thread and then somehow combine them at the end of each reduction.
+
+In seperating the local and global aspects of a reduction it important to ensure that when the combined, the atomic nature of the original rule is preserved. An example of this can be derived by inspecting the rules for fs-var1 and fs-var2 given in the appendix and repeated here for convenience. 
+
+fs-var1
+
+fs-var2
+
+These two rules overlap in the pattern for the initial control expression. Weather a thread should be reduced via the fs-var1 via the fs-var2 rule can only be determined by reading the appropriate cell in the heap. 
+
+If the cell contains an expression pointer then reduction proceeds via the fs-var1 rule. In this case the control becomes the expresison pointer that was read from the cell and an update marker is pushed onto the stack. The heap cell is then black-holed. On the other hand, if the heap cell contains a black-hole already, then execution proceeds via fs-var2. In this case the thread is blocked and its index is added to the cells blocking queue.
+
+Obviously, it is critial that other threads do not access this same heap cell during the reduction.
+
+Consider the following sequence of events, 
+
+1) Thread A reads the cell at px and sees a black-hole indicating that another thread is in the process of evaluating this expression.
+
+2) Thread B which had been evaluating the expression for px, finishes its computation and updates the cell. This causes all threads waiting on px to be unblocked.
+
+3) Thread A, thinking that px is still unevaulated, writes a black-hole back into the cell along with the original blocking queue, whith its own thread index added at the front.
+
+This situation is plainly wrong. Depending on the specific program the cell at px will either be re-evaluated \emph{(---- check this ----)} or thread A will never be unblocked. The root of the problem is that fs-var1 and fs-var2 are in fact atomic operations and must be treated as such. It is also important to note that it is not possible to determine if a thread should be reduced via the fs-var1 rule or the fs-var2 rule without accessing the heap.
+
+\subsubsection{Message passing}
+With this in mind, one way of solving the problem would be to take a message passing approach and construct the machine so that on arriving at a thread configuration where the control is a variable, send the following message to the heap.
+
+\begin{verbatim}
+if      the cell at px is an expression 
+then    update it with a blackhole and return the expression
+
+else if the cell at px is a blackhole 
+then    add my index to the blocking queue and return a
+        token indicating that this was the action taken.
+
+else    no rule applies, return an error token.
+\end{verbatim}
+
+Although this method solves the atomicity ??? problem, the abstract nature of the machine is spoiled. In the message passing model a specific reduction rule must be broken into at two distinct stages, destroying the simplicity of the original \texttt{reduce} function and locking the machine to this particular model of communication.
+
+
+\subsubsection{Staggered Update}
+The approach taken in Ample is to modify the original \texttt{reduce} function so that during a given step of the computation, read access to the heap is permitted, though any modifications that the reduction would perform on this global state are deferred until all threads have completed their reads. 
+
+\begin{verbatim}
+reduce :: (Control, Stack, Env, Heap) 
+       -> (Control, Stack, Env, Heap, [ReduceMod])
+\end{verbatim}
+
+
+
+\section{Profiling Options}
+
+different values that can be modified
+queue lengths, max cpus, delay values.
+what each one does.
+
+different plots that can be produced.
+
+
+
+\section{Experimental Results}
+here are some results
+
+
+\section{Future work}
+
+Add delays to both sides of message passing.
+make rules take different amounts of time
+would be straight forward to extend to be a distributed system. keep all of front end, most of reduction engine. 
+
+
+
+
+\begin{example} 
+this is an example
+\end{example}
+
+
+\section{Conclusion}
+this is the conclusion
+
+
+
+% -----------------------------------------------------------------------------
+%
+
+\newcommand\rrule[9] {
+	\noindent \textbf{#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{ 2mm} p{20mm} p{25mm} p{15mm} p{ 3mm} p{42mm}}
+			& ( & #2, & \raggedleft{#3}, & \raggedleft{#4} & ) & #5\\
+	$\Rightarrow$	& ( & #6, & \raggedleft{#7}, & \raggedleft{#8} & ) & #9
+	\end{tabular}
+	\\
+}	
+
+
+\newcommand\rruleCfSE[9] {
+	\noindent \textbf{#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{ 2mm} p{30mm} p{20mm} p{10mm} p{ 3mm} p{42mm}}
+			& ( & #2, & \raggedleft{#3}, & \raggedleft{#4} & ) & #5\\
+	$\Rightarrow$	& ( & #6, & \raggedleft{#7}, & \raggedleft{#8} & ) & #9
+	\end{tabular}
+	\\
+}	
+
+
+\newcommand\rruleCESfH[9] {
+	\noindent \textbf{#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{ 2mm} p{30mm} p{35mm} p{25mm} p{ 3mm} p{5mm}}
+			& ( & #2, & \raggedleft{#3}, & \raggedleft{#4} & ) & #5\\
+	$\Rightarrow$	& ( & #6, & \raggedleft{#7}, & \raggedleft{#8} & ) & #9
+	\end{tabular}
+	\\
+}	
+
+
+\newcommand\rruleCEfHS[9] {
+	\noindent \textbf{#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{ 2mm} p{30mm} p{50mm} p{10mm} p{ 3mm} p{5mm}}
+			& ( & #2, & \raggedleft{#3}, & \raggedleft{#4} & ) & #5\\
+	$\Rightarrow$	& ( & #6, & \raggedleft{#7}, & \raggedleft{#8} & ) & #9
+	\end{tabular}
+	\\
+}	
+
+
+
+	
+\newcommand\rruleH[9] {
+	\noindent \textbf {#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{40mm} p{ 2mm} p{30mm} p{20mm} p{15mm} p{ 2mm}}	
+			& #2 & ( & #3, & \raggedleft{#4}, & \raggedleft{#5} & ) \\
+	$\Rightarrow$	& #6 & ( & #7, & \raggedleft{#8}, & \raggedleft{#9} & ) 
+	\end{tabular}
+	\\
+}
+
+
+\newcommand\rruleHH[9] {
+	\noindent \textbf {#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{50mm} p{ 2mm} p{30mm} p{10mm} p{15mm} p{ 2mm}}	
+			& #2 & ( & #3, & \raggedleft{#4}, & \raggedleft{#5} & ) \\
+	$\Rightarrow$	& #6 & ( & #7, & \raggedleft{#8}, & \raggedleft{#9} & ) 
+	\end{tabular}
+	\\
+}
+
+
+\newcommand\rruleE[9] {
+	\noindent \textbf {#1}
+	\par
+	\medskip
+	\noindent
+	\begin{tabular} {p{ 5mm} p{10mm} p{ 2mm} p{30mm} p{50mm} p{10mm} p{ 2mm}}	
+			& #2 & ( & #3, & \raggedleft{#4}, & \raggedleft{#5} & ) \\
+	$\Rightarrow$	& #6 & ( & #7, & \raggedleft{#8}, & \raggedleft{#9} & ) 
+	\end{tabular}
+	\\
+}
+
+
+\newcommand\blocked		{$\bullet$}
+\newcommand\blockedon[1]	{$\bullet \, _{#1}$}
+\newcommand\bind		{$\rightarrow \:$}
+\newcommand\px			{p$_x$}
+
+
+% -------------------------------------------------------------------------------
+\clearpage
+\section{Ample2 Reduction Rules}
+
+\begin{tabular}{p{10mm}ll}
+where	& \emph{whnf} 	& = Lambda e $|$ Construct name a $|$ Constant c
+\end{tabular}
+
+\subsection{Rules for Single Threaded Evaulation}
+
+% ---------------------------------------
+\rrule  {app$_1$}
+	{ExpVar e x}	{[..., \px, ...]}	{S}		{H}
+	{e}		{[..., \px, ...]}	{\px : S}	{H}
+\medskip
+
+
+% --------------------------------------
+\rrule	{app$_2$}
+	{Lambda e}	{E}			{\px : S}	{H}
+	{e}		{\px : E}		{S}		{H}
+\medskip
+
+
+% --------------------------------------
+\rrule	{var$_1$}
+	{Var x}		{[..., \px, ...]}	{S}		{H [\px \bind (e', E') ]}
+	{e}		{E'}			{\#{}\px : S}	{H}
+\medskip	
+
+
+% --------------------------------------
+\rrule  {var$_2$}
+	{Lambda e}	{E}			{\#{}p : S}	{H}	
+	{Lambda e}	{E}			{S}		{H [p \bind (Lambda e, E)]}
+\medskip
+
+
+% --------------------------------------
+\rrule	{var$_3$}
+	{Cnstr m a}	{E}			{\#p : S}	{H}
+	{Cnstr m a}	{E}			{S}		{H [p \bind (Cnstr m a, E[0..a])]}
+\smallskip
+
+\begin{tabular}{p{10mm}ll}
+	where	& E		& = [p$_0$, ... p$_a$, ... p$_n$] \\
+	 	& E[0..a]	& = [p$_0$, ... p$_a$]
+\end{tabular}
+\medskip
+
+
+%---------------------------------------
+\rruleCfSE 
+	{let}
+	{Let [(b$_i$, t$_i$)] e$_0$ t$_0$}
+	{E} 
+	{S}
+	{H}
+	{e$_0$}	
+	{E' $|$ t$_0$}
+	{S}
+	{H [p$_i$ $\rightarrow$ b$_i$, E' $|$ t$_i$ ]}	
+\smallskip
+
+\begin{tabular}{p{10mm}ll}
+	where	& E'	& = [p$_n$, ... p$_1$] ++ E
+\end{tabular}
+\medskip
+
+
+% --------------------------------------
+\rruleCESfH	
+	{case$_1$}
+	{Case (e, t) alts}	{E}		{S}			{H}
+	{e}			{E}		{(alts, E $|$ t) : S}	{H}
+\medskip
+
+
+% --------------------------------------
+\rruleCESfH	
+	{case$_2$}
+	{Cnstr name$_i$ a$_i$}	{[p$_1$, ... p$_a$, ... p$_n$]}		{(alts, E) : S}	{H}
+	{e$_i$}			{([p$_i$, ... p$_a$] ++ E) $|$ t$_i$}	{S}		{H}
+\medskip
+
+
+% --------------------------------------
+\rruleCESfH
+	{seqPush}
+	{Seq e$_1$ e$_2$}	{E}		{S}			{H}
+	{e$_1$}			{E}		{(SSeq e$_2$ E) : S}	{H}
+\medskip
+
+
+% --------------------------------------
+\rruleCESfH
+	{seqEval}
+	{\emph{whnf}}		{E}		{(SSeq e$_2$ E') : S}	{H}
+	{e$_2$}			{E'}		{S}			{H}
+\medskip
+
+
+% --------------------------------------
+\rruleCEfHS
+	{constant\{Int$|$Char\}}
+	{\{Int$|$Char\} v}	{E}				{S}	{H}
+	{\{RetInt$|$RetChar\}}	{\{TagInt$|$TagChar\} : v : E}	{S}	{H}
+\medskip
+
+
+% --------------------------------------
+\rruleCEfHS
+	{print\{Int$|$Char\}}
+	{PrimFunc ''print''}	{\{TagInt$|$TagChar\} : v : E}	{S}	{H}
+	{Cnstr ''Done'' 0}	{E}				{S}	{H}
+\medskip
+
+
+% --------------------------------------
+\rruleCEfHS	
+	{prim\_intAdd}
+	{PrimFunc IntAdd}	{TagInt : n1 : TagInt : n2 : E} {S}	{H}
+	{RetInt}		{TagInt : (n1 + n2) : E}	{S}	{H}
+\medskip
+	
+	
+% --------------------------------------
+\rruleCEfHS
+	{prim\_intEq}
+	{PrimFunc IntEq}	{TagInt : n1 : TagInt : n2 : E}	{S}	{H}
+	{Cnstr \emph{name} 0}	{E}				{S}	{H}
+\smallskip
+
+\begin{tabular}{p{10mm}ll}
+where	& \emph{name}	& = "True" $|$ "False" as appropriate
+\end{tabular}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Modifications for Parallel Evaluation}
+
+plus var1 rule!
+
+% --------------------------------------
+\rrule {pe-var$_2$ (block)}
+	{Var x}		{[..., \px, ...]}	{S}	{H [\px \bind \blockedon{ts}]}
+	{\blocked}	{[ ]}			{S}	{H [\px \bind \blockedon{t:ts}]}
+\medskip
+
+
+% --------------------------------------
+\noindent \textbf {pe-var$_3$ (activate)}
+\par
+\medskip
+\noindent
+\begin{tabular} {p{ 5mm} p{ 5mm} p{8mm} p{20mm} p{15mm} p{ 8mm} p{50mm}}
+	& ( 
+	& \emph {whnf}, 
+	& \raggedleft {[... \px, ...]},  
+	& \raggedleft {\#{}\px : S}  
+	& ) 
+	& H [ \px \bind \blockedon{[t1, ...tn]} ]
+	\\
+	& \{(
+	& \blocked,
+	& \raggedleft{[ ]},
+	& \raggedleft{S$_i$}
+	& )$_i$ \}
+	&
+\smallskip
+	\\
+	$\Rightarrow$	
+	& (
+	& \emph {whnf},
+	& \raggedleft {[... \px, ...]},
+	& \raggedleft {S}
+	& )
+	& H [ \px \bind (\emph {whnf}, [... \px, ...]) $_{[ ]}$ ]
+	\\
+	& \{(
+	& \emph {whnf},
+	& \raggedleft {[... \px, ...]},
+	& \raggedleft {S$_i$}
+	& )$_i$ \}
+	&
+	\\
+\end{tabular}	
+\smallskip
+
+\begin{tabular}{p{10mm}ll}
+where	& \emph{i} 	& = [t$_1$, ... t$_n$]		
+\end{tabular}
+\medskip
+
+
+% --------------------------------------
+\rrule	{pe-app$_3$}
+	{ExpVar e x}	{[..., \px, ...]}	{S}		{H [\px \bind \blockedon{ts}]}
+	{e}		{[..., \px, ...]}	{\px : S} 	{H}
+\medskip
+
+
+% -----------------------------------------------------------------------------
+\subsection{Modifications for Fully Speculative Evaulation}
+
+\noindent \textbf {fs-app$_1$ (spawn)}
+\par
+\medskip
+\noindent
+\begin{tabular} {p{ 5mm} p{ 2mm} p{20mm} p{25mm} p{15mm} p{ 8mm} p{37mm}}
+	& (
+	& ExpVar e$_1$ x,
+	& \raggedleft{[..., \px, ...]},
+	& \raggedleft{S}
+	& ) $_t$
+	& H [\px \bind (e$_2$, E$_2$) ]
+	\\
+	$\Rightarrow$
+	& (
+	& e$_1$,
+	& \raggedleft{[..., \px, ...]},
+	& \raggedleft{\px : S}
+	& ) $_t$
+	& H [\px \bind \blockedon{[ ]} ]
+	\\
+	& (
+	& e$_2$,
+	& \raggedleft{E$_2$},
+	& \raggedleft{[ \#{}\px ]}
+	& ) $_{t'}$
+	\\
+\end{tabular}
+\smallskip
+
+\begin{tabular}{p{10mm}ll}
+where	& t'	& is fresh
+\end{tabular}
+\medskip
+
+% -----------------------------------------------------------------------------
+\subsection{Modifications for \texttt{par}-\texttt{seq} Evaluation}
+
+\noindent \textbf {par-app$_1$ (spawn)}
+\par
+\medskip
+\noindent
+\begin{tabular} {p{ 5mm} p{ 2mm} p{20mm} p{25mm} p{15mm} p{ 8mm} p{37mm}}
+	& (
+	& Par x e$_1$,
+	& \raggedleft{[..., \px, ...]},
+	& \raggedleft{S}
+	& ) $_t$
+	& H [\px \bind (e$_2$, E$_2$) ]
+	\\
+	$\Rightarrow$
+	& (
+	& e$_1$,
+	& \raggedleft{[..., \px, ...]},
+	& \raggedleft{\px : S}
+	& ) $_t$
+	& H [\px \bind \blockedon{[ ]} ]
+	\\
+	& (
+	& e$_2$,
+	& \raggedleft{E$_2$},
+	& \raggedleft{[ \#{}\px ]}
+	& ) $_{t'}$
+	\\
+\end{tabular}
+\smallskip
+
+\begin{tabular}{p{10mm}ll}
+where	& t'	& is fresh
+\end{tabular}
+\medskip
+
+
+% --------------------------------------
+\rrule	
+	{par-app$_2$}
+	{Par x e$_1$}	{E}	{S}	{H [\px \bind \blockedon{[ ]}]}
+	{e$_1$}		{E}	{S}	{H}
+dude
+\medskip
+
+
+
+% -----------------------------------------------------------------------------
+%
+%
+\begin{thebibliography}{1}
+
+\bibitem{sestoft}
+Deriving a Lazy Abstract Machine:
+Peter Sestoft,
+J. Func. Programming 1, Jan 2003
+
+\bibitem{baker-finch:osple}
+An Operational Semantics for Parallel Lazy Evaulation:
+Clem Baker-Finch, David J. King, Phil Trinder
+?????
+
+\bibitem{baker-finch:plam}
+Parallel Lazy Abstract Machines:
+Clem Baker-Finch,
+????
+
+\bibitem{GpH}
+Glasgow Parallel Haskell
+reference this from somewhere
+????
+
+\bibitem{Happy}
+Happy Parser generator
+reference me
+
+
+\end{thebibliography}
+
+
+
+
+
+\end{document}
+

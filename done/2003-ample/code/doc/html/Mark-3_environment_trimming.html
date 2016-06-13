@@ -1,0 +1,667 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Mark-3 environment trimming</title>
+                                                
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+             
+<h1>Mark-3 environment trimming</h1>
+      Environment trimming is used for ....<br>
+    <br>
+    Environment trimming takes place when a copy of the current environment
+ is saved, either to the heap or onto the stack. Both the let rules and the
+ case rules do this, so they must include appropriate trimmers. ...<br>
+    <br>
+       
+<h2>Trimming for <u>Let</u> expressions</h2>
+       
+<hr width="100%" size="2"><b>let</b>                   
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                       <tbody>
+                        <tr>
+                          <td valign="top" width="5%" align="left"
+ nowrap="nowrap"><br>
+                          </td>
+                          <td valign="top" width="35%" nowrap="nowrap"><b>H</b><br>
+                          </td>
+                          <td valign="top" width="1%" nowrap="nowrap">(<br>
+                          </td>
+                          <td valign="top" width="20%" nowrap="nowrap"
+ align="right"><u>Let</u>     [(b<sub>i</sub>, t<sub>i</sub>)] e<sub>0</sub> 
+     t<sub>0</sub>,<br>
+                          </td>
+                          <td valign="top" width="20%" align="right"
+ nowrap="nowrap"><b>E</b>,<br>
+                          </td>
+                          <td valign="top" width="10%" align="right"
+ nowrap="nowrap"><b>S</b><br>
+                          </td>
+                          <td valign="top" width="1%" nowrap="nowrap">)<br>
+                          </td>
+                    <td valign="top" width="10%"><br>
+                    </td>
+                        </tr>
+                        <tr>
+                          <td valign="top" width="5%" align="left"
+ nowrap="nowrap">=&gt;<br>
+                          </td>
+                          <td valign="top" width="35%" nowrap="nowrap"><b>H 
+ [</b>    p<sub>i</sub>      -&gt; (b<sub>i</sub>, &nbsp;([p<sub>n</sub>, 
+... p<sub>1</sub>]    ++ <b>E</b>)      | t<sub>i</sub>) <b>]</b><br>
+                          </td>
+                          <td valign="top" width="1%" nowrap="nowrap">(<br>
+                          </td>
+                          <td valign="top" width="20%" nowrap="nowrap"
+ align="right">e<sub>0</sub>,<br>
+                          </td>
+                          <td valign="top" width="20%" align="right"
+ nowrap="nowrap">([p<sub>n</sub>,     ... p<sub>1</sub>] ++ <b>E</b>) | t<sub>0</sub>,<br>
+                          </td>
+                          <td valign="top" width="10%" align="right"
+ nowrap="nowrap"><b>S</b><br>
+                          </td>
+                          <td valign="top" width="1%" nowrap="nowrap">)<br>
+                          </td>
+                    <td valign="top" width="10%"><br>
+                    </td>
+                        </tr>
+                                                                        
+      
+  </tbody>                    
+</table>
+                     <br>
+                    where<br>
+             &nbsp; &nbsp; n&nbsp;&nbsp;&nbsp; is the number of let bindings
+  <br>
+             &nbsp;&nbsp;&nbsp; i&nbsp;&nbsp;&nbsp; &lt;- [1 ..  n]<br>
+             <br>
+              <br>
+             <b>note:</b> pay attention to the order of the heap pointers,
+ [p<sub>n</sub>,      ... p<sub>1</sub>], pushed onto the environment. After
+ the <u>Let</u>  reduction,    the pointer to the expression that was bound
+ <i>last</i> should  be on the    <i>top</i> of the stack. This expression
+ is then accessed by  environment   index $0.<br>
+         
+<hr width="100%" size="2"><br>
+    Several trimmers are used during the reduction of a Let expression. The 
+ first is t<sub>0</sub>, which is a list of the de Bruijn indicies used in 
+ e<sub>0</sub>, the let body. There are also trimmers t<sub>1</sub>, .. t<sub>n</sub> 
+ for the expressions in each of the case alternatives.<br>
+   <br>
+   Consider the following expression,<br>
+   <br>
+        
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+      <tbody>
+        <tr>
+          <td valign="top" width="1">                            
+      <pre><b><br></b></pre>
+          </td>
+          <td valign="top">                            
+      <pre><b>AMPLE source code<br></b></pre>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top" width="1">                            
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br></b></pre>
+          </td>
+          <td valign="top">                            
+      <pre>let {<br>        add' x y = ...;<br>} in <br>        let {<br>                a   = 1;<br>                b   = add' a a;<br>                c   = add' b a;<br>        } in<br>                add' c a<br></pre>
+          </td>
+        </tr>
+               
+  </tbody>    
+</table>
+    <br>
+   This expression makes use of a function called add' to perform an addition. 
+ add' will invoke whatever primitive operations are required to perform the
+ addition of two integers.<br>
+   <br>
+  In the absence of environment trimming,&nbsp; Let expression at line 04 
+is reduced by performing the following operations,<br>
+       
+<ol>
+     <li>Three cells in the heap are reserved, one for each binding - a,
+b,  c.</li>
+     <li>Pointers to these cells are pushed onto the environment, in reverse
+ order, yielding&nbsp;</li>
+     
+</ol>
+       
+<blockquote>            
+  <blockquote>E = [p<sub>c</sub>, p<sub>b</sub>, p<sub>a</sub>, p<sub>add'</sub>]</blockquote>
+    </blockquote>
+       
+<ol start="3">
+     <li>Each binding is then be saved into the heap, along with a copy of 
+the environment.</li>
+     <li>The let body becomes the new control.</li>
+     
+</ol>
+  The following fragment is the mark-3 code that would be executed for the
+ expression, in the absence of environment trimming. The fragment also shows
+ what the environment would look like during the reduction of each sub expression.<br>
+  <br>
+  <br>
+     
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+     <tbody>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+      <pre><b><br></b></pre>
+         </td>
+         <td valign="top" width="35%" nowrap="nowrap">                  
+  
+      <pre><b>Mark-3 code without trimming,<br></b></pre>
+         </td>
+         <td valign="top" width="25%" nowrap="nowrap">                  
+  
+      <pre><b>sub expression,<br></b></pre>
+         </td>
+         <td valign="top" width="40%" align="right" nowrap="nowrap">    
+               
+      <pre><b>environment<br></b></pre>
+         </td>
+       </tr>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br></b></pre>
+         </td>
+         <td valign="top" width="35%" nowrap="nowrap">                  
+  
+      <pre><br>let {<br>    C1;<br>    (($3 $2) $2);<br>    (($3 $1) $2);<br><br>} in<br>    (($3 $0) $2)<br><br></pre>
+         </td>
+         <td valign="top" width="25%" nowrap="nowrap">                  
+  
+      <pre><br><br>-- a = 1<br>-- b = add' a a<br>-- c = add' b a<br><br><br>-- add' c a<br></pre>
+         </td>
+         <td valign="top" width="40%" align="right" nowrap="nowrap">    
+               
+      <pre>[add]<br>[<b>c</b>, <b>b</b>, <b>a</b>, add]<br>[c, b, a, add]<br>[c, b, a, add]<br>[c, b, a, add]<br><br><br>[c, b, a, add]<br></pre>
+         </td>
+       </tr>
+           
+  </tbody>   
+</table>
+   <br>
+  In the absence of environment trimming all the bindings from a given Let
+ expression, as well as the let body, start with the same environment. However,
+ each of these expressions does not nessesarilly use all the pointers in
+this  environment. In the  general case, saving pointers that an expression
+does  not use to prevents those  cells being reclaimed by the garbage collector
+ and can create a space leak  <a
+ href="file:///home/neural/work/project/ample/ample2/work/doc/References.html#Sestoft1996">[Sestoft, 
+ 1996]</a><br>
+  <br>
+  For example, the expression at line 07 does not make use of the pointer 
+to <tt>b</tt>. Even though the expression for <tt>b</tt> may no longer be 
+required, its heap cells cannot be reclaimed until <tt>(add' c a)</tt> has 
+finished evaulating because it is holding onto <tt>b</tt>'s pointer in its 
+environment.<br>
+  <br>
+  One solution to this problem, as outlined in <a
+ href="References.html#Sestoft1996">[Sestoft, 1996]</a> is to examine the
+ Let expression at compile time, determine which heap elements the bindings
+ refers to and ensure that superfelous pointers are 'trimmed' out of copies
+ of the environment before they are saved to the heap, or taken as environment
+ for the let body.<br>
+  <br>
+  The following fragment is (slightly reformatted) code produced by the AMPLE 
+translator from the &nbsp;source above. The trimmers have been highlighted 
+in <font color="#6633ff">blue</font>. The trimmers for let bindings are shown 
+after the '<tt>;</tt>' that ends that binding. The trimmers for let bodies 
+are shown after the '<tt>in</tt>' keyword that precedes the body.<br>
+  <br>
+     
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+     <tbody>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+       
+      <pre><br></pre>
+       </td>
+         <td valign="top" width="35%" nowrap="nowrap">                  
+  
+      <pre><b>Mark-3 code with trimming,<br></b></pre>
+         </td>
+         <td valign="top" width="25%" nowrap="nowrap">                  
+  
+      <pre><b>sub expression,<br></b></pre>
+         </td>
+         <td valign="top" width="40%" align="right" nowrap="nowrap">    
+               
+      <pre><b>environment<br></b></pre>
+         </td>
+       </tr>
+       <tr>
+         <td valign="top">                     
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br>14:<br>15:<br></b></pre>
+         </td>
+         <td valign="top" width="35%" nowrap="nowrap">                  
+  
+      <pre><font color="#6633ff">|[$add]</font><br>let {<br><font
+ color="#6633ff">    |[]</font><br>    C1;           <br><br>    <font
+ color="#6633ff">|[2,3]</font><br>    (($1 $0) $0); <br><br>    <font
+ color="#6633ff">|[1,2,3]</font><br>    (($2 $0) $1); <br><br>} in<br>    <font
+ color="#6633ff">|[0,2,3]</font><br>    (($2 $0) $1);<br></pre>
+         </td>
+         <td valign="top" width="25%" nowrap="nowrap">                  
+  
+      <pre><br><br><br>-- a = 1<br><br><br>-- b = add a a<br><br><br>-- c = add b a<br><br><br><br>-- add c a<br></pre>
+         </td>
+         <td valign="top" width="40%" align="right" nowrap="nowrap">    
+               
+      <pre>[... add, ...]<br>[<b>c</b>, <b>b</b>, <b>a</b>, add]<br><font
+ color="#6633ff">[<strike>c</strike>, <strike>b</strike>, <strike>a</strike>, <strike>add</strike>]</font><br>[]<br><br><font
+ color="#6633ff">[<strike>c</strike>, <strike>b</strike>, a, add]</font><br>[a, add]<br><br><font
+ color="#6633ff">[<strike>c</strike>, b, a, add]</font><br>[b, a, add]<br><br><br><font
+ color="#6633ff">[c, <strike>b</strike>, a, add]</font><br><br></pre>
+         </td>
+       </tr>
+           
+  </tbody>   
+</table>
+      <br>
+  <br>
+  <br>
+   The following expression is a more detailed example.<br>
+   <br>
+     
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+     <tbody>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+      <pre><b><br></b></pre>
+         </td>
+         <td valign="top">                     
+      <pre><b>AMPLE source code</b><br></pre>
+         </td>
+       </tr>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br></b></pre>
+         </td>
+         <td valign="top">                     
+      <pre>let {<br>    a = 1;<br>    b = <br>        let {<br>            ba = 3;<br>            bb = 4;<br>        } in<br>            add' (add' a bb) ba<br><br>    c = add' b a;<br>} in<br>    add' a c;</pre>
+    </td>
+       </tr>
+           
+  </tbody>   
+</table>
+   <br>
+      <br>
+  <br>
+     
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+     <tbody>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+       
+      <pre><br></pre>
+       </td>
+         <td valign="top" width="35%">                     
+      <pre><b>Mark-3 code without trimming,</b></pre>
+         </td>
+         <td valign="top" width="25%">                     
+      <pre><b>sub expression,</b></pre>
+         </td>
+         <td valign="top" align="right" width="40%" nowrap="nowrap">    
+               
+      <pre><b>environment</b></pre>
+         </td>
+       </tr>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br>14:<br>15:<br>16:<br>17:<br>18:<br>19:</b><br></pre>
+         </td>
+         <td valign="top" width="35%">                        
+      <pre><br>let {<br>    C1;<br><br>    let {<br>        C3;<br>        C4;<br>    } in<br>        (let {<br>            (($6 $5) $1);<br>        } in<br>            ($6 $0) <br>        $1);<br>    <br>    (($3 $1) $2);<br><br>} in<br>    (($3 $2) $0;</pre>
+    </td>
+         <td valign="top" width="25%">                     
+      <pre><br><br>-- a  = 1<br><br>-- b  =<br>-- ba = 3<br>-- bb = 4<br><br><br>-- e1' = add a bb<br><br>-- add e1'<br>-- ba<br><br>-- c = add b a<br><br><br>-- add a c</pre>
+         </td>
+         <td valign="top" width="40%" nowrap="nowrap" align="right">    
+               
+      <pre>         [add]<br>[<b>c</b>, <b>b</b>, <b>a</b>, add]<br>[c, b, a, add]<br><br>[<b>bb</b>, <b>ba</b>, c, b, a, add]<br>    [bb, ba, c, b, a, add]<br>    [bb, ba, c, b, a, add]<br><br>    [<b>e1</b>, bb, ba, c, b, a, add]<br>[e1, bb, ba, c, b, a, add]<br><br>[e1, bb, ba, c, b, a, add]<br>[bb, ba, c, b, a, add]<br><br>[c, b, a, add]<br><br><br>[c, b, a, add]</pre>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ <br>
+   <br>
+  <br>
+     
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+     <tbody>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+       
+      <pre><br></pre>
+       </td>
+         <td valign="top" width="35%">                     
+      <pre><b>Mark-3 code with trimming,<br></b></pre>
+         </td>
+         <td valign="top" width="25%">                     
+      <pre><b>sub expression,<br></b></pre>
+         </td>
+         <td valign="top" align="right" nowrap="nowrap" width="40%">    
+               
+      <pre><b>environment<br></b></pre>
+         </td>
+       </tr>
+       <tr>
+         <td valign="top" width="1" nowrap="nowrap">                    
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br>14:<br>15:<br>16:<br>17:<br>18:<br>19:<br>20:<br>21:<br>22:<br>23:<br>24:<br>25:<br>26:<br>27:<br>28:<br>29:<br>30:<br>31:<br></b></pre>
+         </td>
+         <td valign="top" nowrap="nowrap" width="35%">                  
+     
+      <pre><font color="#6633ff">|[$add]</font><br>let {<br>    <font
+ color="#6633ff">|[]</font><br>    C1; <br> <br>    <font
+ color="#6633ff">|[2,3]</font><br>    let {<br>        <font
+ color="#6633ff">|[]</font><br>        C3; <br><br>        <font
+ color="#6633ff">|[]</font><br>        C4; <br><br>    } in <font
+ color="#6633ff">   <br>        |[0,1,2,3]</font><br>        (let {<br>            <font
+ color="#6633ff">|[1,3,4]</font><br>            (($2 $1) $0);    <br><br>         } in <font
+ color="#6633ff">   <br>            |[0, 4]</font><br>            ($1 $0)<br>         $1); <br>                <br>    <font
+ color="#6633ff">|[1,2,3]</font><br>    (($2 $0) $1); <br><br>} in    <font
+ color="#6633ff"><br>    |[0,2,3]</font><br>    (($2 $1) $0);</pre>
+            </td>
+         <td valign="top" width="25%">                     
+      <pre><br>-- add' = add<br><br><br><br>-- a  = 1<br><br>-- b  =<br>-- ba = 3<br>-- bb = 4<br><br><br><br>-- e1 = (add' a bb)<br><br><br>-- (add' e1)<br>-- ba<br><br><br>-- c = add' b a<br><br><br>-- add' a c</pre>
+         </td>
+         <td valign="top" nowrap="nowrap" width="40%" align="right">    
+               
+      <pre>                <font color="#6633ff">[..., add, ...]</font><br>          [c, b, a, add]<br><font
+ color="#6633ff">[<strike>c</strike>, <strike>b</strike>, <strike>a</strike>, <strike>add</strike>]</font><br>[]<br><br><font
+ color="#6633ff">[<strike>c</strike>, <strike>b</strike>, a, add]</font><br>[<b>bb</b>, <b>ba</b>, a, add]<br><font
+ color="#6633ff">[<strike>bb</strike>, <strike>ba</strike>, <strike>a</strike>, <strike>add</strike>]</font><br>[]<br><br><font
+ color="#6633ff">[<strike>bb</strike>, <strike>ba</strike>, <strike>a</strike>, <strike>add</strike>]</font><br>[]<br><br>[bb, ba, a, add]<br><font
+ color="#6633ff">[bb, ba, a, add]<br></font>[<b>e1</b>, bb, ba, a, add]<br><font
+ color="#6633ff">[<strike>e1</strike>, bb, <strike>ba</strike>, a, add]<br></font>[bb, a, add]<br><br>[e1, bb, ba, a, add]<br><font
+ color="#6633ff">[e1, <strike>bb</strike>, <strike>ba</strike>, <strike>a</strike>, add]</font><br>[e1, add]<br>[bb, ba, a, add]<br><br><font
+ color="#6633ff">[<strike>c</strike>, b, a, add]<br></font>[b, a, add]<br><br>[c, b, a, add]<br><font
+ color="#6633ff">[c, <strike>b</strike>, a, add]</font><br>[c, a, add]</pre>
+         </td>
+       </tr>
+           
+  </tbody>   
+</table>
+   <br>
+   end up having to rewrite each index a number of times, because many trimmings
+  take place betwen the root of the parse tree and the leaf where the index
+  is.<br>
+   <br>
+   <br>
+    <br>
+       
+<h2>Trimming for <b><u>Case</u></b> expressions</h2>
+       
+<hr width="100%" size="2"><b>case<sub>1</sub><br>
+                  </b>                  
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                         <tbody>
+                      <tr>
+                        <td valign="top" width="5%" nowrap="nowrap"><br>
+                        </td>
+                        <td valign="top" width="15%" nowrap="nowrap">   
+         <b>H         </b>         </td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">(<br>
+                        </td>
+                        <td valign="top" width="20%" nowrap="nowrap"
+ align="right"><u>Case</u>&nbsp;     (e, t) <b>alts</b> ,<br>
+                        </td>
+                        <td valign="top" width="20%" align="right"
+ nowrap="nowrap"><b>E</b>,<br>
+                        </td>
+                        <td valign="top" width="30%" align="right"
+ nowrap="nowrap">&nbsp;<b>S</b><br>
+                        </td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">)<br>
+                        </td>
+                    <td valign="top" width="10%"><br>
+                    </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" width="5%" nowrap="nowrap">=&gt;<br>
+                        </td>
+                        <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">(              </td>
+                        <td valign="top" width="20%" nowrap="nowrap"
+ align="right">e,<br>
+                        </td>
+                        <td valign="top" width="20%" align="right"
+ nowrap="nowrap"><b>E</b>,<br>
+                        </td>
+                        <td valign="top" width="30%" align="right"
+ nowrap="nowrap">(<b>alts</b>,           <b>E</b> | t)&nbsp; : <b>S</b><br>
+                        </td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">)<br>
+                        </td>
+                    <td valign="top" width="10%"><br>
+                    </td>
+                      </tr>
+                                                                        
+  </tbody>                  
+</table>
+                      <br>
+                                    
+<hr width="100%" size="2"><b>case<sub>2</sub><br>
+                  </b>                  
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                          <tbody>
+                      <tr>
+                        <td valign="top" width="5%" nowrap="nowrap"><br>
+                        </td>
+                        <td valign="top" width="15%" nowrap="nowrap">   
+         <b>H         </b>         </td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">(<br>
+                        </td>
+                        <td valign="top" width="20%" nowrap="nowrap"
+ align="right"><u>Construct</u>     &nbsp;name<sub>i</sub> a<sub>i</sub> ,<br>
+                        </td>
+                        <td valign="top" width="20%" align="right"
+ nowrap="nowrap">[p<sub>1</sub>,     ... p<sub>a</sub>, ... p<sub>n</sub>],<br>
+                        </td>
+                        <td valign="top" width="30%" align="right"
+ nowrap="nowrap">(<b>alts</b>,         <b>E</b> )  :       <b>S</b><br>
+                        </td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">)<br>
+                        </td>
+                    <td valign="top" width="10%"><br>
+                    </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" width="5%" nowrap="nowrap">=&gt;<br>
+                        </td>
+                        <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">(              </td>
+                        <td valign="top" width="20%" nowrap="nowrap"
+ align="right">e<sub>i</sub>,<br>
+                        </td>
+                        <td valign="top" width="20%" align="right"
+ nowrap="nowrap">([p<sub>1</sub>,     .. p<sub>a</sub>] ++ <b>E</b>) | t<sub>i</sub>,<br>
+                        </td>
+                        <td valign="top" width="30%" align="right"
+ nowrap="nowrap">&nbsp;<b>S</b><br>
+                        </td>
+                        <td valign="top" width="1%" nowrap="nowrap"
+ align="left">)<br>
+                        </td>
+                    <td valign="top" width="10%"><br>
+                    </td>
+                      </tr>
+                                                                        
+  </tbody>                  
+</table>
+                       <br>
+              &nbsp;&nbsp;&nbsp; where<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; (name<sub>i</sub>, a<sub>i</sub>, 
+      e<sub>i</sub>, t<sub>i</sub>) is an element of <b>alts</b><br>
+              <br>
+              <b>note:</b> the order of the pointers to the constructor arguments 
+    present   in the environment is the natural one. If the source contains 
+  the  expression   (C e<sub>1</sub> e<sub>2</sub> .. e<sub>a</sub>), where 
+  C is  some constructor,   then after being translated to Mark-3 code the 
+ execution  of this rule will   take place with the pointer to e<sub>1</sub> 
+ on the top  of the stack.<br>
+         
+<hr width="100%" size="2"><br>
+    <br>
+    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+   <tbody>
+     <tr>
+       <td valign="top" width="1">       
+      <pre><br></pre>
+       </td>
+       <td valign="top">       
+      <pre><b>AMPLE source code.</b></pre>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="1">       
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br>14:<br>15:<br>16:<br></b></pre>
+       </td>
+       <td valign="top">       
+      <pre>treeLookup tree lKey    =<br> case tree of {<br>        []                      -&gt; [];<br><br>        (key, val, left, right) -&gt;<br>                if lKey == key then <br>                        val<br>  <br>                else<br>                if lKey &lt; key then <br>                        treeLookup left lKey<br>  <br>                else<br>                        treeLookup right lKey;<br> };</pre>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ <br>
+   <br>
+ <br>
+ 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+   <tbody>
+     <tr>
+       <td valign="top" width="1" nowrap="nowrap">       
+      <pre><br></pre>
+       </td>
+       <td valign="top" width="35%" nowrap="nowrap">       
+      <pre><b>Mark-3 code without trimming,</b></pre>
+       </td>
+       <td valign="top" width="25%" nowrap="nowrap">       
+      <pre><b>sub expression,</b></pre>
+       </td>
+       <td valign="top" width="40%" nowrap="nowrap" align="right">      
+      <pre><b>environment</b></pre>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="1" nowrap="nowrap">       
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br>14:<br>15:<br>16:<br>17:<br>18:<br>19:<br>20:<br>21:<br>22:<br>23:<br>24:<br></b></pre>
+       </td>
+       <td valign="top" width="35%" nowrap="nowrap">       
+      <pre><br>/(<br> /(<br>  case $1 of {<br>    Nil 0 -&gt;<br>        Nil,0;<br><br>    Tuple4 4 -&gt;<br>        case (($7 $4) $0) of {<br>            True 0 -&gt;<br>                $1;<br><br>            False 0 -&gt;<br>                case (($8 $4) $0) of {<br>                     True 0 -&gt;<br>                         (($6 $2) $4);<br><br>                     False 0 -&gt;<br>                         (($6 $3) $4);<br>                };<br>        };<br> }<br>));<br></pre>
+       </td>
+       <td valign="top" width="25%" nowrap="nowrap">       
+      <pre><br>--  tree<br>--   lKey<br>-- case tree of {<br>--  [] -&gt;<br>--   [];<br><br>-- (key, val, left, right) -&gt;<br>--  if lKey == key<br>--   then<br>--    val<br><br>--   else<br>--    if lKey &lt; key<br>--     then<br>--      treeLookup left lKey<br><br>--     else<br>--      treeLookup righ lKey<br><br><br></pre>
+       </td>
+       <td valign="top" width="40%" nowrap="nowrap" align="right">      
+      <pre>[tL, eq, lt]<br>[<b>tree</b>, tL, eq, lt]<br>[<b>lKey</b>, tree, tL, eq, lt]<br>[lKey, tree, tL, eq, lt]<br>[lKey, tree, tL, eq, lt]<br>[lKey, tree, tL, eq, lt]<br><br>[<b>key</b>, <b>val</b>, <b>left</b>, <b>right</b>, <b>lKey</b>, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br><br>[key, val, left, right, lKey, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br><br>[key, val, left, right, lKey, tree, tL, eq, lt]<br>[key, val, left, right, lKey, tree, tL, eq, lt]<br><br></pre>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ <br>
+   <br>
+ <br>
+    
+<table width="100%" border="0" cellspacing="2" cellpadding="2">
+   <tbody>
+     <tr>
+       <td valign="top" width="1">       
+      <pre><br></pre>
+       </td>
+       <td valign="top" width="35%">       
+      <pre><b>Mark-3 code with trimming,<br></b></pre>
+       </td>
+       <td valign="top" width="25%">       
+      <pre><b>sub expression,<br></b></pre>
+       </td>
+       <td valign="top" width="40%" align="right" nowrap="nowrap">      
+      <pre><b>environment<br></b></pre>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="1">       
+      <pre><b>01:<br>02:<br>03:<br>04:<br>05:<br>06:<br>07:<br>08:<br>09:<br>10:<br>11:<br>12:<br>13:<br>14:<br>15:<br>16:<br>17:<br>18:<br>19:<br>20:<br>21:<br>22:<br>23:<br>24:<br>25:<br>26:<br>27:<br>28:<br>29:<br>30:<br>31:<br>32:<br>33:<br></b></pre>
+       </td>
+       <td valign="top" width="35%">       
+      <pre><font color="#6633ff">|[$tL,$eq,$lt]</font><br>/(<br> /(<br>  case $1 of { <br>    <font
+ color="#6633ff">|[0,2,3,4]</font><br>    Nil,0 -&gt; <font
+ color="#6633ff"><br>        |[]</font><br>        Nil,0;<br><br>    Tuple4,4 -&gt; <font
+ color="#6633ff"><br>        |[0,1,2,3,4,5,6,7]</font><br>        case (($6 $4) $0) of { <br>            <font
+ color="#6633ff">|[0,1,2,3,4,5,7]</font><br>            True,0 -&gt; <font
+ color="#6633ff"><br>                |[1]</font><br>                $0;<br><br>            False,0 -&gt; <br>                <font
+ color="#6633ff">|[0,2,3,4,5,6]</font><br>                <br>                case (($5 $3) $0) of { <br>                    <font
+ color="#6633ff">|[1,2,3,4]</font><br>                    True,0 -&gt; <font
+ color="#6633ff"><br>                        |[0,2,3]</font><br>                        (($2 $0) $1);<br><br>                    False,0 -&gt; <font
+ color="#6633ff"><br>                        |[1,2,3]</font><br>                        (($2 $0) $1);<br>                };<br>        };<br> })); <br></pre>
+       </td>
+       <td valign="top" width="25%">       
+      <pre>-- treeLookup<br>--  tree<br>--   lKey<br>-- case tree of {<br><br>--  [] -&gt;<br><br>--   [];<br><br>-- (key, val, left, right) -&gt;<br><br>-- if lKey == key <br><br>--  then<br><br>--   val<br><br>-- else<br><br><br>--  if lKey &lt; key<br><br>--   then<br><br>--    treeLookup left lKey<br><br>--   else<br><br>--    treeLookup right lKey;<br><br><br></pre>
+       </td>
+       <td valign="top" width="40%" align="right" nowrap="nowrap">      
+      <pre><font color="#6633ff">[... tL, ... eq, ... lt]</font><br>[<b>tree</b>, tL, eq, lt]<br>[<b>lKey</b>, tree, tL, eq, lt]<br>[lKey, tree, tL, eq, lt]<br><font
+ color="#6633ff">[lKey, <strike>tree</strike>, tL, eq, lt]</font><br>[lKey, tL, eq, lt]<br><font
+ color="#6633ff">[<strike>lKey</strike>, <strike>tL</strike>, <strike>eq</strike>, <strike>lt</strike>]</font><br>[]<br><br>[<b>key</b>, <b>val</b>, <b>left</b>, <b>right</b>, lKey, tL, eq, lt]<br><font
+ color="#6633ff">[key, val, left, right, lKey, tL, eq, lt]</font><br>[key, val, left, right, lKey, tL, eq, lt]<br>[<font
+ color="#6633ff">key, val, left, right, lKey, tL, <strike>eq</strike>, lt]</font><br>[key, val, left, right, lKey, tL, lt]<br><font
+ color="#6633ff">[<strike>key</strike>, val, <strike>left</strike>, <strike>right</strike>, <strike>lKey</strike>, <strike>tL</strike>, <strike>lt</strike>]</font><br>[val]<br><br>[key, val, left, right, lKey, tL, lt]<br><font
+ color="#6633ff">[key, <strike>val</strike>, left, right, lKey, tL, lt]</font><br><br>[key, left, right, lKey, tl, lt]<br><font
+ color="#6633ff">[<strike>key</strike>, left, right, lKey, tL, <strike>lt</strike>]<br></font>[left, right, lKey, tL]<br><font
+ color="#6633ff">[left, <strike>right</strike>, lKey, tL]</font><br>[left, lKey, tL]<br><br>[left, right, lKey, tL]<br><font
+ color="#6633ff">[<strike>left</strike>, right, lKey, tL]</font><br>[right, lKey, tL]<br><br></pre>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ <br>
+ <br>
+    <br>
+    <br>
+       
+<h2>How trimmers are constructed</h2>
+    ... Explain variable depth.<br>
+   <br>
+    Decend parse tree recursively, looking for Let or Case nodes<br>
+   When a Let or Case node is found,  
+<ol>
+    <li>Depth Tag</li>
+     <li> Gather free variables</li>
+     <li> Attach trimmer to node</li>
+     <li> Rewrite var indicies in subtree</li>
+     
+</ol>
+   <br>
+    <br>
+   <br>
+   <br>
+     <br>
+     <br>
+     <br>
+     <br>
+     <br>
+     <br>
+    <br>
+   <br>
+  <br>
+ <br>
+</body>
+</html>

@@ -1,0 +1,203 @@
+\subsection{Combining the effects of multiple threads}
+
+Reductions are performed on the active threads seperately, and their effects are combined via the union rule. Care must be taken in the implementation of the union rule so that when the simulator increments the machine state, the causality between thread states is preserved. That is, each reduction is taken to last a certain quanta of time equal to the machines clock period, any effects generated during the reduction of a specific thread should only be visible to other threads at the beginning of the next clock period. This is somewhat at odds with the reduction rules as they are presented in the appendix, where each thread is treated in isolation and effects on the global machine state, such as updates to the heap, are shown directly.
+
+\par
+Causality between thread states is preserved as follows, 
+
+The function \texttt{step} is defined which takes a machine state, increments it, then returns then new machine state.
+
+\begin{verbatim}
+step :: State -> State
+\end{verbatim}
+
+In its definition, \texttt{state} uses the function \texttt{reduceThread} which takes a machine state and the number of a single thread to reduce, increments the machine state and returns a new machine state, a list of modifications to this machine state and the name of the rule that was used.
+
+\begin{verbatim}
+reduceThread :: State -> ThreadNum -> (State, ([ReduceMod], String))
+\end{verbatim}
+
+The returned state is identical to the initial state, except during the reduction of the let rule. The let rule is a special case, which is examined in section ???, this special case does not violate the causality.
+
+The set of possible modifications to the machine state is as follows
+
+\texttt{Error   eix string}    
+Generated when an error top the machine and inform the user.
+
+\texttt{Print   string}
+Emit some output to the IO stream.
+
+\texttt{Update  p newCell}
+Update the heap cell at p with newCell
+
+\texttt{Unblock p eix env} 
+The list of blocked threads is read from the cell at p. For each thread in the list a record is added to the unblocking queue which will unblock that thread and set its control to eix, and environment to env.
+
+\texttt{Spark   p eix env}
+Add a record to the spark queue which will create a new thread, set its control to eix, its environment to env and have it update the cell at p when finished.
+
+\texttt{BlockOn p threadNum}
+Add the given thread to the blocking queue assocated with the cell at p.
+
+Once a reduction on each machine rule is applied the lists of ReduceMods are concatanated and then applied to the machine state. 
+  
+
+
+
+After the 
+
+Comparison with a real machine architecture.
+
+In a physical machine with multiple independent CPUs, the reductions on individual threads would not proceed in lockstep, nor would they take the same amount of time. In this configuration the communication between the threads and the heap would 
+
+
+
+\subsection{Lexical Analysis}
+The first step in compilation is lexical analysis. Ample uses a hand coded lexer which converts the program source into a list of tokens. In the lexer, new-line characters are retained in the token stream and a follow on function reads though the list of tokens and builds a table of variable names versus the line number at which they occur. The new-line tokens are then removed from the token stream and tokens which represent variables as strings are replaced by tokens which represent variables as an offset into this table. When an error is encountered, either at compile-time or run-time, the system looks up the nearest variable in the table and the corresponding source line number is communicated to the user.
+
+
+\subsection{Parsing}
+Ample uses the Happy Parser Generator \cite{Happy} to generate a parser for the source language. Happy takes a set of parse rules and generates a function that converts a list of tokens into a parse tree which is represented as the data-type shown in fig\,\ref{figExp}. This parse tree is a direct representation of the program source apart from a few de-sugaring conversions that are done on the fly in the Happy rule set.
+
+
+\hrule
+\bigskip
+\begin{verbatim}
+module Parser (...) where
+
+data Exp
+  = Lambda     Var           Exp
+  | ExpExp     Exp           Exp
+  | Var        Var
+  | Let        [(Var, Exp)]  Exp
+  | Construct  String        [Exp]
+  | Case       Exp           [(Pattern, Exp)]
+  | Constant   Constant
+  | PrimFunc   Var
+  | Seq        Exp           Exp
+  | Par        Exp           Exp
+ 
+data Pattern
+  = PConstruct String       [Pattern]
+  | PConstant  Constant
+  | PVar       Var
+  
+data Constant
+  = CInt       Int
+  | CChar      Char
+  | CString    String
+
+type Var    = Int     -- offset into variable table
+\end{verbatim}
+\hrule
+
+
+\subsection{Conversion to Machine Representation}
+Once the program has been parsed it must be converted to a form suitable for execution by the abstract machine. Each version of Ample has its own core language, represented by a seperate data-type. During compilation to the Ample1 core language the parse tree is converted a form equivalent to the normalised lambda calculus, constants are converted to boxed form and literal strings are expanded to their list representation. For compilation to the Ample2 core language the parse tree is also flattened, has de Bruijn indicies introduced in place of variable names and has trimmers created for \texttt{let} expressions and constructor applications. The type used for the Ample2 core language is also shown in fig.\,\ref{figExp}.
+
+Although compilation stages are explained separately they are closely linked and take place at the same time. In the implementation the compilation is driven by the function \texttt{convertExp} which takes an expression of type \texttt{Parser.Exp} and returns a \texttt{Heap} containing elements of type \texttt{CoreType.Exp}. \texttt{convertExp} also return an \texttt{Int} which gives the index of the node which represents the root of the parse tree. 
+
+\subsection{Normalisation}
+A normalised lambda expression is one in which the arguments of applications are all variables \cite{sestoft}. This includes the arguments of constructor functions as well as the first argument in the \texttt{par} expression. Converting an expression to normalised form is a simple matter of introducing extra \texttt{let} bindings for offending arguments. Normalisation ensures that these arguements are always shared. The normalising conversions are as follows.
+
+
+\bigskip
+\begin{tabular}{ll}
+e$_1$ e$_2$ 	
+	& $\Rightarrow$ 
+	\texttt{let} \{ x = e$_2$ \} \texttt{in} e$_1$ x 
+\\
+e$_1$ \texttt{par} e$_2$
+	& $\Rightarrow$ 
+	\texttt{let} \{ x = e$_1$ \} \texttt{in} x \texttt{par} e$_2$ 
+\\
+C e$_1$ ... e$_n$ 		
+	& $\Rightarrow$ 
+	\texttt{let} \{ x$_1$ = e$_1$, ... x$_n$ = e$_n$ \} \texttt{in} C x$_1$ ...x$_n$ 
+\\
+\end{tabular}
+\bigskip
+
+
+In the Ample1 compiler a fresh variable name must be created each time an extra let binding is introduced. The compiler does this by naming the variable after a counter which is incremented each time a new variable is created. These variables are prefixed with a special character, an underscore, which is not a valid prefix for user variables. In this way created variable names are guaranteed not to clash with user variables.
+
+As the Ample2 compiler replaces variable names with de Bruijn indicies at the same time that normalisation takes place there is no need to generate fresh names for introduced let bindings.
+
+
+\subsection{Flattening}
+Up until this stage the parse tree has been represented as a series of constructor applications. The flattening process takes the parse tree and inserts its nodes into a heap. This is a superficial process which serves to undo the expressive power of the implementation language in order to recover a lower level representation of the parse tree. In many functional languages an expression represented by a type such as \texttt{Parser.Exp} would already be represented as a collection of cells in the \emph{implementation language's} run-time heap. However, this representation is not normally visible to the implementation programming model. We perform the flattening process so that we can refer to an element of the program graph indirectly, via an index into the program heap, which mimics how it might be represented in a native implementation.
+
+
+\subsection{Introduction of de Bruijn Indicies}
+At this step the variable 
+
+
+
+\subsection{Building the Trimmers}
+
+
+
+
+\section{Implementation of the Abstract Machine}
+Only the Ample2 machine is discussed.
+
+
+\subsection{Representation of Machine State}
+
+
+\begin{figure}
+\hrule
+\smallskip
+\begin{verbatim}
+data State
+  = State {    sSteps               :: Int,
+               sCycles              :: Int,
+
+               sProg                :: Heap ProgCell,
+               sHeap                :: Heap Cell,
+
+               sThread              :: Array Int Thread,
+               sThreadServ          :: Int,
+               sThreadServOld       :: Int,
+  
+               sActivationList      :: [(Int, (Eix, Env))],
+               sActivationsPerCycle :: Int,
+        
+               sIOBite              :: String,
+               sIOAccum             :: String,
+
+               sRun                 :: Bool,
+               sError               :: Maybe (Eix, String) }
+
+data Thread 
+  = Thread {   tControl             :: Eix,  
+               tEnv                 :: [Int], 
+               tStack               :: [StackElem] }
+
+data ProgCell
+  = ProgCell { pcExp                :: Exp,  
+               pcDepth              :: Int }
+
+data Cell
+  = Cell {     cMark                :: Bool,
+               cEix                 :: Eix,
+               cEnv                 :: Env,
+               cBlocks              :: [Int] }
+
+data StackElem
+  = SEPointer  Vix
+  | SEUpdate   Vix
+  | SEAlts     ([((Name, Int), (Eix, Trimmer))], Env)
+  | SESeq      (Eix, Env)
+\end{verbatim}
+\hrule
+\caption{data-type used to representing the Ample2 machine state}
+\label{figAmple2State}
+\end{figure}
+
+
+
+
+
+
+

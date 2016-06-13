@@ -1,0 +1,52 @@
+------------------------------------------------------------------------------------------------------
+Ample v2.0
+
+:help
+
+-- run control
+:setAutoRun             <state ::Bool>
+:run
+:runToStep	        <cycle ::Int>
+:step
+
+-- machine setup
+:setMode                <single | fullspec | parseq>
+:setMaxThreads		<max ::Int>
+:setMaxThreadsActive    <max ::Int>
+:setMaxHeapCells	<max ::Int>
+:setSpawnDelay          <delay ::Int>
+:setSpawnSchedFunc      <immediate | sequential>
+:setUnblockDelay        <delay ::Int>
+:setUnblockSchedFunc    <immediate|sequential>
+
+-- machine status
+:state
+:heap
+:prog
+:progc
+:pretty                 <eix ::Int>
+
+-- profiling
+:setTraceLevel          <0 | 1 | 2>
+:setProf                <state ::Bool>
+:tally
+:plotThreadsLine        [first ::Int] [last ::Int]
+:plotActivity           [first ::Int] [last ::Int]
+:plotUnblockQueueLength [first ::Int] [last ::Int]
+:plotSpawnQueueLength   [first ::Int] [last ::Int]
+:plotHeapCellsUsed      [first ::Int] [last ::Int]
+
+-- compilation
+:setAutoTrimmers        <state ::Bool>
+:slurpEixs              <eix ::Int>
+:depthTag               <eix ::Int>
+:buildTrimmer           <eix ::Int>
+:buildTrimmers          <eix ::Int>
+
+-- garbage collection
+:deps
+:gc
+:mark                   <cells ::[Int]>
+:sweep
+:clear
+

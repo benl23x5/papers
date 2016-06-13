@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Ample Documentation</title>
+                                                                        
+                                                                        
+                                                                     
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+                                                       
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                              <tbody>
+                                <tr>
+                                  <td valign="top" rowspan="2"
+ colspan="1" width="5%"><br>
+                                  <br>
+                                  </td>
+                                  <td valign="top" width="20%"><br>
+                                  </td>
+                                  <td valign="top" width="50%">         
+                                                                        
+                                                                        
+                                        
+      <pre>----+-------------------------------------------------------------------------<br>    #           <b>Ample</b>                                             v2.0 |.$$...<br>    #           <font
+ color="#cc33cc"><b>A        M           P        L    E</b></font>                   |......<br>--- #           <b>Abstract Machine for Parallel Lazy Evaluation</b>          ---+---<br>..| @                                                                     #   <br>d.+##      Ben Lippmeier                 <a
+ href="mailto:ben.lippmeier@cs.anu.edu.au">ben.lippmeier@cs.anu.edu.au</a>      # <br>?.|        <a
+ href="http://cs.anu.edu.au/%7EClem.Baker-Finch/">Clem Baker-Finch</a>           <a
+ href="mailto:clem.baker-finch@cs.anu.edu.au">clem.baker-finch@cs.anu.edu.au</a>      #<br>--------------------------------------------------------------------------+---</pre>
+                                  </td>
+                                  <td valign="top" width="20%"><br>
+                                  </td>
+                                  <td valign="top" width="5%"
+ rowspan="2" colspan="1"><br>
+                                  <br>
+                                  </td>
+                                </tr>
+                                <tr>
+                                                                <td
+ valign="top" rowspan="1" colspan="3">                                  
+                                                                        
+                                                                        
+               
+      <hr width="100%" size="2">                                   
+      <h3>Overview</h3>
+     Ample is an experimental environment that can be used to study the behaviour 
+  of parallel programs in terms of an abstract machine, without needing to 
+ worry about details particular to a native implementation. Ample is based 
+ on Sestoft's Mark-3 machine <a href="references">[1]</a> and the Operational 
+ Semantics for Parallel Lazy Evaluation given by <a
+ href="http://cs.anu.edu.au/%7EClem.Baker-Finch/">Clem Baker-Finch</a>, David 
+  J. King and Phil Trinder <a href="references">[2]</a>. <br>
+           <br>
+     Ample accepts programs written in a spartan, no-nonsense functional
+language   which includes support for constructed types, basic IO and integer
+math.  Ample presents three separate machine models - single threaded, fully
+speculative   and semi-implicit. In the semi-implicit model parallelism is
+introduced with  the <tt>par</tt> and <tt>seq</tt> combinators in the same
+way as in programs  written for <a
+ href="http://www.macs.hw.ac.uk/%7Edsg/gph/#GranSim">GpH</a>.<br>
+           <br>
+     The operation of the abstract machine is highly tuneable. Tunability 
+extends   to include the maximum number of active threads, the latency of 
+communication   between the threads and the methods used for sparking and 
+unblocking.<br>
+           <br>
+     Ample includes a prelude of common functions and presents an interactive 
+  prompt where expressions are reduced and the machine state queried. Profiling
+  information can also be generated interactively, including graphs of thread
+  activity similar to the ones provided by <a
+ href="http://www.dcs.gla.ac.uk/fp/software/gransim/">GranSim</a>.<br>
+           <br>
+     Ample has been written entierly in <a href="http://www.haskell.org">Haskell</a>
+and makes use of the <a href="http://www.haskell.org/happy">Happy</a> parser 
+  generator and <a href="http://www.gnuplot.info/">Gnuplot</a> to generate
+the graphs.<br>
+       <br>
+       
+      <h3>Screenshots</h3>
+                                       
+      <table cellpadding="2" cellspacing="2" border="0" width="100%">
+             <tbody>
+               <tr>
+                 <td valign="top"><a
+ href="image/treeSize_fullspec_1280x1024.gif"><img
+ src="image/treeSize_fullspec_120x96.gif" alt="" width="120" height="96">
+                 </a><br>
+                 </td>
+                 <td valign="top">An Ample session showing the machine state
+  after evaulation of the <tt>treeSize</tt> function.                   
+                                             
+            <ul>
+                   <li><tt>treeSize</tt> counts the elements in a binary
+tree.</li>
+                   <li>This evaulation was performed in fully speculative 
+mode,   with a new thread created for each function application. This leads 
+to many   fine grain threads which rapidly become blocked (shown in red)<br>
+                   </li>
+                                                                     
+            </ul>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><a
+ href="image/treeSize_parseq_1280x1024.gif"><img
+ src="image/treeSize_parseq_120x96.gif" alt="" width="120" height="96">
+                 </a><br>
+                 </td>
+                 <td valign="top">An Ample session showing the machine state
+  after evaulation of the <tt>parTreeSize</tt> function.                
+         
+            <ul>
+                   <li><tt>parTreeSize</tt> also counts the elements in a 
+binary   tree, though it does it using the par and seq combinators to introduce 
+parallelism.</li>
+                   <li>Compared to the previous evaulation a smaller number 
+ of  threads are created and the total time spent blocked is much less.</li>
+                                                                     
+            </ul>
+                 </td>
+               </tr>
+                                                 
+        </tbody>                                   
+      </table>
+                                <br>
+       
+      <h3>Download</h3>
+           <b>Latest Version<br>
+           </b>                                   
+      <table cellpadding="2" cellspacing="2" border="0" width="100%">
+             <tbody>
+               <tr>
+                 <td valign="top"><br>
+                 </td>
+                 <td valign="top"><br>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><br>
+                 </td>
+                 <td valign="top"><br>
+                 </td>
+               </tr>
+                                                 
+        </tbody>                                   
+      </table>
+           <br>
+           <br>
+           <b>Previous Versions</b><br>
+                                       
+      <table cellpadding="2" cellspacing="2" border="0" width="100%">
+             <tbody>
+               <tr>
+                 <td valign="top"><br>
+                 </td>
+                 <td valign="top"><br>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><br>
+                 </td>
+                 <td valign="top"><br>
+                 </td>
+               </tr>
+                                                 
+        </tbody>                                   
+      </table>
+           <br>
+                                       
+      <h3>Limitations</h3>
+     At present there are some issues with the run-time performance of Ample.
+These issues stem from fact that we're using a lazy functional language (Haskell)
+to implement another lazy functional language (Ample) which is implemented
+as a state machine... (evaulate <i>now</i> dammit). There will have to be
+some trickery involving the <tt>seq</tt> combinator, or possibly the IO monad,
+in order to force each intermediate state to normal form before the next
+computation step commences. There are also questions surrounding the use
+of Haskell's standard array module as an efficient way of representing the
+heap.<br>
+      <br>
+At present the <tt>(treeSize fishTree)</tt> expression shown in the screenshots
+section takes about 4 seconds to print its result when Ample is compiled
+with GHC and is running on a 800MHz PC.<br>
+      <br>
+                                       
+      <h3><a name="references"></a>References</h3>
+                                       
+      <table cellpadding="2" cellspacing="2" border="0" width="100%">
+             <tbody>
+               <tr>
+                 <td valign="top"><b>[1]</b><br>
+                 </td>
+                 <td valign="top"><a
+ href="http://www.dina.dk/%7Esestoft/papers/amlazy5.ps.gz">Deriving a Lazy 
+  Abstract Machine</a>, <a href="http://www.dina.dk/%7Esestoft/">Peter Sestoft</a>, 
+              <i>Journal of Functional Programming vol 7 number 3</i>, May 
+ 1997<br>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><b>[2]</b><br>
+                 </td>
+                 <td valign="top"><a
+ href="http://cs.anu.edu.au/%7EClem.Baker-Finch/Research/par-cbn/">An Operational 
+  Semantics for Parallel Lazy Evaulation</a>, <a
+ href="http://cs.anu.edu.au/%7EClem.Baker-Finch/">Clem Baker-Finch</a>, David 
+  King and Phil Trinder, September 2000<br>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><b>[GpH]</b><br>
+                 </td>
+                 <td valign="top"><a
+ href="http://www.macs.hw.ac.uk/%7Edsg/gph/">Glasgow Parallel Haskell</a>.<br>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><b>[GranSim]<br>
+                 </b></td>
+                 <td valign="top"><a
+ href="http://www.dcs.gla.ac.uk/fp/software/gransim/">GranSim</a>, a simulator 
+  for <a href="http://www.macs.hw.ac.uk/%7Edsg/gph/#GranSim">Glasgow Parallel 
+  Haskell</a> programs.<br>
+                 </td>
+               </tr>
+               <tr>
+            <td valign="top"><b>[Gnuplot]<br>
+            </b></td>
+            <td valign="top"><a href="http://www.gnuplot.info/">Gnuplot</a>,
+a useful plotting tool.<br>
+            </td>
+          </tr>
+          <tr>
+                 <td valign="top"><b>[Happy]</b><br>
+                 </td>
+                 <td valign="top"><a
+ href="http://www.haskell.org/happy/">Happy</a>,   The Parser Generator for
+Haskell.<br>
+                 </td>
+               </tr>
+               <tr>
+                 <td valign="top"><b>[Haskell]</b><br>
+                 </td>
+                 <td valign="top"><a href="http://www.haskell.org">Haskell</a>, 
+  a purely functional language.<br>
+                 </td>
+               </tr>
+                                                 
+        </tbody>                                   
+      </table>
+           <br>
+                                  </td>
+                                                              </tr>
+                                                                        
+                                      
+  </tbody>                            
+</table>
+                            <br>
+     <br>
+    <br>
+   <br>
+  <br>
+ <br>
+</body>
+</html>

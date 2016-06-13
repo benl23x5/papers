@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Conversion from source language to Mark-3 code</title>
+      
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+ 
+<h1>Conversion from source language to Mark-3 code</h1>
+  
+<h2>Lexing<br>
+   </h2>
+   The first step in the conversion is lexical analysis. Ample uses a hand
+ coded lexer which converts the program source, a string, into tokens.   
+<pre>data Token<br>        = TokenError    String          -- used for reporing lex errors<br>        | TokenVarS	String		-- variables as strings<br>        | TokenVarI	Int             -- variables as indicies<br>        | TokenType	String          -- types<br>        | TokenCChar	Char            -- constants: Char, Int, Float, String, ...<br>        ...<br>	| TokenKCase                    -- keywords:  case, if, else, ...<br>        ...<br>        | TokenSAnd                     -- symbols:   &amp;, &amp;&amp;, !, !!, {, }, ...<br>        | TokenSNewLine<br><br>lexer :: String -&gt; [Token]</pre>
+   In the lexer, newline characters are converted to <tt>TokenSNewLine</tt> 
+ and variables are converted to <tt>(TokenVarS String)</tt>. A follow on &nbsp;function,
+ <tt>stripTable</tt>, reads through the list of tokens and builds a table
+of variable names and what line they occured on. Occurances of <tt>TokenSNewLine</tt>
+ are then removed from the token stream and occurences of <tt>(TokenVarS
+String)</tt>  are replaced by <tt>(TokenVarI Int)</tt> where the <tt>Int</tt>
+is the offset  into the table for that variable.   
+<pre>striptable :: [Token] -&gt; ([(String, Int)], [Token])</pre>
+   This table is used help with error reporting. When an error is encountered, 
+ at either compile-time or run-time, the nearest variable is looked up in 
+the table and the corresponding source line number communicated to the user. 
+  
+<h2>Parsing</h2>
+   Ample uses Happy to generate a parser for the source language. Happy takes 
+ a set of rules and generates a function that converts a list of tokens to 
+ a parse tree. Ample uses a data type called Exp to represent the parse tree. 
+ The source for this datatype is shown in figure 1.<br>
+  <br>
+ <br>
+   The Exp data type is a direct representation of the program source, apart 
+ from a few de-sugaring conversions which are done on the fly in the Happy 
+ rule set. These conversions are listed in figure 2.<br>
+   <br>
+   <b>figure 2: </b>de-sugaring conversions.<br>
+     
+<hr width="100%" size="2">    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+      <tbody>
+        <tr>
+          <td valign="top"><b>Conversion</b><br>
+          </td>
+          <td valign="top"><b>Example source expression<br>
+          </b></td>
+          <td valign="top"><b>Example de-sugared expression</b><br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">convert sugared lists <br>
+     &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;to Constructor form.<br>
+          </td>
+          <td valign="top">                            
+      <pre>[a, b, c, d]</pre>
+          <br>
+          </td>
+          <td valign="top">                            
+      <pre>Cons a (Cons b (Cons c (Cons d Nil)))<br></pre>
+          <br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">convert sugared tuples<br>
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;to Constructor form<br>
+          </td>
+          <td valign="top">                            
+      <pre>(a, b, c)</pre>
+          </td>
+          <td valign="top">                            
+      <pre>Tuple3 a b c&nbsp;</pre>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">convert if-then-else expressions<br>
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;to case-of expressions<br>
+          </td>
+          <td valign="top">                            
+      <pre>if e1 <br>    then e2 <br>    else e3</pre>
+          </td>
+          <td valign="top">                            
+      <pre>case e1 of { <br>    True -&gt; e2; <br>    False -&gt; e3; <br>}</pre>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">convert simple sugared patterns <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;to constructor patterns.<br>
+          </td>
+          <td valign="top">                            
+      <pre>case e1 of {<br>    []      -&gt; e2;<br>    (x:xs)  -&gt; e3; <br>    (a,b,c) -&gt; e4;<br>}</pre>
+          </td>
+          <td valign="top">                            
+      <pre>case e1 of {<br>    Nil          -&gt; e2;<br>    Cons   x xs  -&gt; e3; <br>    Tuple3 a b c -&gt; e4;<br>}<br></pre>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">convert multi-argument function bindings <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;to lambda &nbsp;form.<br>
+          </td>
+          <td valign="top">                            
+      <pre>let { <br>    f a b c = e1; <br>}</pre>
+          </td>
+          <td valign="top">                            
+      <pre>let {<br>   f = /a. /b. /c. e1;<br>}<br></pre>
+          </td>
+        </tr>
+               
+  </tbody>    
+</table>
+       
+<hr width="100%" size="2">   
+<h2>Conversion</h2>
+   Once the program has been parsed, it is converted into a form suitable 
+for  execution by Sestofts Mark-3 machine. A second, seperate data type, shown
+ in figure 3, is used to represent the program in Mark-3 form. This type
+is  also called Exp, though is located in a separate Haskell module.<br>
+   <br>
+   Conversion of the source parse tree to Mark-3 code involves four steps,
+ Flattening, Normalisation, introduction of de Bruijn&nbsp; indicies and
+building  of trimmers. The first three steps are related and are preformed
+by the function  <tt>convertExp</tt>. The building of trimmers is performed
+by the function  <tt>buildTrimmers</tt>.   
+<pre>convertExp    :: VarTable -&gt; S.Exp -&gt; (Prog, Int)</pre>
+     
+<pre>buildTrimmers :: Prog -&gt;     Eix -&gt;   Prog</pre>
+     
+<h3><br>
+   </h3>
+     
+<h3>Flattening</h3>
+   Flattening is the process of taking a parse tree and inserting its nodes 
+ into a heap. Heap pointers are used to represent the edges of the parse tree.<br>
+   <br>
+   This is a superficial process. In a sense it serves to undo the expressive 
+ power of the implementation language in order to recover a lower level representation 
+ of the parse tree. In many functional languages, an exprssion represented 
+ by the data type shown in figure 1 would <i>already</i> by represented as 
+ a collection of cells in <i>the</i> heap. However, this representation would 
+ not normally be visible to the implementation programming model.<br>
+   <br>
+   The Ample implementation calls a heap cell that represents a node in the 
+ parse tree a 'program cell', and its pointer an 'expression index' or 'Eix' 
+ for short.     
+<h3>Normalisation</h3>
+   A normalised lambda expression is one in which the arguments of applications
+ are always variables, [Sestoft, 1996]. This includes the arguments of constructor
+ functions as well as the second argument in the par expression. Converting
+ an expression to normalised form is a simple matter of introducing extra
+let bindings for offending arguments. Normalisation ensures that evaulations
+of these arguments are always shared. The normalising conversions are as
+follows,   
+<blockquote>e<sub>1</sub> e<sub>2</sub> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <b>-&gt;</b> &nbsp;<b>let 
+ {</b> x = e<sub>2</sub> <b>} in </b>e<sub>1</sub> x<br>
+  C e<sub>1</sub> ... e<sub>n</sub> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+ &nbsp; &nbsp; <b>-&gt;&nbsp; let {</b> x<sub>1</sub> = e<sub>1</sub>, ...
+ x<sub>n</sub> = e<sub>n</sub> <b>} in</b> C x<sub>1</sub> ... x<sub>n</sub><br>
+  e<sub>1</sub> <b>par</b> e<sub>2</sub> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+ &nbsp; &nbsp; &nbsp; <b>-&gt; &nbsp;let {</b> x = e<sub>2</sub> <b>} in</b>
+ e<sub>1</sub> <b>par</b> x<br>
+    <br>
+  where {x} are fresh for each conversion<br>
+  </blockquote>
+  Although the application of these conversions does indeed result in expressions
+ of normalised form, in practice the process of&nbsp; normalisation and the
+ introduction of de Bruijn indicies takes place at the same time. The introduction
+ of de Bruijn indicies removes the need for named variables. Spending time
+ devising some system of generating fresh variables only to have them vanish
+ in favour of de Bruijn indicies would be counter-productive.<br>
+  <br>
+        
+<h3>Introduction of de Bruijn indicies</h3>
+   de Bruijn indicies are introduced as follows.<br>
+   <br>
+  The parse tree is decended recursivly. This is done while maintaining a 
+stack of variable names that co-respond to the heap pointers that would be 
+present in the environment during the actual program reduction. When a variable 
+name is encountered in an expression, the stack is searched for this name 
+and the variable is replaced by the offset into the stack for that occurance.<br>
+  <br>
+  The following code gives a simplified version of the convertExp function
+ used in the Ample2 implementation. Differences between the simplified version
+ and the real one are discussed in the next section.<br>
+  <br>
+  convertExp takes a copy of the current program - a heap of Mark-3 expressions,
+ a list respresenting the current environment and the source expression to
+ convert. It converts the source expression to Mark-3 form and adds it to
+the program. convertExp&nbsp; returns the new program and a pointer to the
+top level cell for the converted expression.<br>
+   
+<pre>convertExp :: Heap M.Exp -&gt; [String] -&gt; S.Exp -&gt; (Heap M.Exp, Int)</pre>
+  The function convertExps is defined in terms of convertExp.&nbsp; convertExps
+ takes the current program, the current environment and a list of expressions.
+ It converts the expressions one at a time, using the same environment, and
+ adds them to the program. convertExps returns the new program and a list
+of heap pointers, one for each converted expression.  
+<pre>convertExps :: Heap M.Exp -&gt; [String] -&gt; [S.Exp] -&gt; (Heap M.Exp, [Int])</pre>
+  <br>
+  From reduction rule <a
+ href="file:///home/neural/work/project/ample/ample2/work/doc/Rules_for_single_threaded_evaluation.html#st-app2">st-app<sub>2</sub></a>
+ we see that during the reduction of a Lambda abstraction, the bound variable
+ gets pushed onto the top of the environment and then control passes to the
+ abstraction body. This is reflected in convertExp as the bound variable
+also  gets pushed onto the top of the stack before recursivly calling convertExp
+ on the body.&nbsp;   
+<pre>convertExp prog env (S.Lambda var exp)   = (prog2, eix2)<br> where<br>        (prog1, eix1)	     = convertExp prog (var :env) exp<br>        (prog2, eix2)        = heapAdd prog1 (M.Lambda eix1)<br></pre>
+  <br>
+  The convertExp rule for applications shows normalisation taking place during
+ the conversion to Mark-3 code. The complete conversion is as follows,   
+<blockquote>e<sub>1</sub> e<sub>2</sub> <b>-&gt; let {</b> e<sub>2</sub>
+  <b>} in</b> e<sub>1</sub><br>
+  </blockquote>
+  During this conversion a let binding is introduced which is not present 
+in the original expression. This binding is un-named, yet still takes up space
+in the environment. The convertExp function accounts for this by pushing
+ the null string onto the stack as a place holder. This ensures that variable-name-to-de-Bruijn-index
+ translations in sucessive conversions will work out.<br>
+  <br>
+   
+<pre>convertExp prog env (S.ExpExp exp1 exp2) = (prog4, eix4)<br> where<br>        (prog1, eix1)        = convertExp prog  ("" :env) exp1<br>        (prog2, eix2)        = convertExp prog1 ("" :env) exp2<br>        (prog3, eix3)        = heapAdd prog2 (M.ExpVar exp1  0)<br>        (prog4, eix4)        = heapAdd prog3 (M.Let   [eix2] eix3)<br></pre>
+  During the conversion of a Let expression it is important to note that
+the  names of all bindings are pushed onto the stack at once, before any
+of the expressions are converted. This allows the bindings to be mutually
+dependent. In contrast, a machine which used static pointers to reference
+the bindings instead of de Bruijn indicies would be forced to either pre-allocate
+cells before the bindings are added to the program, or back patch the pointers 
+afterwards.<br>
+  <br>
+  <br>
+  <br>
+  <br>
+   
+<pre>convertExp prog env (S.Let binds exp)    = (prog3, eix3)<br> where<br>        (bindVars, bindExps) = unzip binds<br>        env1                 = (reverse bindVars) ++ env<br>        (prog1, eixLs)       = convertExps prog  env1 bindExps<br>        (prog2, eix2)        = convertExp  prog1 env1 exp<br>        (prog3, eix3)        = heapAdd prog2 (M.Let eixLs eix2)<br></pre>
+  sdfgsgf<br>
+  <br>
+   
+<pre>convertExp prog env (S.Var var)          = (prog1, eix1)<br> where<br>        (prog1, eix1)        = heapAdd prog (M.Var (indexOf var env))<br></pre>
+  sdfgsfg<br>
+  <br>
+     
+<h3>Convert Exp</h3>
+   mamoth function. does lots of things all at once. thought about breaking 
+ it up, but not straightforward.<br>
+   <br>
+   Want to do mark-3 conversion and normalization together because that way 
+ you don't need a source of fresh variable names. The binding created is only
+ referenced at one place. Binding is relative to the top of the stack, push
+ "" into the bindings list as a 'place holder'. &nbsp; a, b, "",<br>
+   <br>
+   <br>
+   <br>
+   <br>
+   <br>
+   <br>
+   have to lookup var names as we go,<br>
+   also fill in source line numbers<br>
+       <br>
+</body>
+</html>

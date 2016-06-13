@@ -1,0 +1,24 @@
+
+add x y = case x of { Int a b -> case y of { Int a b -> #intAdd; }; };
+sub x y = case x of { Int a b -> case y of { Int a b -> #intSub; }; };
+
+eq x y	= 
+	case x of { 
+		Int a b -> case y of { Int a b -> #intEq; };
+		True	-> case y of { True  -> True; False -> False; };
+		False	-> case y of { False -> True; True  -> False; };
+	}
+;
+
+
+print x =
+	case x of { Int a b -> #print; }
+;
+
+
+index	l i	= 
+	case l of {
+		[]	-> Error EndOfList;
+		(x:xs)	-> if i == 0 then x else index xs (i - 1);
+	}
+;

@@ -1,0 +1,10 @@
+
+add x y = case y of { Int a b -> case x of { Int a b -> #intAdd; }; };
+
+print x =
+	case x of { Int a b -> #print; }
+;
+
+
+
+

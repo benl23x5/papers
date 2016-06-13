@@ -1,0 +1,10 @@
+----+-------------------------------------------------------------------------
+    #           Ample                                             v2.0 |.$$...
+    #           A        M           P        L    E                   |......
+--- #           Abstract Machine for Parallel Lazy Evaluation          ---+---
+..| @                                                                     #   
+d.+##      Ben Lippmeier                 ben.lippmeier@cs.anu.edu.au      # 
+?.|        Clem Baker-Finch           clem.baker-finch@cs.anu.edu.au      #
+--------------------------------------------------------------------------+---
+type :help for help
+

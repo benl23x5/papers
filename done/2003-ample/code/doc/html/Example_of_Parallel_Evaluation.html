@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Example of Parallel Evaluation</title>
+             
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+   
+<h1>Example of Parallel Evaulation</h1>
+     
+<h2>Factorial</h2>
+<pre>fac x   =<br>        if x == 0<br>         then   1 <br>         else<br>                if x == 1<br>                 then   1<br>                 else   x * fac (x - 1);<br><br><b>&gt; fac 5<br></b>120</pre>
+<br>
+<img src="image/fullspec/fac_10-threads.png" alt="fac 10" width="700"
+ height="260">
+   
+<h2>Primes</h2>
+<pre>primes          = 1 : (primes'  $ from positiveInts 2);<br>primes' xx      = <br> case xx of {<br>        (x:xs)  -&gt; x : primes' (sieve x xs);<br> };<br><br>sieve   n xx    =<br> case xx of {<br>        []      -&gt; [];<br>        (x:xs)  -&gt; <br>                if x % n == 0 then          sieve n xs<br>                else                    x : sieve n xs;<br> };<br><br>positiveInts    =     positiveInts' 0;<br>positiveInts' n = n : positiveInts' (n + 1);  <br><br><b>&gt; take 10 primes<br></b>[1, 2, 3, 5, 7, 11, 13, 17, 19, 23]<br></pre>
+<br>
+  <img src="image/fullspec/take_10_primes-threads.png"
+ alt="take 10 primes" width="714" height="265">
+<br>
+  <br>
+  <br>
+<h2>Tree Walk</h2>
+<pre>treeInsert tree iKeyVal =<br> case iKeyVal of {<br>        (iKey, iVal) -&gt;<br>         case tree of {<br>                []                      -&gt; (iKey, iVal, [], []);<br><br>                (key, val, left, right) -&gt;<br>                        if iKey == key then<br>                                KeyExists<br><br>                        else<br>                        if iKey &lt; key  then<br>                                (key, val, treeInsert left iKeyVal, right)<br><br>                        else<br>                                (key, val, left, treeInsert right iKeyVal);<br>         };<br> };<br><br>treeSize tree           =<br> case tree of {<br>        []                      -&gt; 0;<br>        (key, val, left, right) -&gt;<br>                1 + treeSize left + treeSize right;<br> };<br><br>fish        = ["perch",     "barb",  "tetra",    "discus", "catfish", "gourami",<br>               "corydorus", "trout", "chichlid", "loach",  "goby",    "eel"];<br><br>someInts    = [1, 10, 4, 3, 8, 6, 12, 2, 9, 13, 11, 5];<br><br>fishTree    = foldl treeInsert [] (zip someInts fish)<br><br><b>&gt; treeSize fishTree<br></b>12<br><br></pre>
+<img src="image/fullspec/treeSize_fishTree-threads.png"
+ alt="treeSize fishTree" width="710" height="260">
+<br>
+  <br>
+  <br>
+  <br>
+ <br>
+</body>
+</html>

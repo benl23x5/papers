@@ -1,0 +1,960 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Fully Speculative Abstract Machine</title>
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+<body>
+<h1>Machine Rules for Fully speculative evaluation.</h1>
+<hr width="100%" size="2"><b>fs-let</b>
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+   <tbody>
+     <tr>
+       <td valign="top" width="10%" align="left" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Let</u>
+[(b<sub>i</sub>, r<sub>i</sub>)] e<sub>0</sub> r<sub>0</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" align="left" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H [</b> p<sub>i</sub>
+-&gt; (b<sub>i</sub>, &nbsp;([p<sub>1</sub>, ... p<sub>n</sub>] ++ <b>E</b>)
+| t<sub>i</sub>) <b>]</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e<sub>0</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">([p<sub>1</sub>,
+... p<sub>n</sub>] ++ <b>E</b>) | t<sub>0</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">) <sub>t</sub><br>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ <br>
+where<br>
+&nbsp;&nbsp;&nbsp; i&nbsp;&nbsp;&nbsp; &lt;- &nbsp;&nbsp;&nbsp; [1 .. n]<br>
+<br>
+<hr width="100%" size="2"><b>fs-var1</b>
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+  <tbody>
+    <tr>
+      <td valign="top" width="10%" align="left" nowrap="nowrap"><br>
+      </td>
+      <td valign="top" width="30%" nowrap="nowrap"><b>H [</b> p<sub>x</sub>
+-&gt; (e', E')<b> ]</b><br>
+      </td>
+      <td valign="top" width="1%" nowrap="nowrap">(<br>
+      </td>
+      <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Var</u>
+x,<br>
+      </td>
+      <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+      </td>
+      <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+      </td>
+      <td valign="top" width="1%" nowrap="nowrap">) <sub>t</sub><br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top" width="10%" align="left" nowrap="nowrap">=&gt;<br>
+      </td>
+      <td valign="top" width="30%" nowrap="nowrap"><b>H</b><br>
+      </td>
+      <td valign="top" width="1%" nowrap="nowrap">(<br>
+      </td>
+      <td valign="top" width="10%" nowrap="nowrap" align="right">e',<br>
+      </td>
+      <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>',<br>
+      </td>
+      <td valign="top" width="20%" align="right" nowrap="nowrap">#x : <b>S</b><br>
+      </td>
+      <td valign="top" width="1%" nowrap="nowrap">) <sub>t</sub><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+<br>
+<hr width="100%" size="2"><b>fs-var2<br>
+</b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+   <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H [</b> p<sub>x</sub>
+-&gt; <u>Blocked</u><b><sub>ts</sub></b> <b>]</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Var</u>
+x,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H [</b> p<sub>x</sub>
+-&gt; <u>Blocked</u> <sub>t : <b>ts</b></sub><b> ]<br>
+      </b>       </td>
+       <td valign="top" width="1%" nowrap="nowrap">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Blocked</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[ ],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap">) <sub>t</sub><br>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ <br>
+<br>
+<hr width="100%" size="2"><b>fs-var3</b>  
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+    <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap" align="left"><b>H [</b>
+p<sub>x</sub> -&gt; <u>Blocked</u> <sub>[t1, ... tn]</sub><b> ]</b></td>
+       <td valign="top" width="1%" nowrap="nowrap">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><i>whnf</i>,<br>
+        </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+        </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">#x : <b>S</b><br>
+        </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+      <td valign="top"><br>
+      </td>
+      <td valign="top" width="30%" align="right" nowrap="nowrap">{<br>
+      </td>
+      <td valign="top">(<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap"><u>Blocked</u>,<br>
+      </td>
+      <td valign="top" align="right">[ ],<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap"><b>S</b><sub>i</sub><br>
+      </td>
+      <td valign="top" width="1%" align="left" nowrap="nowrap">) <sub>ti</sub>
+} <br>
+      </td>
+    </tr>
+    <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap" align="left"><b>H [</b>
+p<sub>x</sub> -&gt; (<i>whnf</i><sub>[ ]</sub>, [..., p<sub>x</sub>, ...]
+) <b>]<br>
+       </b>       </td>
+       <td valign="top" width="1%" nowrap="nowrap">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><i>whnf</i>,<br>
+        </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+        </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+        </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">)<sub> t</sub><br>
+       </td>
+     </tr>
+    <tr>
+      <td valign="top" width="10%" nowrap="nowrap"><br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap" width="30%">{<br>
+      </td>
+      <td valign="top" nowrap="nowrap">( <br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap"><i>whnf</i>,<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap"><b>S</b><sub>i</sub><br>
+      </td>
+      <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>ti</sub>
+}<br>
+      </td>
+    </tr>
+   
+  </tbody> 
+</table>
+  <br>
+where<br>
+&nbsp;&nbsp;&nbsp; <i>whnf</i> &nbsp;&nbsp; -&gt; &nbsp;Lambda e<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp; | &nbsp;Construct name a<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp; | &nbsp;Constant c<br>
+<br>
+&nbsp;&nbsp;&nbsp; i &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &lt;-&nbsp;&nbsp;&nbsp;
+[1 .. n]<br>
+<br>
+<hr width="100%" size="2"><b>fs-app1</b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+    <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H [</b> p<sub>x</sub>
+-&gt; (e<sub>2</sub><b>,&nbsp;E<sub>2</sub></b>)<b> ]</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>ExpVar</u>&nbsp;
+e<sub>1</sub> x,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H [</b> p<sub>x</sub>
+-&gt; <u>Blocked</u> <sub>[ ]</sub> <b>]</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e<sub>1</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">x :<b>
+S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    <tr>
+      <td valign="top" width="10%" nowrap="nowrap"><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top" align="left" nowrap="nowrap" width="1%">(<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap">e<sub>2</sub>,<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap"><b>E<sub>2</sub></b>,<br>
+      </td>
+      <td valign="top" align="right" nowrap="nowrap">[ #x ]<br>
+      </td>
+      <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t'</sub><br>
+      </td>
+    </tr>
+   
+  </tbody> 
+</table>
+ <br>
+where<br>
+&nbsp;&nbsp;&nbsp; t'&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; is fresh<br>
+<br>
+<hr width="100%" size="2"><b>fs-app2</b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+     <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H</b>       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Lambda</u>
+&nbsp;e,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b><br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">&nbsp;x
+: <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">x : <b>E</b><br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+  <br>
+<br>
+<hr width="100%" size="2"><b>fs-app3<br>
+</b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+      <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap">       <b>H [</b> p<sub>x</sub>
+-&gt; <u>Blocked</u><b><sub>ts</sub></b><b> ]</b><br>
+      </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>ExpVar</u>&nbsp;
+e x,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">&nbsp;<b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="30%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[..., p<sub>x</sub>,
+...],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">x : <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+   <br>
+<br>
+<hr width="100%" size="2"><b>fs-seq_push<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+          <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Seq</u>
+e<sub>1</sub> e<sub>2</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e<sub>1</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">( <u>SSeq</u>
+e<sub>2</sub> <b>E</b> ) : <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+      <br>
+<br>
+<hr width="100%" size="2"><b>fs-seq_eval<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+           <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><i>whnf</i>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">( <u>SSeq</u>
+e<sub>2</sub> <b>E'</b> ) : <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e<sub>2</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E'</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+       <br>
+where<br>
+ &nbsp;&nbsp;&nbsp; <i>whnf</i> &nbsp; -&gt; <u>Lambda</u> &nbsp; &nbsp;e<br>
+ &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;
+| &nbsp;<u>Construct</u> name a<br>
+ &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;
+| &nbsp;<u>Constant</u> &nbsp; c<br>
+<br>
+<hr width="100%" size="2"><b>case1<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+       <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Case</u>&nbsp;
+(x, r) alts ,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">E,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">&nbsp;<b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">E,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">(alts,
+      <b>E</b> | r)&nbsp; : <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+    <br>
+ <br>
+ 
+<hr width="100%" size="2"><b>case2<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+        <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Construct</u>
+&nbsp;name<sub>i</sub> a<sub>i</sub> ,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[p<sub>1</sub>,
+... p<sub>a</sub>, ... p<sub>n</sub>],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">({ (name<sub>i</sub>,
+a<sub>i</sub>, e<sub>i</sub>, r<sub>i</sub> )<sub> i</sub> }, <b>E</b> )
+: <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e<sub>i</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">([p<sub>1</sub>,
+.. p<sub>a</sub>] ++ <b>E</b>) | r<sub>i</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">&nbsp;<b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+     <br>
+If name<sub>i</sub> is not present in the case alternatives, then try rule
+<b>case2/default</b>.<br>
+<br>
+ <b>case2/default<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+         <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Construct</u>
+&nbsp;name<sub>i</sub> a<sub>i</sub> ,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">[p<sub>1</sub>,
+... p<sub>a</sub>, ... p<sub>n</sub>],<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">({ (<u>Default</u>,
+a<sub>i</sub>, e<sub>i</sub>, r<sub>i</sub> )<sub> i</sub> }, <b>E</b> )
+: <b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right">e<sub>i</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">([p<sub>1</sub>,
+.. p<sub>a</sub>] ++ <b>E</b>) | r<sub>i</sub>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">&nbsp;<b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+      <br>
+If <u>Default</u> is not present in the case alternatives then <b>FAIL/nomatch.</b><br>
+<br>
+<br>
+ 
+<hr width="100%" size="2"><b>constant_int<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+             <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Int</u>
+n,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>RetInt</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><u>TagInt(0)</u>&nbsp;
+: n : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+        <br>
+<br>
+<hr width="100%" size="2"><b>constant_char<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+              <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Char</u>
+c,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>RetChar</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><u>TagChar(1)</u>&nbsp;
+: c : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+        <br>
+<br>
+<hr width="100%" size="2"><b>print_int<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+              <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+      <u>Print</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><u>TagInt(0)</u>&nbsp;
+: n : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Construct</u>
+"<u>Done</u>" <u>0</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+         <br>
+ <i>Side effect<br>
+&nbsp;&nbsp;&nbsp; 1) </i><i>emit</i> n <i>to standard output</i>.<br>
+<br>
+<hr width="100%" size="2"><b>print_char<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+               <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+      <u>Print</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><u>TagChar(1)</u>
+: c : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Construct</u>
+"<u>Done</u>" <u>0</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+         <br>
+<i>Side effect</i><br>
+&nbsp;&nbsp;&nbsp; <i>1) emit</i> c <i>to standard output.</i> &nbsp;&nbsp;
+<br>
+<br>
+<hr width="100%" size="2"><b>prim_Int[Add, Sub, Mul, Div, Mod ... ]<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+      <i>name</i>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><u>TagInt(0)</u>
+: n<sub>1</sub> : TagInt(0) : n<sub>2</sub> : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>RetInt</u>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap">TagInt(0)
+: n<sub>3</sub> : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+          <br>
+<br>
+ 
+<table cellpadding="2" cellspacing="2" border="0" width="50%">
+  <tbody>
+    <tr>
+      <td valign="top">where<br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><br>
+      </td>
+      <td valign="top"><i>name</i><br>
+      </td>
+      <td valign="top">= <u>IntAdd</u><br>
+      </td>
+      <td valign="top"><i>n<sub>3</sub></i><br>
+      </td>
+      <td valign="top">= (n<sub>1</sub> + n<sub>2</sub>)<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top">| &nbsp;<u>IntSub</u><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top">| &nbsp; (n<sub>1</sub> - &nbsp;n<sub>2</sub>)<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top">... <br>
+      </td>
+      <td valign="top"><br>
+      </td>
+      <td valign="top">... as appropriate<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+<hr width="100%" size="2"><b>prim_Int[Eq, MoreThan, LessThan ... ]<br>
+ </b> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                 <tbody>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap"><br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap">       <b>H </b> </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+      <i>name</i>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><u>TagInt(0)</u>
+: n<sub>1</sub> : TagInt(0) : n<sub>2</sub> : <b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+       </td>
+       <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">(       </td>
+       <td valign="top" width="10%" nowrap="nowrap" align="right"><i>exp</i>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>E</b>,<br>
+       </td>
+       <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+       </td>
+       <td valign="top" width="1%" nowrap="nowrap" align="left">) <sub>t</sub><br>
+       </td>
+     </tr>
+    
+  </tbody> 
+</table>
+          <br>
+<br>
+  
+<table cellpadding="2" cellspacing="2" border="0" width="50%">
+   <tbody>
+     <tr>
+       <td valign="top">where<br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top"><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top"><br>
+       </td>
+       <td valign="top"><i>name</i><br>
+       </td>
+       <td valign="top">= <u>IntEq</u><br>
+       </td>
+       <td valign="top"><i>exp</i><br>
+       </td>
+       <td valign="top">= <u>Construct</u> "<u>True</u>" <u>0</u><br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top"><br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top">| &nbsp;<u>IntMoreThan</u><br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top">| &nbsp; <u>Construct</u> "<u>False</u>"<br>
+       </td>
+     </tr>
+     <tr>
+       <td valign="top"><br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top">... <br>
+       </td>
+       <td valign="top"><br>
+       </td>
+       <td valign="top">&nbsp;... as appropriate<br>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+</body>
+</html>

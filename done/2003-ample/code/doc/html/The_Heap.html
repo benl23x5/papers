@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Program / Data Representation</title>
+      
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+ 
+<h1>Program / data representation.<br>
+ </h1>
+ <br>
+ Ample2 defines a polymorphic heap type. Seperate instances of this type
+are  used for both the data heap and for storage of program cells.<br>
+ <br>
+ 
+<h2>The Heap type</h2>
+ A Heap cell can either be <tt>Active</tt>, <tt>Free</tt>. In the Active
+state it contains a valid data. When a cell is Free it holds the index of
+the next Free cell. This way, all the free cells in the heap form a linked
+list. If index is set to -1 this indicates that the cell is the last one
+in the list. 
+<pre>data HeapCell a<br>        = Active  a<br>        | Free    Int<br></pre>
+ <br>
+ The Heap itself consists of an array of cells, a count of the number cells 
+in the heap vs the number of free cells, and the index of the cell which is
+the head of the free list. If there are no free cells then this index is
+set to -1.<br>
+ <br>
+ 
+<pre>data Heap a =<br>        Heap {<br>                hCell        :: Array Int (HeapCell a),<br>                hCells       :: Int,<br>                hFreeCells   :: Int,<br>                hFreeHead    :: Int<br>        }<br></pre>
+<h2>The Program Heap</h2>
+ The program heap is used to store the program graph. A cell in the program 
+heap consists of an expression; the line number in the source file where this
+expression originated and the expression depth, which is used during construction
+of the environment trimmers at compile time.<br>
+ 
+<pre>data ProgCell<br>        = ProgCell {<br>                pcExp        :: Exp,<br>                pcSourceLine :: Int,<br>                pcDepth      :: Int<br>        }<br><br>type ProgHeap   = Heap ProgCell<br></pre>
+<br>
+<h2>The Data Heap<br>
+</h2>
+The data heap is used to store suspensions during the reduction of an Ample
+program. A cell in the data heap consists of a mark - used for garbage collection;
+an index into the program heap for the suspended expression; a copy of what
+the environment was when the expression was suspended and the blocking queue,
+a list of the threads which are waiting for this expression to be evaulated. 
+<pre>data DataCell<br>        = DataCell {<br>                dcMark        :: Bool,<br>                dcEix         :: Int,<br>                dcEnv         :: [Int]<br>                dcBlocks      :: [Int]<br>        }<br><br>type DataHeap	= Heap DataCell<br></pre>
+<br>
+<h2>Garbage Collection</h2>
+Ample uses a simple mark/sweep garbage collector. <br>
+<br>
+The first step in the garbage collection is to gather the list of first level
+heap dependencies, that is, the list of all data cells directly referenced
+by the machine state. This consists the cells referenced in the environment
+and stack of all threads. This is a simple matter, though care must be taken
+to ignore any base values that may be present in the environment, as discussed
+in the section on base value handling.<br>
+<br>
+The function which determines the list of dependencies is stateDeps. stateDeps
+calls slurpStackDeps and slurpEnvDeps to process the stack and the environment
+respectivly.<br>
+<br>
+<pre>stateDeps      :: State -&gt; [Int]<br>slurpStackDeps :: Stack -&gt; [Int]<br>slurpEnvDeps   :: Env   -&gt; [Int]<br><br></pre>
+All the first level heap dependencies are then marked, as well as all the
+cells referenced in their environments, recursivly. The heap is then swept
+from top to bottom, and all cells that are not marked are added to the free
+list. The sweeping function also resets the mark on each cell as it procededs
+through the heap.<br>
+<br>
+<br>
+ 
+</body>
+</html>

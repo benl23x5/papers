@@ -1,0 +1,456 @@
+-------------------------------------------------------------------------------------------------------------------------- prelude
+-- Ample v2.0 prelude
+--
+
+---------------------------------------------------------------------------------------------------------------------- mark3 stubs
+--
+--
+add x y 		= case x of { Int a b -> case y of { Int a b -> #intAdd; }; };
+sub x y 		= case x of { Int a b -> case y of { Int a b -> #intSub; }; };
+mul x y 		= case x of { Int a b -> case y of { Int a b -> #intMul; }; };
+div x y 		= case x of { Int a b -> case y of { Int a b -> #intDiv; }; };
+mod x y 		= case x of { Int a b -> case y of { Int a b -> #intMod; }; };
+
+intEq x y		= case x of { Int a b -> case y of { Int a b -> #intEq;  }; };
+
+moreThan 	x y	= case x of { Int a b -> case y of { Int a b -> #intMoreThan; 	}; };
+moreThanEqual	x y	= case x of { Int a b -> case y of { Int a b -> #intMoreThanEq; }; };
+
+lessThan	x y	= case x of { Int a b -> case y of { Int a b -> #intLessThan;	}; };
+lessThanEqual	x y	= case x of { Int a b -> case y of { Int a b -> #intLessThanEq; }; };
+
+
+---------------------------------------------------------------------------------------------------------------------------- print
+print x =
+ case x of { 
+	Int 	a b	-> #print; 
+	Char 	a b	-> printChar '\'' seq printChar x seq printChar '\'';
+
+	(a, b)		-> printAsTuple [a, b];
+	(a, b, c)	-> printAsTuple [a, b, c];
+	(a, b, c, d)	-> printAsTuple [a, b, c, d];
+
+	[]		-> printStr "[]";
+	(x:xs)		-> printList (x:xs);
+
+	True		-> printStr "True";
+	False		-> printStr "False";
+	Done		-> printStr "Done";
+ };
+
+
+printChar x =
+ case x of {
+	Char a b	-> #print;
+ };
+
+
+printStr xx	=
+ case xx of {
+	[]	-> Done;
+	(x:xs)	-> printChar x	seq printStr xs;
+};
+
+
+printList	xx	= 
+ case head xx of {
+	Char a b	-> printChar '\"' seq printStr xx	seq printChar '\"';
+	Default		-> printChar '['  seq printListElems xx seq printChar ']';
+ };
+
+
+printListElems	xx	=
+ case xx of {
+	[]	-> Done;
+	(x:xs)	-> print x		seq printListElems' xs;
+ };
+
+
+printListElems'	xx	=
+ case xx of {
+	[]	-> Done;
+	(x:xs)	-> printStr ", "	seq print x	seq printListElems' xs;
+ };
+
+
+
+printAsTuple	xx	= 
+ case xx of {
+	(x:xs)	-> 
+			printChar 	'('
+		seq	print		x
+		seq	printAsTuple'	xs;
+ };	
+
+
+printAsTuple'	xx	=
+ case xx of {
+	[]	-> printChar ')';
+	(x:xs)	-> 
+			printStr 	", "
+		seq	print		x
+		seq	printAsTuple'	xs;
+ };
+
+
+------------------------------------------------------------------------------------------------------------------------------- eq
+eq x y = 
+ case x of { 
+	Int a b -> intEq x y;
+
+	True	-> case y of { True  -> True; False -> False; };
+	False	-> case y of { False -> True; True  -> False; };
+
+	[]	-> case y of { []    -> True; Default -> False; };
+	(x1:xs)	-> eqList x y;
+
+	(a1, a2) 	-> 
+		case y of { (b1, b2) -> 
+			if a1 == b1 && a2 == b2 
+			then True else False; }; 
+
+	(a1, a2, a3)	-> 
+		case y of { (b1, b2, b3) ->
+			if a1 == b1 && a2 == b2 && a3 == b3 
+			then True else False; };
+	
+	(a1, a2, a3, a4) ->
+		case y of { (b1, b2, b3, b4) ->
+			if a1 == b1 && a2 == b2 && a3 == b3 && a4 == b4
+			then True else False; };
+ };
+
+
+eqList	xx yy	=
+ case xx of {
+	[]	-> if yy == [] then True else False;
+	(x:xs)	-> 
+	 case yy of { 
+		[]	-> False;
+		(y:ys) ->
+			if x != y then 	False
+			else		(xs == ys);
+	 };	
+ };
+
+
+noteq x y = not $ eq x y;
+
+
+-------------------------------------------------------------------------------------------------------------------------- boolean
+not x	= 
+ case x of {
+	True	-> False;
+	False	-> True;
+ };
+
+and x y =
+	if x == True then
+		if y == True then	True
+		else			False
+	else	False;
+
+
+or x y =
+	if x == False then
+		if y == False then	False
+		else			True
+	else	True;
+
+
+---------------------------------------------------------------------------------------------------------------------------- tuple
+fst xx = 
+ case xx of {
+	(a, b) -> a;
+ };
+
+
+snd xx =
+ case xx of {
+	(a, b) -> b;
+ };
+
+
+swap xx =
+ case xx of {
+	(a, b) -> (b, a);
+ };
+
+
+----------------------------------------------------------------------------------------------------------------------------- list
+index xx i	= 
+ case xx of {
+	[]	-> Error EndOfList;
+	(x:xs)	-> 
+		if i == 0 	then x 
+		else		index xs (i - 1);
+ };
+
+
+head xx = case xx of { (x:xs) -> x; };
+
+
+tail xx	= case xx of { (x:xs) -> xs;};
+
+
+length xx	= 
+ case xx of {
+	[]		-> 0;
+	(x:xs)		-> 1 +	length xs;
+ };
+
+
+map f xx	= 
+ case xx of {
+	[]		-> [];
+	(x:xs)		-> f x	: map f xs;
+ };
+
+
+from xx i	= 
+	if i == 0 
+		then xx
+		else from (tail xx) (i - 1);
+
+
+take n xx	=
+ case xx of {
+	[]		-> [];
+	(x:xs)		-> 
+		if n == 0 	then []
+		else 		x : take (n-1) xs;
+ };
+
+
+append xx rest	= 
+ case xx of {
+	[]	-> rest;
+	(x:xs)	-> x : append xs rest;
+ };
+
+
+reverse	xx	= 
+ case xx of {
+	[]	-> [];
+	(x:xs)	-> reverse xs ++ [x];
+ };
+
+
+zip a b	= 
+ case a of {
+	[]		-> [];
+	(a:as)	->
+		case b of { 
+			[]	-> [];
+			(b:bs)	-> (a, b) : zip as bs;
+		};
+ };
+
+
+zipWith	f a b	= 
+ case a of {
+	[]		-> [];
+	(a:as)	-> 
+		case b of {
+			[]	-> [];
+			(b:bs)	-> f a b : zipWith f as bs;
+		};
+ };
+
+
+
+chain f state xx =
+ case xx of {
+	[]	-> state;
+	(x:xs)	-> chain f (f state x) xs;
+ };
+
+foldl	= chain;
+
+
+------------------------------------------------------------------------------------------------------------------------- test fac
+--
+--
+fac x 	= 
+	if x == 0
+	 then	1
+	 else
+		if x == 1
+		 then 	1
+		 else	x * fac (x - 1);
+
+
+---------------------------------------------------------------------------------------------------------------------- test primes
+--
+--
+primes		= 1 : (primes'  $ from positiveInts 2);
+primes' xx	= 
+ case xx of {
+	(x:xs)	-> x : primes' (sieve x xs);
+ };
+
+sieve	n xx	= 
+ case xx of {
+	[]	-> [];
+	(x:xs)	-> 
+		if x % n == 0 then 	    sieve n xs 
+		else 			x : sieve n xs;
+ };
+
+positiveInts	=     positiveInts' 0;
+positiveInts' n	= n : positiveInts' (n + 1);
+
+
+------------------------------------------------------------------------------------------------------------------------ test tree
+--
+--
+treeInsert tree iKeyVal	=
+ case iKeyVal of {
+	(iKey, iVal) ->
+	 case tree of {
+		[]			-> (iKey, iVal, [], []);
+
+		(key, val, left, right)	->
+			if iKey == key then
+				KeyExists
+
+			else
+			if iKey < key  then
+				(key, val, treeInsert left iKeyVal, right)
+
+			else
+				(key, val, left, treeInsert right iKeyVal);
+	 };
+ };
+
+
+treeLookup tree lKey	= 
+ case tree of {
+	[]			-> [];
+
+	(key, val, left, right)	->
+		if lKey == key then 
+			val
+
+		else
+		if lKey < key then 
+			treeLookup left lKey
+
+		else
+			treeLookup right lKey;
+ };
+
+
+treeSize tree		= 
+ case tree of {
+	[]			-> 0;
+	(key, val, left, right)	->
+		1 + treeSize left + treeSize right;
+ };
+
+
+parTreeSize tree	=
+ case tree of {
+	[]			-> 0;
+	(key, val, left, right) ->
+	 let {
+		sizeLeft	= parTreeSize left;
+		sizeRight	= parTreeSize right;
+	 }
+	 in
+		sizeLeft par (sizeRight par (1 + sizeLeft + sizeRight));
+ };
+
+
+
+
+fish		= [
+	"perch", 	"barb", 	"tetra",	"discus",	"catfish",	"gourami",
+	"corydorus",	"trout",	"chichlid",	"loach",	"goby",		"eel"];
+
+
+someInts	= [
+	1,		10,		4,		3,		8,		6,
+	12,		2,		9,		13,		11,		5];
+
+
+fishTree	= chain treeInsert [] (zip someInts fish);
+
+
+--------------------------------------------------------------------------------------------------------------------------- parFib
+fib n =
+ if n == 0	then 1
+
+ else
+ if n == 1	then 1
+
+ else
+	let {
+		nf1	= fib (n-1);
+		nf2	= fib (n-2); }
+	in
+		nf1 + nf2 + 1;
+
+parfib' n =
+ if n == 0	then 1
+
+ else
+ if n == 1	then 1
+
+ else
+	let {
+		nf1	= parfib (n-1);
+		nf2	= parfib (n-2); }
+	in
+		nf2 par (nf1 par (nf1 + nf2 + 1));
+
+
+parfib n =
+ if n == 0	then 1
+
+ else 
+ if n == 1	then 1
+
+ else 
+	let {
+		nf1	= parfib (n-1);
+		nf2	= parfib (n-2); }
+	in
+		nf2 par (nf1 seq (nf1 + nf2 + 1));
+
+	
+			
+
+
+
+----------------------------------------------------------------------------------------------------------- documentation examples
+trimLet1 =
+ let {
+	add' = add;
+ } in
+	let {
+		a	= 1;
+		b	= add' a a;
+		c	= add' b a;
+	} in 
+		add' c a;
+
+
+trimLet2 =
+ let {
+	add' = add;
+ } in
+	let {
+		a = 1;
+		b = 
+			let {
+				ba = 3;
+				bb = 4;
+			} in
+				add' (add' a bb) ba;
+                
+		c = add' b a;
+	} in
+                add' a c;
+
+

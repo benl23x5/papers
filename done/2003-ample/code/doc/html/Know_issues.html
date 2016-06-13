@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Know issues</title>
+                                         
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+           
+<h1>Known Issues</h1>
+      <br>
+      test the default case rule<br>
+      check order of arguments for prim ops<br>
+      add an autoTrim True/False mode<br>
+    <br>
+   <br>
+   <br>
+   <br>
+   Mark3 <br>
+   <br>
+    <b>Idea:</b> In the let rule, instead of having a trimmer for each binding, 
+ use a joint trimmer and save a single copy of the environment for all bindings 
+ in that let. Guess how much extra environment space the bindings will need, 
+ and reserve that much space at the top of the environment. Can probably work
+ out the maximum amount of stack space a given block of code will need. Test
+ to make sure you have enough space for each block on entry to that block.<br>
+   <br>
+   <br>
+ <b> Terminology</b><br>
+  expressions are reduced.<br>
+  rules are executed.<br>
+  <br>
+  <br>
+<b>No type checking<br>
+</b>[] == 3 &nbsp;&nbsp;&nbsp; -&gt; False<br>
+3 == [] &nbsp; &nbsp; -&gt; Crash<br>
+<br>
+  <br>
+ <br>
+</body>
+</html>

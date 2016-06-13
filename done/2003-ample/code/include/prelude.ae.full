@@ -1,0 +1,336 @@
+-------------------------------------------------------------------------------------------------------------------------- prelude
+-- Ample v2.0 prelude
+--
+
+---------------------------------------------------------------------------------------------------------------------- mark3 stubs
+--
+--
+add x y = case x of { Int a b -> case y of { Int a b -> #intAdd; }; };
+sub x y = case x of { Int a b -> case y of { Int a b -> #intSub; }; };
+mul x y = case x of { Int a b -> case y of { Int a b -> #intMul; }; };
+div x y = case x of { Int a b -> case y of { Int a b -> #intDiv; }; };
+mod x y = case x of { Int a b -> case y of { Int a b -> #intMod; }; };
+
+eq x y	= 
+	case x of { 
+		Int a b -> case y of { Int a b -> #intEq; };
+		True	-> case y of { True  -> True; False -> False; };
+		False	-> case y of { False -> True; True  -> False; };
+	}
+;
+
+
+moreThan 	x y	= case x of { Int a b -> case y of { Int a b -> #intMoreThan; 	}; };
+moreThanEqual	x y	= case x of { Int a b -> case y of { Int a b -> #intMoreThanEq; 	}; };
+
+lessThan	x y	= case x of { Int a b -> case y of { Int a b -> #intLessThan;		}; };
+lessThanEqual	x y	= case x of { Int a b -> case y of { Int a b -> #intLessThanEq; 	}; };
+
+
+---------------------------------------------------------------------------------------------------------------------------- print
+--
+--
+print x =
+	case x of { 
+		Int 	a b	-> #print; 
+		Char 	a b	-> printChar '\'' seq printChar x seq printChar '\'';
+
+		(a, b)		-> printAsTuple [a, b];
+		(a, b, c)	-> printAsTuple [a, b, c];
+		(a, b, c, d)	-> printAsTuple [a, b, c, d];
+
+		[]		-> printStr "[]";
+		(x:xs)		-> printList (x:xs);
+
+		True		-> printStr "True";
+		False		-> printStr "False";
+		Done		-> printStr "Done";
+	}
+;
+
+
+printChar x =
+	case x of {
+		Char a b	-> #print;
+	}
+;
+
+printStr xx	=
+	case xx of {
+		[]	-> Done;
+		(x:xs)	-> printChar x	seq printStr xs;
+	}
+
+;
+
+
+printList	xx	= 
+	case head xx of {
+		Char a b	-> printStr xx;		
+		Default		-> printChar '[' seq printListElems xx seq printChar ']';
+	}
+;
+
+printListElems	xx	=
+	case xx of {
+		[]	-> Done;
+		(x:xs)	-> print x		seq printListElems' xs;
+	}
+;
+
+printListElems'	xx	=
+	case xx of {
+		[]	-> Done;
+		(x:xs)	-> printStr ", "	seq print x	seq printListElems' xs;
+	}
+;
+
+
+
+printAsTuple	xx	= 
+	case xx of {
+		(x:xs)	-> 
+				printChar 	'('
+			seq	print		x
+			seq	printAsTuple'	xs
+		;
+	}
+;	
+
+printAsTuple'	xx	=
+	case xx of {
+		[]	-> printChar ')';
+		(x:xs)	-> 
+				printStr 	", "
+			seq	print		x
+			seq	printAsTuple'	xs
+		;
+	}
+;
+
+
+---------------------------------------------------------------------------------------------------------------------------- basic
+--
+--
+not		x	= 
+	case x of {
+		True	-> False;
+		False	-> True;
+	}
+;
+
+
+index	l i	= 
+	case l of {
+		[]	-> Error EndOfList;
+		(x:xs)	-> 
+			if i == 0 
+				then x 
+				else index xs (i - 1);
+	}
+;
+
+
+head	l 	= case l of { (x:xs) -> x; };
+tail	l	= case l of { (x:xs) -> xs;};
+
+
+length	l	= 
+	case l of {
+		[]		-> 0;
+		(x:xs)		-> 1 +	length xs;
+	}
+;
+
+
+map	f l	= 
+	case l of {
+		[]		-> [];
+		(x:xs)		-> f x	: map f xs;
+	}
+;
+
+from	l ix	= 
+	if ix == 0 
+		then l 
+		else from (tail l) (ix - 1)
+;
+
+take	n xx	=
+	case xx of {
+		[]		-> [];
+		(x:xs)		-> 
+			if n == 0 
+				then []
+				else x : take (n-1) xs
+		;
+	}
+;
+
+
+append	l rest	= 
+	case l of {
+		[]	-> rest;
+		(x:xs)	-> x : append xs rest;
+	}
+;
+
+
+reverse	l	= 
+	case l of {
+		[]	-> [];
+		(x:xs)	-> reverse xs ++ [x];
+	}
+;
+
+
+zip	a b	= 
+	case a of {
+		[]		-> [];
+		(a:as)	->
+			case b of { 
+				[]	-> [];
+				(b:bs)	-> (a, b) : zip as bs;
+			}
+		;
+	}
+;
+
+
+zipWith	f a b	= 
+	case a of {
+		[]		-> [];
+		(a:as)	-> 
+			case b of {
+				[]	-> [];
+				(b:bs)	-> f a b : zipWith f as bs;
+			}
+		;
+	}
+;
+
+
+chain	f	state	xx	=
+ case xx of {
+	[]			-> state;
+	(x:xs)			-> chain f (f state x) xs;
+ }
+;
+
+
+foldl	= chain;
+
+
+------------------------------------------------------------------------------------------------------------------------- test fac
+--
+--
+fac x 	= 
+	if x == 0
+	 then	1
+	 else
+		if x == 1
+		 then 	1
+		 else	x * fac (x - 1)
+;
+
+
+
+---------------------------------------------------------------------------------------------------------------------- test primes
+--
+--
+primes			= 1 : (primes'  $ from positiveInts 2);
+primes' l		= 
+	case l of {
+		(x:xs)	-> x : primes' (sieve x xs);
+	}
+;
+
+positiveInts		= 	positiveInts' 0;
+positiveInts' n		= n : 	positiveInts' (n + 1);
+
+
+sieve	n l	= 
+	case l of {
+		[]	-> [];
+		(x:xs)	-> 
+			if x % n == 0 
+				then 	sieve n xs 
+				else x: sieve n xs
+		;
+	}
+;
+
+
+------------------------------------------------------------------------------------------------------------------------ test tree
+--
+--
+treeInsert tree iKeyVal	=
+ case iKeyVal of {
+	(iKey, iVal) -> 
+	 case tree of {
+		[]			-> 	(iKey, iVal, [], []);
+
+		(key, val, left, right)	->
+			if iKey <= key then	(key, val, treeInsert left (iKey, iVal),	right)
+			else			(key, val, left, 				treeInsert right (iKey, iVal))
+		;
+	 }
+	;
+ }
+;
+
+
+treeLookup tree lKey	= 
+	case tree of {
+		(key, val, left, right)	->
+			case lKey == key of {
+				True	-> val;
+				False	-> if lKey < key then "left" else "right";
+ 			}
+		;
+	
+		[]			-> [];
+
+	}
+;
+
+
+test x y =
+	case x of {
+		(a, b, c, d) ->
+			case y == a of {
+				True	-> "less";
+--				False	-> if a < y then "left" else "right";
+				False	-> if a < y then "left" else "right";
+
+			}
+		;
+	}
+;
+
+
+treeSize tree		= 
+ case tree of {
+	[]			-> 0;
+	(key, val, left, right)	->
+		1 + treeSize left + treeSize right;
+ }
+;
+
+
+fish		= [
+	"perch", 	"barb", 	"tetra",	"lungfish",	"catfish",	"gourami",
+	"corydorus",	"trout",	"chichlid",	"loach",	"goby",		"eel"
+];
+
+
+someInts	= [
+	1,		10,		4,		3,		8,		6,
+	12,		2,		9,		13,		11,		5
+];
+
+
+fishTree	= chain treeInsert [] (zip someInts fish);
+
+
+

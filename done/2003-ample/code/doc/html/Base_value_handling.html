@@ -1,0 +1,620 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title></title>
+</head>
+  <body bgcolour="white">
+          
+<h1>Base Value Handling</h1>
+      Sestoft provides two seperate approaches for the handling of base values.
+        
+<h2>Sestoft's first approach</h2>
+      Sestoft's first approach uses a new instruction called <u>Cst</u> to
+ introduce  integer constants. <u>Cst</u> carries values present as literals
+ in the program  source. On execution, the <b>cst</b> rule pushes its embedded
+ value onto the environment and sets the control to the constructor <u>Int,1</u>.<br>
+   <br>
+   <b>cst<br>
+    </b>    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                     <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><u>Cst</u> 
+ n,<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><b>E</b>,<br>
+          </td>
+              <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><u>Int,1</u>,<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right">n 
+:        <b>E</b>,<br>
+          </td>
+              <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+     <br>
+   <b>add<br>
+    </b>    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                     <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right">op+,<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right">n1
+ : n2 : <b>E</b>,<br>
+          </td>
+              <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><u>Int,1</u>,<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right">(n1 
+ + n2) : E,<br>
+          </td>
+              <td valign="top" width="20%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+     <br>
+   <br>
+     To add the expressions e<sub>1</sub> and e<sub>2</sub> the following 
+mark  3 code is used.<br>
+         
+<pre>   case e1 of { Int,1 -&gt; case e2 of { Int,1 -&gt; op+ } }<br></pre>
+      This code uses case expressions to match on the<u> Int,1</u> constructors
+  and force the evaluation of the arguments. This leaves both base values
+in  the correct place for the <b>op+</b> rule.  <br>
+      <br>
+     Sestoft states that this approach is 'simple but inefficient'. Intermediate
+  base values held in the environment may prevent optimisation of environment
+  representations. They will also complicate garbage collection.  <br>
+      <br>
+         
+<h2><br>
+    Sestoft's second approach</h2>
+     In order to move base values out of the environment, Sestoft introduces
+  a seperate base value stack. <br>
+     <br>
+     Sestoft also introduces a new instruction called <u>Ret</u>, which he
+ calls  a 'code trick'. (hack).  <u>Ret</u> helps move values between the
+environment  and the base value stack.<br>
+   <br>
+   <b>cst<br>
+   </b>   
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                    <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Cst</u> 
+ n,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><b>E</b>,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap"><b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Ret</u>,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right">n,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap"><b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+     <br>
+   <b>add<br>
+    </b>    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                     <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right">op+,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><b>E</b>,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap">n<sub>2</sub> 
+ : n<sub>1</sub> : <b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Ret</u>,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right">n<sub>1</sub> 
+ + n<sub>2</sub>,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap"><b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+      <br>
+   <b>ret<sub>1</sub><br>
+    </b>    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                     <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Ret</u>,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right">n,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap"><b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap">({e}, 
+       <b>E</b> ) : <b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right">e,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><b>E</b>,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap">n : <b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+      <br>
+   <b>ret<sub>2</sub><br>
+    </b>    
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                     <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Ret</u>,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right"><b>E</b>,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap"><b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap"><b>H </b>[ p -&gt; 
+ (<u>Ret</u>, n) ]</td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="10%" nowrap="nowrap" align="right"><u>Ret</u>,<br>
+             </td>
+             <td valign="top" width="15%" nowrap="nowrap" align="right">n,<br>
+          </td>
+    <td valign="top" width="15%" align="right" nowrap="nowrap"><b>V</b>,<br>
+             </td>
+             <td valign="top" width="15%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+      <br>
+   <br>
+   <br>
+   In Sestoft's paper, the element present on the stack in the first half 
+of  the <b>ret1</b> rule, namely ({e}, <b>E</b>), is intended to represent 
+a case alternative with 'no alternative'. This is used to force the evaluation
+ of the arguments to <b>op+</b>. The related expression is,         
+<pre>   case e1 of { case e2 of { op+ } }<br></pre>
+      This expression could be less confusingly written as,<br>
+   <br>
+          
+<pre>   case e1 of { _ -&gt; case e2 of { _ -&gt; op+ } }<br></pre>
+      Where '_' represents a default constructor that always matches.   <br>
+     <br>
+      It is questionable whether this approach addresses the problems stated
+  in the rationale for adding  a base value stack. <br>
+     <br>
+      Firstly, base values are still placed in the environment. Although
+it  may be possible for the garbage collector to check the control for a
+<u>Ret</u>   instruction in order to determine whether the element  on the
+top of the  environment is a base value or not, there is no discussion to
+this effect   in Sestoft's paper. In any event the garbage collector must
+still be modified  so it can tell the  difference between heap pointers and
+base values.  <br>
+      <br>
+     Secondly, the addition of rules <b>ret1</b> and <b>ret2</b> is required
+  to emulate  machine behaviour that we had for free with Sestoft's first
+approach.  Rule <b>ret1</b> emulates a standard <b>case2</b> match on the
+<u>Int,1</u>  constructor. Rule <b>ret2</b> emulates the standard <b>var2</b>
+rule.  <br>
+      <br>
+     Finally, at least twice as many machine cycles are needed to complete
+ an   operation on base values. All sources of base values, including primitive
+  operations, place their results on the environment. Before these values
+can  be used the machine must waste a cycle copying them to the base value
+stack.  <br>
+            
+<h2><br>
+    AMPLE base value handling</h2>
+      The AMPLE base value handling is essentially the same as Sestoft's
+first   approach, but with  the inclusion of 'type tags' in the environment
+to indicate   which elements are base values. If we assume that the pointer
+width, the width of the base values, and the type-tag width are the same
+then the environment can be flat stack of machine words.<br>
+ <br>
+ After a base value is pushed onto the stack, the type tag corresponding
+to that base values typed is also pushed on. When a garbage collector needs 
+to create the list of top level heap dependencies from the current machine 
+state, it can use the type tags to determine what environment elements are 
+<br>
+ <br>
+ ... how do the base values get written into the heap?<br>
+ ... how long are these base values present in the environment? Can we just 
+hold of GC until the primitive operation is complete?<br>
+ ... can the GC determine if there are base values in the environment by
+looking at the control?<br>
+ ... do base values ever get covered by other elements?<br>
+ <br>
+ The folowing table shows some of the redduction rules that AMPLE uses for 
+base values. The full list is given in the section titled <a
+ href="Rules_common_to_each_machine.html">Rules common to each machine</a>.<br>
+    <br>
+    <b>constant_int<br>
+       </b>       
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                   <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>Int</u>
+   n,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>RetInt</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><u>TagInt(0)</u>&nbsp;
+   : n : <b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+              <br>
+     <b>prim_intAdd<br>
+       </b>       
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                      <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+        <u>IntAdd</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><u>TagInt(0)</u>
+   : n<sub>1</sub> : <u>TagInt(0)</u> : n<sub>2</sub> : <b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>RetInt</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><u>TagInt(0)</u>
+   : (n<sub>1</sub> + n<sub>2</sub>) : <b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+     <br>
+    <b>prim_intEq<br>
+       </b>       
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                       <tbody>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap"><br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+        <u>IntEq</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><u>TagInt(0)</u>
+   : n<sub>1</sub> : <u>TagInt(0)</u> : n<sub>2</sub> : <b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" width="10%" nowrap="nowrap">=&gt;<br>
+             </td>
+             <td valign="top" width="10%" nowrap="nowrap"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>Construct</u>
+        <i>name</i> <u>0</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+                <br>
+       
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+      <tbody>
+        <tr>
+          <td valign="top" width="10%"><br>
+          </td>
+          <td valign="top">where <i>name</i> = <u>True</u> | <u>False</u><br>
+          </td>
+        </tr>
+               
+  </tbody>    
+</table>
+    <br>
+    <b>print_int<br>
+       </b>       
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+                    <tbody>
+           <tr>
+             <td valign="top" nowrap="nowrap" width="10%"><br>
+             </td>
+             <td valign="top" nowrap="nowrap" width="10%">       <b>H </b>
+       </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">(<br>
+             </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>PrimFunc</u>
+         <u>Print</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><u>TagInt(0)</u>&nbsp;
+   : n : <b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+           <tr>
+             <td valign="top" nowrap="nowrap" width="10%">=&gt;<br>
+             </td>
+             <td valign="top" nowrap="nowrap" width="10%"><b>H&nbsp;</b></td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">( 
+           </td>
+             <td valign="top" width="20%" nowrap="nowrap" align="right"><u>Construct</u>
+   "<u>Done</u>" <u>0</u>,<br>
+             </td>
+             <td valign="top" width="30%" align="right" nowrap="nowrap"><b>E</b>,<br>
+             </td>
+             <td valign="top" width="10%" align="right" nowrap="nowrap"><b>S</b><br>
+             </td>
+             <td valign="top" width="1%" nowrap="nowrap" align="left">)<br>
+             </td>
+          <td valign="top" width="20%"><br>
+          </td>
+           </tr>
+                            
+  </tbody>       
+</table>
+               <br>
+         
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+       <tbody>
+         <tr>
+           <td valign="top" width="10%"><br>
+           </td>
+           <td valign="top"><i>Side Effect</i><br>
+           </td>
+         </tr>
+         <tr>
+           <td valign="top" width="10%"><br>
+           </td>
+           <td valign="top">1) <i>emit</i> n <i>to standard output</i><br>
+           </td>
+         </tr>
+                   
+  </tbody>     
+</table>
+    <br>
+     <br>
+  ... show functions which force arguments to normal form before application
+takes place.<br>
+<br>
+<br>
+   
+<h2>Modification of Garbage Collector</h2>
+ <br>
+          
+<h2>Static Program / Heap Cells</h2>
+  <br>
+     The lower prog cells are filled with constants representing each kind
+ of  base type.  <br>
+          
+<pre>     <b>index    value</b><br>         0    Construct "Int"<br>         1    Construct "Char"<br>         2    Construct "Float"<br>         3    Construct "True"<br>         4    Construct "False"<br>         5    Construct "Done"<br></pre>
+        <br>
+    <br>
+   <br>
+  <br>
+ <br>
+</body>
+</html>

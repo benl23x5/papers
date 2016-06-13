@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Program representation</title>
+                    
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+</head>
+  <body>
+     
+<h1>Program representation<br>
+  </h1>
+   
+<h2><br>
+</h2>
+<br>
+  <b>figure 1:</b> data type for source parse tree.   
+<hr width="100%" size="2">   
+<pre>type    Var             = Int<br>type    Type            = String<br><br>data    Constant   <br>        = CInt          Int<br>        | CFloat        Double<br>        | CChar         Char<br>        | CString       String<br><br>data    Pattern  <br>        = PConstruct    String          [Pattern]<br>        | PConstant     Constant<br>        | PVar          Var<br><br>data    Exp<br>        = Lambda        Var             Exp<br>        | ExpExp        Exp             Exp<br>        | Lets          [(Var, Exp)]    Exp<br>        | Construct     Type            [Exp]<br>        | Case          Exp             [(Pattern, Exp)]<br>        | PrimFunc      Var<br>        | PrimConstant  Constant<br>        | Seq           Exp             Exp<br>        | Par           Exp             Exp<br>        | Var           Var<br>        | Constant      Constant</pre>
+     
+<hr width="100%" size="2"><br>
+<br>
+   <br>
+   <br>
+     
+<hr width="100%" size="2">   
+<pre>type    Name    = String<br>type    Eix     = Int      -- expression index<br>type    Vix     = Int      -- d'bruijn variable index<br>type    Env     = [Vix]    -- environment<br>type    Trimmer = [Vix]<br><br>data Exp<br>        = Lambda        Eix<br>        | ExpVar        Eix                     Vix<br>        | Var           Vix<br>        | Let           [(Eix, Trimmer)]        (Eix, Trimmer)<br>        | Case          (Eix, Trimmer)          [((Name, Int), (Eix, Trimmer))]<br>        | Construct     Name                    Int<br>        | Constant      Constant<br>        | PrimFunc      Name<br>        | Seq           Eix                     Eix<br>        | Par           Vix                     Eix<br><br>data Constant<br>        = CInt          Int<br>        | CFloat        Double<br>        | CChar         Char<br><br>data ProgCell<br>        = ProgCell {<br>                pcExp           :: Exp,<br>                pcSourceLine    :: Int,<br>                pcDepth         :: Int<br>        }<br><br>type Prog       = Heap ProgCell</pre>
+     
+<hr width="100%" size="2"><br>
+   <br>
+   <br>
+   <br>
+   <br>
+   <br>
+  <br>
+ <br>
+</body>
+</html>

@@ -1,0 +1,133 @@
+-------------------------------------------------------------------------------------------------------------------------- prelude
+-- Ample v2.0 prelude
+--
+
+---------------------------------------------------------------------------------------------------------------------- mark3 stubs
+-- mark3 stubs
+--
+
+add x y = case x of { Int a b -> case y of { Int a b -> #intAdd; }; };
+sub x y = case x of { Int a b -> case y of { Int a b -> #intSub; }; };
+mul x y = case x of { Int a b -> case y of { Int a b -> #intMul; }; };
+div x y = case x of { Int a b -> case y of { Int a b -> #intDiv; }; };
+mod x y = case x of { Int a b -> case y of { Int a b -> #intMod; }; };
+
+eq x y	= 
+	case x of { 
+		Int a b -> case y of { Int a b -> #intEq; };
+		True	-> case y of { True  -> True; False -> False; };
+		False	-> case y of { False -> True; True  -> False; };
+	}
+;
+
+
+moreThan 	x y	= case x of { Int a b -> case y of { Int a b -> #intMoreThan; 	}; };
+moreThanEqual	x y	= case x of { Int a b -> case y of { Int a b -> #intMoreThanEq; 	}; };
+
+lessThan	x y	= case x of { Int a b -> case y of { Int a b -> #intLessThan;		}; };
+lessThanEqual	x y	= case x of { Int a b -> case y of { Int a b -> #intLessThanEq; 	}; };
+
+
+---------------------------------------------------------------------------------------------------------------------------- print
+--
+--
+print x =
+	case x of { 
+		Int 	a b	-> #print; 
+		Char 	a b	-> printChar '\'' seq printChar x seq printChar '\'';
+
+		(a, b)		-> printAsTuple [a, b];
+		(a, b, c)	-> printAsTuple [a, b, c];
+		(a, b, c, d)	-> printAsTuple [a, b, c, d];
+
+		[]		-> printStr "[]";
+		(x:xs)		-> printList (x:xs);
+
+		True		-> printStr "True";
+		False		-> printStr "False";
+		Done		-> printStr "Done";
+	}
+;
+
+
+printChar x =
+	case x of {
+		Char a b	-> #print;
+	}
+;
+
+printStr xx	=
+	case xx of {
+		[]	-> Done;
+		(x:xs)	-> printChar x	seq printStr xs;
+	}
+
+;
+
+
+printList	xx	= 
+	case head xx of {
+		Char a b	-> printStr xx;		
+		Default		-> printChar '[' seq printListElems xx seq printChar ']';
+	}
+;
+
+printListElems	xx	=
+	case xx of {
+		[]	-> Done;
+		(x:xs)	-> print x		seq printListElems' xs;
+	}
+;
+
+printListElems'	xx	=
+	case xx of {
+		[]	-> Done;
+		(x:xs)	-> printStr ", "	seq print x	seq printListElems' xs;
+	}
+;
+
+
+
+printAsTuple	xx	= 
+	case xx of {
+		(x:xs)	-> 
+				printChar 	'('
+			seq	print		x
+			seq	printAsTuple'	xs
+		;
+	}
+;	
+
+printAsTuple'	xx	=
+	case xx of {
+		[]	-> printChar ')';
+		(x:xs)	-> 
+				printStr 	", "
+			seq	print		x
+			seq	printAsTuple'	xs
+		;
+	}
+;
+
+head	l 	= case l of { (x:xs) -> x; };
+tail	l	= case l of { (x:xs) -> xs;};
+
+
+
+test x y =
+	case x of {
+		(a, b, c, d) ->
+			case y == a of {
+				True	-> 0;
+				False	-> if a < y then 1 else 2;
+	
+			}
+		
+		;
+	}
+;
+
+
+
+
+
