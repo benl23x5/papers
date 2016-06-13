@@ -1,0 +1,147 @@
+
+\section{Challenges of Array Fusion}
+This section summaries the remaining challenges we see to the Repa-style approach to array fusion. We continue the similarly named section in \cite{Lippmeier:Stencil}.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Unboxing Outside Loops}
+
+In \cite{Lippmeier:Stencil} we used boilerplate code involving @deepSeqArray@ to force GHC to unbox array objects outside of loops. Adding this code worked around limitations in the simplifier for GHC's core IR. For example, consider the following function which takes an array of indices, a matrix and yields elements from the matrix diagonal:
+\par
+\begin{small}
+\begin{code}
+  diagonals :: Array U DIM1 Int -> Array U DIM2 Int
+            -> Array U DIM1 Int
+  diagonals xs ys
+   = computeP $ R.map (\i -> ys `index` (DIM2 i i)) xs
+\end{code}
+\end{small}
+%
+As the @ys@ array is only used inside the worker function passed to @map@, with lazy evaluation this array will only be demanded if @xs@ contains at least one element. As the GHC simplifier mostly\footnote{In GHC 7.4.1, non-termination is not preserved by eta expansion, but correct termination behaviour can be gained with @-fpedantic-bottoms@.} tries to preserve the termination behaviour of the program during transformation, it does not float this unboxing out of the loop. It must guard against the case where evaluation of @ys@ diverges, hence the components of @ys@ end up being unboxed repeatedly for every iteration. Even with pointer tagging \cite{Marlow:PointerTagging}, the cost of unboxing values in inner loops can easily dominate the runtime of an array program.
+
+With Repa 2 and GHC 7.2 we needed to use @deepSeqArray@ to place a demand on the components of @ys@, to ensure their unboxings are floated outside the loop:
+\par
+\begin{small}
+\begin{code}
+  diagonals xs ys
+   = ys `deepSeqArray` 
+     computeP $ map (\i -> ys `index` (DIM2 i i)) xs
+\end{code}
+\end{small}
+%
+In GHC 7.4.1 we implemented case-floating. This transform operates much like let-floating \cite{PeytonJones:LetFloating}, except that it moves single-alternative case expressions. 
+
+\eject
+With case-floating, instead of needing @deepSeqArray@ we can achieve fast code by using a lighter-weight bang pattern:
+\par
+\begin{small}
+\begin{code}
+  diagonals xs !ys = ...
+\end{code}
+\end{small}
+%
+This then desugars to:
+%
+\begin{small}
+\begin{code}
+  diagonals xs ys
+   = case ys of { _ -> 
+     computeP $ map (\i -> ys `index` (DIM2 i i)) xs }
+\end{code}
+\end{small}
+%
+When the definition of @index@ is inlined we get:
+%
+\begin{small}
+\begin{code}
+  diagonals xs ys
+   = case ys of  { _ -> 
+     computeP $ map (\i -> 
+      case ys of { AUnboxed sh uvec -> 
+      case sh of { DIM2 w h -> ..w h uvec i..}}) xs }  
+\end{code}
+\end{small}
+%
+Now, as @ys@ is demanded on entry to the function, the inner match against @AUnboxed sh uvec@ can be unconditionally moved to top level. However, hoisting the match against @DIM2 w h@ is only sound when the shape of an array is defined as a strict field, though from Figure~\ref{figure:Source} we see that it is. Moving the match on @DIM2 w h@ to the outer case expression based on this strictness information is our new case-floating transform: 
+%
+\begin{small}
+\begin{code}
+  diagonals xs ys
+   = case ys of { AUnboxed sh uvec ->
+     case sh of { DIM2 w h         -> 
+      computeP $ map (\i -> ..w h uvec i..) xs }}
+\end{code}
+\end{small}
+%
+In practice, we advise users to add bang patterns to \emph{all} array parameters for functions using the Repa library. Although the @xs@ parameter above does not need one, adding it does not hurt, and this is an easy-to-follow rule. 
+
+Sadly, bang patterns are not always sufficient. Suppose @ys@ is defined as a top-level CAF:
+\par
+\begin{small}
+\begin{code}
+  ys = fromList ...
+  diagonals xs
+   = computeP $ map (\i -> ys `index` (DIM2 i i)) xs
+\end{code}
+\end{small}
+%
+In this situation the language definition does not allow us to place a bang on @ys@. This would imply that @ys@ should be evaluated as soon as the program starts, which is problematic if it happened not to terminate. Instead we add a @seq@, like so:
+\par
+\begin{small}
+\begin{code}
+  ys = fromList ...
+  diagonals xs = ys `seq` 
+     computeP $ map (\i -> ys `index` (DIM2 i i)) xs
+\end{code}
+\end{small}
+%
+The @seq@ desugars to a case-expression as above. The fact that @seq@s must still be added to get efficient code is not kind to beginning Haskell programmers, but we do not see a way to avoid it with the current language semantics. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Fake Nested Parallelism via Laziness}
+The following example is like @diagonals@ from the previous subsection, except that it first increments every element in the matrix.
+\par
+\begin{small}
+\begin{code}
+ diagonals2 :: Array U DIM1 Int -> Array U DIM2 Int
+            -> Array U DIM1 Int
+ diagonals2 xs ys
+  = let ys2 :: Array U DIM2 Int
+        ys2 = computeP $ map (+ 1) ys
+    in  computeP $ map (\i -> ys2 `index` (DIM2 i i)) xs
+\end{code}
+\end{small}
+%
+At runtime, the binding for @ys2@ involving the first @computeP@ will be suspended by lazy evaluation. This binding will be forced by the second @computeP@ expression when it tries to evaluate the initial element in the overall result of @diagonals2@. When one parallel computation invokes another it is nested parallelism, which Repa does not support. Our current implementation will print a warning to @stderr@ and then run the inner @computeP@ sequentially. 
+%
+Although this behaviour provides the expected result at the value level, sequential evaluation is unlikely to be what the user intended --- especially because they wrote @computeP@ (with a parallel @P@). To ensure that both applications of @computeP@ actually run in parallel, evaluation of @ys2@ must complete before the second @computeP@ starts. Once again, this can be fixed with a bang pattern:
+%
+\begin{small}
+\begin{code}       
+ diagonals2 xs ys
+  = let ys2 :: Array U DIM2 Int
+        !ys2 = computeP $ map (+ 1) ys
+    in  computeP $ map (\i -> ys2 `index` (DIM2 i i)) xs
+\end{code}
+\end{small}
+%
+The Repa library is written so that when the first parallel computation is evaluated, it unsafely initialises a globally shared gang of threads (with @unsafePerformIO@). All subsequent parallel computations run on this single gang of threads, and hence only one can run at a time. We do \emph{not} create thread gangs dynamically because a single, well balanced data parallel computation is always enough to keep all threads busy. If we had multiple gangs running concurrently, then they would contend for cache and thrash the OS scheduler. Importantly, using an unsafely initialised gang of threads does \emph{not} violate observational purity (other than on @stderr@), because all Repa computations still return the correct value, even though nested computations may run sequentially.
+
+Should we change Repa to support slow nested parallel computations that the user probably didn't mean to write? Probably not! Until we have a way to statically guarantee that only one parallel computation runs at a time, we offer the following function in the default API:
+\par
+\begin{small}
+\begin{code}
+ computeMP :: (Load  rs sh e, Target rt e, Monad m)
+            => Array rs sh e -> m (Array rt sh e)
+ computeMP arr
+  = let arr2 = computeP arr
+    in  arr2 `seq` return arr2
+\end{code}
+\end{small}
+%
+The function @computeMP@ is like @computeP@, except that it forces completion at a particular point in a monadic computation. Writing @diagonals2@ with @do@-notation and using @computeMP@ will achieve the same result as adding the bang pattern to @ys2@. In fact, only @computeMP@ is exposed in the top-level Repa module. The user needs to go looking to find @computeP@, before they can get themselves in trouble with fake nested parallelism.
+
+Note that @computeMP@ is parametric in the monad as we only need a well defined notion of sequence, rather than a particular monadic effect. Of course, the user could instantiate this to the @ST@ monad and still run two parallel computations concurrently, just like they could instantiate it to @IO@ and use @forkIO@ to achieve the same result. Both of these operations would be considered ``safe'' in the Haskell development culture. It would be nice if our types could enforce \emph{all} the desired performance characteristics, but as of now they are only a guide.
+
+

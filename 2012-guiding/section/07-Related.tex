@@ -1,0 +1,8 @@
+
+\section{Related Work}
+
+For general related work on high-level array libraries, we refer to the relevant discussions in the previous two papers on Repa~\cite{Keller:Repa, Lippmeier:Stencil}. Here we only review work on using type indices to guide representations.
+
+The MTLX (Monad Transformer Library indeXed) library \cite{Snyder:TypeIndexedMonads} uses type indices to allow multiple distinct instances of a monadic effect to coexist in the same computation. For example, a monadic computation can have access to state for a fresh name supply as well as an event counter, and the type of the computation reveals which state objects it accesses.
+
+The C++ parallel array library POOMA~\cite{reynders-eal:pooma} uses templates with tags that are like type indices to specify the representation of arrays.  Instead of Repa-style delayed arrays, POOMA use expression templates to reify expressions and to facilitate array fusion.

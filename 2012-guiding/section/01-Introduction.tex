@@ -1,0 +1,47 @@
+
+\section{Introduction}
+\label{section:Introduction}
+\label{section:doubleZip}
+
+Haskell is a great language for programming with arrays. Arrays are a natural data type for scientific, engineering, and financial computing, where algorithms are often conceptually functional. Applications in these disciplines typically rely on good runtime performance. Hence, to be useful, Haskell array programs need to perform comparably well to hand-written C programs.
+
+Our Repa library for Haskell does just this~\cite{Keller:Repa, Lippmeier:Stencil} --- alas, it turns out that 
+the programmer needs a very detailed knowledge of Repa to gain this level of performance.  For example, consider this simple function, written with Repa version 1.0:
+\par
+\begin{small}
+\begin{code}
+  doubleZip :: Array DIM2 Int -> Array DIM2 Int 
+            -> Array DIM2 Int
+
+  doubleZip arr1 arr2
+   = map (* 2) $ zipWith (+) arr1 arr2
+\end{code}
+\end{small}
+%
+This function appears straightforward, but its performance is awful, especially if its result is used multiple times. To improve performance, users of Repa 1 need to write the following instead:
+%
+\begin{small}
+\begin{code}
+  doubleZip arr1@(Manifest !_ !_) arr2@(Manifest !_ !_)
+   = force $ map (* 2) $ zipWith (+) arr1 arr2
+\end{code}
+\end{small}
+%
+This second version of @doubleZip@ runs as fast as a hand-written imperative loop. Unfortunately, it is cluttered with explicit pattern matching, bang patterns, and use of the @force@ function. This clutter is needed to guide the compiler towards efficient code, but it obscures the algorithmic meaning of the source program. It also demands a deeper understanding of the compilation method than most users will have, and in the next section, we will see that these changes add an implicit precondition that is not captured in the function signature. The second major version of the library, Repa~2, added support for efficient parallel stencil convolution, but at the same time also increased the level of clutter needed to achieve efficient code~\cite{Lippmeier:Stencil}.
+
+The core idea of the present paper is to replace the hard to understand performance-motivated changes by \emph{descriptive types}. Here are our main technical contributions:
+%
+\begin{itemize}
+\item   We introduce a novel, extensible approach to Repa-style array fusion that uses \emph{indexed types} to specify the representation and computation methods for arrays (\S\ref{sec:type-indexing}).
+
+\item   We show that our use of type indices scales to more elaborate array representations, such as the \emph{partitioned} and \emph{cursored} representations~\cite{Lippmeier:Stencil} (\S\ref{section:rich-structure}).
+
+\item   We compare substantial end-user programs written with the old and new approach, including a fluid flow solver and an interpolator for volumetric data (\S\ref{sec:performance}).
+
+\item   We simplify reasoning about the performance of client programs in terms of the source code while reducing intermediate code size and achieving faster compile times (\S\ref{sec:performance}).
+\end{itemize}
+%
+Our improvements are fully implemented and available on Hackage as Repa 3.2.
+
+
+

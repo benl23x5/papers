@@ -1,0 +1,80 @@
+\documentclass{sigplanconf}
+\usepackage{version}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{style/utils}
+\usepackage{style/code}
+\usepackage{url}
+
+
+% -----------------------------------------------------------------------------
+\begin{document}
+\title	{Guiding Parallel Array Fusion with Indexed Types}
+
+\authorinfo{ 
+  Ben Lippmeier$^\dagger$
+  \and Manuel M. T. Chakravarty$^\dagger$
+  \and Gabriele Keller$^\dagger$
+  \and Simon Peyton Jones$^\ddagger$
+
+}{
+  \vspace{5pt}
+  \shortstack{
+    $^\dagger$Computer Science and Engineering \\
+    University of New South Wales, Australia \\[2pt]
+    \textsf{\{benl,chak,keller\}@cse.unsw.edu.au}
+  }
+  \and
+  \shortstack{
+    $^\ddagger$Microsoft Research Ltd \\
+    Cambridge, England \\[2pt]
+    \textsf{\{simonpj\}@microsoft.com}
+  }
+}
+
+\conferenceinfo{Haskell'12,} {September 13, 2012, Copenhagen, Denmark.}
+\CopyrightYear{2012}
+\copyrightdata{978-1-4503-1574-6/12/09}
+
+\maketitle
+\makeatactive
+
+
+% -----------------------------------------------------------------------------
+\begin{abstract}
+We present a refined approach to parallel array fusion that uses indexed types to specify the internal representation of each array. Our approach aids the client programmer in reasoning about the performance of their program in terms of the source code. It also makes the intermediate code easier to transform at compile-time, resulting in faster compilation and more reliable runtimes. We demonstrate how our new approach improves both the clarity and performance of several end-user written programs, including a fluid flow solver and an interpolator for volumetric data.
+\end{abstract}
+
+\category
+	{D.3.3}
+	{Programming Languages}
+	{Language Constructs and Features---Concurrent programming structures; Polymorphism; Abstract data types}
+
+\terms
+	Languages, Performance
+
+\keywords
+	Arrays, Data parallelism, Haskell
+
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction.tex}
+\input{section/02-Problem.tex}
+\input{section/03-TypeIndexing.tex}
+\input{section/04-Structure.tex}
+\input{section/05-Applications.tex}
+\input{section/06-Challenges.tex}
+\input{section/07-Related.tex}
+
+\eject
+% -----------------------------------------------------------------------------
+\paragraph{Acknowledgements}
+Thanks to Ben Lambert-Smith for the original Fluid Flow example, Michael Orlitzky for the interpolation example, and Andres L\"{o}h for discussion about the role of @computeMP@. During the development of Repa 1, Roman Leshchinskiy argued that we should distinguish between array representations at the type level --- he was right. This work was supported in part by the Australian Research Council under grant number LP0989507. 
+
+\bibliographystyle{abbrvnat}
+\bibliography{Main}
+
+\clearpage{}
+\end{document}
+

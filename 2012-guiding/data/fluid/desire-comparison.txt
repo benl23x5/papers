@@ -1,0 +1,31 @@
+
+# Fluid --max=1 --iters=40
+# --width=?, seq-rts(us) par-rts-N1(us) par-rts-N2 par-rts-N4
+16                2267            4095   4413    5778
+32                3083            5307
+64                6449            8385
+128              17833           23371   17196   16498
+256              68533           81774   57701   39921
+512             231365          262936  160827  131691
+
+# Fluid --max=10 --iters=40
+# --width=?, seq-rts(us) par-rts-N1(us) par-rts-N2 par-rts-N4
+16       18489                    39265   40603   49805
+32       30349
+64       60884                    86846   80291   73494
+128     178218                   222335  165532  156168
+256     682698                   810635  533410  420437
+512     2930429                 3186421 1897189 1518587
+
+# Fluid --max=10 --iters 40.
+# No HintSmall.
+# This isn't as much of a win as it used to be.
+# Fusion is probably broken for the border regions, so they take longer to evaluate.
+# Therefore forcing sequential evaluation isn't as much of a win.
+#                       par-rts-N1(us) par-rts-N2 par-rts-N4
+16      
+32
+64                               90877   79786    86449
+128                             221479  165347   156309
+256
+512

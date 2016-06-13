@@ -1,0 +1,223 @@
+
+\section{Representation, Fusion, and Code Explosion}
+\label{section:problem}
+
+\begin{figure}
+\begin{small}
+\begin{code}
+data Array sh e = Manifest sh (Vector e)
+                | Delayed  sh (sh -> e)
+
+class Shape sh where
+   toIndex      :: sh -> sh -> Int
+   fromIndex    :: sh -> Int -> sh
+   size         :: sh -> Int
+   ...more operations...
+data DIM1 = DIM1 !Int
+data DIM2 = DIM2 !Int !Int
+...more dimensions...
+
+index :: Shape sh => Array sh e -> sh -> e
+index (Delayed sh f)    ix = f ix
+index (Manifest sh vec) ix = indexV vec (toIndex sh ix)
+
+delay :: Shape sh => Array sh e -> (sh, sh -> e)
+delay (Delayed  sh f)   = (sh, f)
+delay (Manifest sh vec) 
+ = (sh, \ix -> indexV vec (toIndex sh ix))
+
+map :: Shape sh => (a -> b) -> Array sh a -> Array sh b
+map f arr = let (sh, g) = delay arr 
+            in  Delayed sh (f . g)
+
+zipWith :: Shape sh => (a -> b -> c) 
+        -> Array sh a -> Array sh b -> Array sh c
+zipWith f arr1 arr2
+ = let  (sh1,  f1)       = delay arr1
+        (_sh2, f2)       = delay arr2
+        get ix          = f (f1 ix) (f2 ix)
+   in   Delayed sh1 get
+
+force :: Shape sh => Array sh e -> Array sh e
+force arr 
+ = unsafePerformIO
+ $ case arr of
+    Manifest sh vec    
+     ->     return  $ Manifest sh vec
+    Delayed sh f    
+     -> do  mvec    <- unsafeNew (size sh)
+            fill (size sh) mvec (f . fromIndex sh)
+            vec     <- unsafeFreeze mvec
+            return  $ Manifest sh vec
+\end{code}
+\caption{Essential Repa Version 1 Definitions}
+\label{figure:Repa1}
+\end{small}
+\end{figure}
+
+We start by reviewing the design problems of original Repa library. A simplified version of the core definitions of Repa~1~\cite{Keller:Repa} is in Figure~\ref{figure:Repa1}. Repa~2 extends the @Array@ type to support more efficient convolutions~\cite{Lippmeier:Stencil}, which we discuss in \S\ref{section:Explosion}.
+
+Repa~1 introduced \emph{delayed arrays} to fuse multiple array operations, and minimise the overhead of \emph{index-space transforms}. Delayed arrays are represented by a function from indices to array elements, as we see in the definition of @Array@ Figure~\ref{figure:Repa1}. Delayed arrays contrast with \emph{manifest} arrays, which are represented as contiguous blocks of unboxed values. Fusion of operations on delayed arrays amounts to function composition, as we see in the definition of @map@. This gives us the map/map fusion rule, @map f . map g = map (f . g)@, for free and works similarly for many other operations, including index space transforms such as permutation, replication, slicing, and so on.
+
+The elements of a multi-dimensional @Manifest@ array are stored in row-major order in a flat, one-dimensional @Vector@. The @Shape@ class holds operations to convert between higher-dimensional index types, such as @DIM2@, and the flat representation. In particular, the @toIndex@ and @fromIndex@ functions convert between higher-dimensional and linear indices, and @size@ yields the total number of elements in an array of the given shape. Based on the methods of the @Shape@ class, the function @index@ retrieves a single element from an array, and @delay@ produces an array's shape together with an indexing function to move to the delayed representation. (The function @indexV@ indexes into the flat @Vector@.)
+
+As stated in the introduction, although Repa 1 \& 2 can produce efficient code on both sequential and parallel machines~\cite{Keller:Repa,Lippmeier:Stencil}, they have some significant shortcomings, which we review next.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Problem 1: Not Applying {\texttt force}}
+\label{section:force}
+
+To illustrate the problems with Repa 1, we will reuse the example from the introduction:
+%
+\begin{small}
+\begin{code}
+    doubleZip :: Array DIM2 Int -> Array DIM2 Int 
+              -> Array DIM2 Int
+    doubleZip arr1 arr2
+     = map (* 2) $ zipWith (+) arr1 arr2
+\end{code}
+\end{small}
+
+\eject
+By inlining the definitions from Figure~\ref{figure:Repa1} and simplifying, we see that the composition of @map@ and @zipWith@ fuses to produce the following:
+%
+\begin{small}
+\begin{code}
+    let (sh1,  f1) = delay arr1
+        (_sh2, f2) = delay arr2
+        get ix     = (f1 ix + f2 ix) * 2
+    in Delayed sh1 get
+\end{code}
+\end{small}
+%
+The problem is that the array returned by @map@ is not a \emph{manifest} array, so is not represented as real unboxed data in a contiguous block of memory. Instead, it is a \emph{delayed} array, represented by a function that takes an array index and computes each element on the fly. The fused code immediately builds a new @Delayed@ array without doing any actual work. This is problematic if the consumer of a delayed array uses elements multiple times. The elements will be recomputed each time, so sharing of results is lost along with runtime performance.
+
+If we desire an array represented by real data, then we should use Repa's @force@ function, which turns a delayed array into a manifest array by executing loop-based parallel array filling code. We would use it in @doubleZip@ as follows:
+%
+\begin{small}
+\begin{code}
+    doubleZip arr1 arr2
+     = force $ map (* 2) $ zipWith (+) arr1 arr2
+\end{code}
+\end{small}
+%
+The code here fuses @map@ and @zipWith@ by building a new Delayed array as before. It then fills a freshly-allocated @Manifest@ array, \emph{in parallel}, using the element-generating function stored in the new @Delayed@ array. In other words, the compiled code will contain an unfolding of the imperative loop provided by @force@, where the body performs the per-element function, here @(f1 ix + f2 ix) * 2@, where @f1@ and @f2@ retrieve elements from the two input arrays. 
+
+Although our entire approach to parallel array programming hinges on the correct use of @force@, the type presented in the Repa~1 API documentation was rather uninformative:
+
+\begin{small}
+\begin{code}
+  force :: Shape sh => Array sh a -> Array sh a
+  -- Force an array, so that it becomes Manifest.
+\end{code}
+\end{small}
+%
+From its type alone, @force@ looks like an instance of the identity function. This coupled with the rather cryptic comment, led many users to overlook @force@ entirely. Poor documentation aside, our foundational view that ``a type is a name for a set of values'' was of no help in expressing the fact that ``if you don't use this function your program will be really slow''. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Problem 2: Runtime Representation Tests}
+\label{section:rep-tests}
+
+The version of @doubleZip@ using @force@ produces fused, loop-based code, but is still slower than a straightforward imperative version. This is because the @Array@ type has two data constructors, @Delayed@ and @Manifest@, so indexing functions must perform a run-time test to distinguish between them. This is a catastrophe if the test is in an inner loop, which is the native environment for indexing functions. In some cases GHC can lift such tests out of loops, but in general such transformations are unsound, because they can change strictness properties if the loop can perform no iterations.
+
+Tantalisingly, the representation of an array at a particular program point does not change from run to run. The programmer always knows which representation is expected --- but, in Repa 1 \& 2 they lack a convenient way to express that knowledge. For example, if we know that only manifest arrays will be passed to @doubleZip@, then we should reify this fact by using explicit pattern matching:
+\par
+\begin{small}
+\begin{code}
+  doubleZip arr1@Manifest{} arr2@Manifest{}
+   = force $ map (* 2) $ zipWith (+) arr1 arr2
+\end{code}
+\end{small}
+%
+While this version runs fast, it is awkward due to the implicit precondition: we need to ensure that all callers of @doubleZip@ force the arguments to ensure that they are manifest. 
+
+The test for array representation is not the only run-time test that tends to be needlessly performed in an inner loop. An array also contains size information such as its width and height, which is often used in each iteration. As these are boxed @Int@ values, a loop might repeatedly unbox them, wasting cycles. To ensure the values are unboxed only once, in the preamble of the loop, we need to place a demand on them at the function entry point. We typically do this using bang patterns in the pattern that matches @Manifest@, and it turns out we also want to demand the flat vector to ensure its components are unboxed as well:
+%
+\begin{small}
+\begin{code}
+  doubleZip arr1@(Manifest !_ !_) arr2@(Manifest !_ !_)
+  = force $ map (* 2) $ zipWith (+) arr1 arr2
+\end{code}
+\end{small}
+%
+Finally, @doubleZip@ runs as fast as a hand-written imperative loop. Unfortunately, the optimisations require reasoning that is not obvious from the source program, demand a deeper understanding of the compilation method than most users will have, and add a precondition that is not captured in the function signature.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Problem 3: Inlining and Code Explosion}
+\label{section:Explosion}
+
+In a FORTRAN or C program, the programmer writes explicit loops. In Repa, the programmer never writes loops; the loops are in library functions. With respect to Figure~\ref{figure:Repa1}, the key loop is in the definition of @fill@, which is called by @force@. The loop code itself is too big to include here, but see \cite{Lippmeier:Stencil} for a full definition. The array operations such as @map@, @zipWith@ and so on, build @Delayed@ arrays by composing functions, but do not contain loops.
+
+How does this turn into efficient code? Consider the last, most efficient version of @doubleZip@. Inlining @zipWith@, @map@, @delay@, and @force@, then simplifying yields:
+\par
+\begin{small}
+\begin{code}
+  doubleZip (Manifest !sh1 !vec1) (Manifest !_sh2 !vec2) 
+   = unsafePerformIO 
+   $ do mvec <- unsafeNew (size sh1) 
+        fill (size sh1) mvec
+          (\ix -> (indexV vec1 ix + indexV vec2 ix) * 2)
+        vec <- unsafeFreeze mvec
+        return $ Manifest sh1 vec
+\end{code}
+\end{small}
+%
+The pattern matching in @zipWith@'s calls to @delay@ are cancelled by the explicitly @Manifest@ arrays; the @Delayed@ array produced by @zipWith@ is canceled by the pattern match in @map@'s use of @delay@; and so on. When the definition of @fill@ is inlined, we get a tight loop, in which the output is built directly from the input vectors (@vec1@, @vec2@) without any intermediates.
+
+Clearly, this fusion depends critically on (a) aggressive inlining and (b) cancellation of statically-visible array construction and pattern matching.  However, for efficient stencil convolution, we developed a more complex array representation~\cite{Lippmeier:Stencil}, similar to this:
+\par
+\begin{small}
+\begin{code}
+  data Array sh a 
+    = Array { arrayExtent  :: sh
+            , arrayRegions :: [Region sh a] }
+\end{code}
+\end{small}
+%
+Rather than just being @Manifest@ or @Delayed@, these arrays consist of a list of rectangular \emph{regions}. Each region has its own element-generating function, which is used to speed up the handling of boundary conditions.
+
+Alas, this representation is fatal for the inline-and-cancel story outlined above. This is because the list @arrayRegions@ must be processed by a \emph{recursive} function, and compilers (including GHC) are rightly cautious about unrolling recursive functions. In a typical application the programmer knows the exact number of regions at any program point, say four boundaries and a central region. Unrolling five times here would be perfect, but the compiler does not know this.
+
+\eject
+To make this work, we ended up manually unrolling code in the library functions, by pattern matching on the region list. Here is a typical chunk of Repa 2 library code:
+\par
+\begin{small}
+\begin{code}
+  forceWith2 :: (Int -> a -> IO ())
+             -> Array DIM2 a -> IO ()
+  forceWith2 write arr
+   = case arr of
+      Array sh [r1]
+       -> do fillRegion2P write sh r1
+      Array sh [r1, r2]
+       -> do fillRegion2P write sh r1
+             fillRegion2P write sh r2
+      Array sh [r1, r2, r3]
+       -> do fillRegion2P write sh r1
+             fillRegion2P write sh r2
+             fillRegion2P write sh r3
+      ...
+      Array sh regions
+       ->    mapM_ (fillRegion2P write sh) regions
+\end{code}
+\end{small}       
+%
+The details are not important, but it should be clear from the form how gruesome this is:
+\begin{itemize}
+\item The library only efficiently accommodates a maximum number of regions. If we use the final alternative of @forceWith2@ above, then the code will not fuse.
+\item There is much repetition in the library code.
+\item The library functions become very large because of the duplication, but they must still be inlined!
+\end{itemize}
+%
+Aggressive use of @INLINE@ pragmas produces enormous intermediate programs, which we hope will then shrink radically through construction/pattern-matching cancellation. Sadly, this cancellation does not always happen; imagine that the @arr@ argument of @forceWith2@ above turned out to be lambda-bound, so that the @case@ remained in the residual program.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Summary}
+
+The fundamental problem with Repa 1 \& 2 is the following: at a particular point in the code, the programmer typically has a clear idea of the array representation they desire. For example, it may consist of three regions, left edge, middle, right edge, each of which is a delayed array. Although this representation is statically known to the programmer, it is invisible in the types and only exposed to the compiler if very aggressive value inlining is used. Moreover, the programmer's typeless reasoning can easily fail, leading to massive performance degradation.
+
+The solution is to expose static information about array representation to Haskell's main static reasoning system; its type system.
