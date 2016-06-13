@@ -1,0 +1,12 @@
+# size 128, NCG since LLVM segfaults
+Threads,Time
+(seq),16483
+1,17339
+2,9165
+3,6465
+4,5122
+5,4282
+6,3730
+7,3392
+8,3085
+

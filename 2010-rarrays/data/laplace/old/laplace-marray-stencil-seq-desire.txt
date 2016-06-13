@@ -1,0 +1,17 @@
+# best of 3.
+Time(ms), Slowdown wrt 100x100 case, Slowdown wrt laplace-carray-stencil-seq-desire
+
+# 100x100 matrix, 5000 iterations
+2235, 	1, 	1.897
+
+# 200x200 matrix, 5000 iterations
+9127, 	4.084,	1.921
+
+# 400x400 matrix, 5000 iterations
+37021,	16.564,	1.926
+
+
+NOTES
+benl: 	Uses IOUArrays and Int indices.
+	From looking at the core, the slowdown wrt laplace-carray-stencil-seq cases
+	looks mostly due to array bounds checks when reading and writing to IOUArrays.

@@ -1,0 +1,11 @@
+# best of 3.
+Time(ms), Slowdown wrt 100x100 case.
+
+# 100x100 matrix, 5000 iterations
+1178,	1
+
+# 200x200 matrix, 5000 iterations
+4752,	4.034
+
+# 400x400 matrix, 5000 iterations
+19218,	16.314
