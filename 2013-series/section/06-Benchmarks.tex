@@ -1,0 +1,81 @@
+%!TEX root = ../Main.tex
+
+
+% -----------------------------------------------------------------------------
+\begin{figure*}[t]
+\begin{center}
+\begin{tabular}{lccccrccc}
+Benchmark 
+        & Input size 
+        & Stream (ms) 
+        & \multicolumn{2}{c}{Flow (ms)} 
+        & \multicolumn{2}{c}{Unfused Flow (ms)}  
+        & \multicolumn{2}{c}{Hand-fused C (ms)}    \\
+\hline
+Dot Product &  $10^8$    & 655    & 489    &  (75\%) & 1,096  & (167\%)  & 474      & (72\%) \\
+MapMap      &  $10^8$    & 842    & 636    &  (75\%) & 842    & (100\%)  & 615      & (73\%) \\
+FilterSum   &  $10^8$    & 505    & 430    &  (85\%) & 1,132  & (224\%)  & 344      & (68\%) \\
+FilterMax   &  $10^8$    & 567    & 521    &  (91\%) & 1,496  & (263\%)  & 360      & (63\%) \\
+NestedFilter&  $10^8$    & 485    & 420    &  (86\%) & 1,202  & (247\%)  & 376      & (77\%) \\
+QuickHull   &  $10^7$    & 419    & 208    &  (49\%) & 857    & (204\%)  & 183      & (43\%) \\
+\end{tabular}
+\caption{Benchmark Results for Flow Fusion}
+\label{f:benchmark-table}
+\end{center}
+\end{figure*}
+
+
+% -----------------------------------------------------------------------------
+\section{Benchmarks}
+\label{s:Benchmarks}
+Benchmarks were conducted on a MacBook Pro with 2.8GHz Intel Core i7 with 8GB of RAM. Source code is available from the @repa-plugin@ darcs repository. 
+
+We use micro-benchmarks because our fusion system addresses these specific programming patterns, rather than being an improvement on the ambient performance of the program --- as with optimizations like pointer tagging~\cite{Marlow:pointer-tagging}.
+
+For each benchmark we compare four implementations:
+\begin{itemize}
+\item \emph{Stream}: using stream fusion~\cite{Coutts:stream-fusion} and unboxed vectors;\footnote{from the @vector@ library on Hackage}
+
+\item \emph{Flow}: using our new Flow fusion framework;
+
+\item \emph{Unfused Flow}: using our Flow API but without the plugin;
+
+\item \emph{Hand-fused}: hand written and fused C code.
+\end{itemize}
+
+The Unfused Flow versions use the exact same code as the Flow versions, except they are compiled without the plugin that actually performs the fusion transformation. In this case the benchmarks are compiled via a fallback implementation of the user-facing API of Figure~\ref{f:SeriesOperators}, implemented in terms of standard stream fusion~\cite{Coutts:stream-fusion}. The fallback implementation provides a quick compilation path for people that do not want to install the plugin or care about the last ounce of 
+performance, as well as a convenient way of testing the plugin itself.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Dot Product}
+A pair of two-dimensional vectors are multiplied element-wise and the results summed. Each two dimensional vector is stored as two arrays of integers, giving four arrays in total. As discussed in \S\ref{s:streams-zipWith}, code compiled with stream fusion produces a loop counter for each vector. With flow fusion the concretization phase (\S\ref{s:Concretization}) naturally causes loop counters to be shared. This provides a 25\% speedup over stream fusion and puts us on par with the reference C implementation. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{MapMap}
+The elements of a vector of integers are doubled, and the resulting vector has a constant added in one operation and subtracted in another. With stream fusion the first result is materialized in memory, and then read back by each of the subsequent vector operations. With flow fusion the first result is not materialized, which also puts us on par with the reference C implementation.
+
+
+% -----------------------------------------------------------------------------
+\subsection{FilterSum}
+A vector of integers is filtered and the elements of the original and result vectors are separately summed. The result vector and both sums are returned in a 3-tuple. With stream fusion the code uses three separate loops, one for each operator. With flow fusion the code uses a single loop that sums both the original and result vectors while constructing the result. 
+
+Although the Core code produced by flow fusion is optimal, the low-level object code suffers from pointer aliasing problems. The back-end code generator does not know that the input vector does not alias with the result vector, nor that writes to the element data of the result do not affect its starting offset field. Ultimately, the length field of the first vector, and starting offsets for both vectors are repeatedly read in the inner loop. The C compiler can infer correct aliasing information, and thus saves three memory reads per loop iteration.
+
+
+% -----------------------------------------------------------------------------
+\subsection{FilterMax}
+This is the @filterMax@ example described earlier. With stream fusion the filtered result vector must be read back from memory to sum its elements. With flow fusion the sum is performed in the same loop as the filter. Similarly to the FilterSum benchmark, although the Core code is optimal, low level pointer aliasing problems in the object code prevent us from matching the performance of the C version.
+
+
+% -----------------------------------------------------------------------------
+\subsection{NestedFilter}
+An input vector is filtered, this result filtered again by another predicate, and both results are returned in a tuple. With stream fusion the first result is constructed in memory and then read back to perform the second filter. With flow fusion both results are constructed in the same loop and the first is not read back. As mentioned in \S\ref{s:SchedulingPacks} this benchmark uses two nested applications of @mkSel@, thus the Core code contains two nested guards. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{QuickHull}
+QuickHull finds the smallest convex hull of a set of points in the 2-d plane. The algorithm operates in two phases. The first is an initialization phase where we determine the left-most and right-most points in the input set. If these results are computed in two separate fold operations then stream fusion cannot fuse this code. In the second phase, we need to determine the set of points above a cutting line and also the point furthest from it. This is a @filterMax@-like operation that stream fusion can also not fuse.
+
+

@@ -1,0 +1,122 @@
+%!TEX root = ../Main.tex
+\section{The Problems with Stream Fusion}
+\label{s:Problems}
+
+\emph{Fusion}, or \emph{deforestation}, refers to the automatic, compile time elimination of intermediate data structures, by combining successive traversals over these structures. Fusion has already received plenty of attention in the context of functional programming~\cite{Wadler:listnessness,Meijer:bananas,Waters:series-expressions,Gill:short-cut,Coutts:stream-fusion,Hu:Tupling,Romph:Scala}. While most prior work aims to remove intermediate lists, some methods also apply to arrays~\cite{Chakravarty:functional-array-fusion,Keller:Repa,Claessen:push-arrays,Grelck:with-loop-fusion}.
+
+The most practically successful systems ---@build@/@fold@ fusion, stream fusion, and delayed arrays--- are \emph{short-cut fusion} methods that rely on local program transformations. These methods are implemented as simple but specific rewrite rules combined with general purpose program transformations. Systems like \cite{Hu:Tupling} and \cite{Grelck:with-loop-fusion} also perform \emph{tupling} that fuses restricted classes of branching data flows. Unfortunately, neither \cite{Hu:Tupling} or \cite{Grelck:with-loop-fusion} handle @filterMax@, because the overall result includes a materialized intermediate array (@vec3@) as well as an additional value based on its elements (@n@). Tupling transformations handle the easier case where two results are computed by directly traversing over the same input structure.
+
+In contrast, \emph{loop fusion} methods used in imperative languages merge multiple loop nests, typically using dependency graphs~\cite{Warren:reordering} to determine whether fusion is legal and beneficial. When a producer and consumer loop are merged, array contraction~\cite{Sarkar:loop-transformations} can then remove or reduce the size of the intermediate arrays. These systems require fusion-specific compiler support and more global reasoning than short-cut fusion. However, the simplicity of short-cut fusion comes at a price, as we discuss next.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Short-cut Fusion is Local and Depends on Inlining}
+\label{s:short-cut-fusion}
+
+\begin{figure}
+\begin{code}
+ -- Vector versions
+ map    :: (a -> b) -> Vector a -> Vector b
+ map f xs    = unstream (mapS f (stream xs))
+
+ filter :: (a -> Bool) -> Vector a -> Vector a
+ filter f xs = unstream (filterS f (stream xs))
+
+ fold   :: (a -> b -> a) -> a -> Vector b -> a
+ fold f z xs = foldS f z (stream xs)
+
+ -- Stream versions
+ mapS     :: (a -> b)    -> Stream a -> Stream b
+ filterS  :: (a -> Bool) -> Stream a -> Stream a
+ foldS    :: (a -> b -> a) -> a -> Stream b -> a
+
+ -- Stream / Vector conversions
+ stream   :: Vector a -> Stream a
+ unstream :: Stream a -> Vector a
+\end{code}
+
+\caption{Stream Fusion Operators}
+\label{f:stream-fusion-operators}
+\end{figure}
+%
+Short cut fusion systems do not rely on custom program transformations that analyse entire functions or compilation units. Rather, they use inlining and let-floating to produce code in which array producers and consumers are adjacent. These producer-consumer pairs are then eliminated by rewrite rules and other local transformations. This approach permits a simple implementation, but limits the use of contextual information. To see why, consider the @filterMax@ function again:
+%
+\begin{code}
+  filterMax :: Vector Int -> (Vector Int, Int)
+  filterMax vec1
+   = let vec2    = map    (+ 1) vec1
+         vec3    = filter (> 0) vec2
+         n       = fold max 0 vec3
+     in  (vec3, n)
+\end{code}
+%
+The definitions of @map@, @filter@ and @fold@ for stream fusion~\cite{Coutts:stream-fusion} are shown in Figure~\ref{f:stream-fusion-operators}. These are written in terms of co-recursive functions operating over streams, named @mapS@, @filterS@, and @foldS@, respectively --- see~\cite{Coutts:stream-fusion} for details. The functions @stream@ and @unstream@ convert between the \emph{vector-view} and the \emph{stream-view} of the data, where we use ``vector'' to mean a one dimensional array.  Inlining @map@, @filter@, @fold@ into @filterMax@ gives us:
+%
+\begin{code}
+filterMax :: Vector Int -> (Vector Int, Int)
+filterMax vec1
+ = let vec3 = unstream 
+                  (filterS (> 0) (stream (unstream 
+                     (mapS (+ 1) (stream vec1)))))
+       n    = foldS max 0 (stream vec3)
+   in  (vec3, n)
+\end{code}
+%
+Now we can use the following rewrite rule:
+%
+\begin{code}
+ {-# RULE "stream/unstream" 
+          forall s. stream (unstream s) = s #-}
+\end{code}
+%
+This rule says that if we convert a @Stream@ to a @Vector@ and back again, we get the original @Stream@. Applying this rule to our program yields:
+%
+\begin{code}
+filterMax :: Vector Int -> (Vector Int, Int)
+filterMax vec1
+ = let vec3 = unstream (filterS (> 0) 
+                        (mapS (+ 1) (stream vec1)))
+       n    = foldS max 0 (stream vec3)
+   in  (vec3, n)
+\end{code}
+%
+It is this application of the @stream/unstream@ rule that actually eliminates the intermediate structure. General purpose transformations will then ensure that @filterS@ and @mapS@ are inlined, and their co-recursive definitions ensure no further intermediate structure will be allocated for the result of @mapS@. 
+
+Importantly, note that this mechanism does not apply to the @vec3@ binding, because @vec3@ has two consumers: being used by @foldS@ and also returned in the final tuple. We cannot duplicate the @vec3@ binding for each consumer as this would also duplicate the work required to produce its elements. 
+
+Short-cut fusion is fundamentally limited to data structures that have a single consumer. To fuse @vec3@, we must make use of non-local information to infer that the computation of @foldS@ and @filterS@ should be combined.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Short-cut Fusion Duplicates Loop Counters}
+\label{s:streams-zipWith}
+
+Consider this simple expression, combining three vectors by adding two element-wise and then multiplying by the third:
+%
+\begin{code}
+  zipWith (*) (zipWith (+) xs ys) zs
+\end{code}
+%
+After inlining @zipWith@, using the @stream/unstream@ rule, and then combining the two resulting instances of @zipWithS@, stream fusion produces the following code:
+%
+\begin{code}
+loop = \ i j k l s ->
+ case >=# i len_xs of
+  True  -> (# s, I# n #)
+  False ->
+   case indexIntArray# xs i of
+    x -> case >=# j len_ys of
+     True  -> (# s, I# n #)
+     False -> 
+      case indexIntArray# ys j of
+       y -> case >=# k len_zs of
+        True -> (# s, I# n #)
+        False ->
+         case indexIntArray# zs k of
+          z ->
+           loop (+# i 1) (+# j 1) (+# k 1) (+# l 1) 
+            (writeIntArray# rs l (*# (+# x y) z) s)
+\end{code}
+%
+We have four loop counters @i@, @j@, @k@, and @l@ --- three for the three source arrays and one for the result array. These counters contain the same value, are incremented in lock step, and three of them are tested for loop bounds. In addition to the superfluous tests and arithmetic, the duplication of counters unnecessarily increases register pressure. Instead of hoping that subsequent optimizations will eliminate the duplicates (which is not done in the current version of GHC), flow fusion avoids their introduction entirely.
+

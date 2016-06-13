@@ -1,0 +1,191 @@
+%!TEX root = ../Main.tex
+
+\section{Rates and Contexts}
+\label{s:RatesAndContexts}
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\begin{small}
+\begin{alltt}
+  -- Haskell source after rate inference
+  filterMax :: Vector Int -> (Vector Int, Int)
+  filterMax vec
+   = runSeries vec go1
+   where go1 s1     = let s2    = map (+ 1) s1
+                          flags = map (> 0) s2
+                      in  mkSel flags (go2 s2)
+
+         go2 s2 sel = let s4 = pack sel s2
+                      in  ( create s4
+                          , fold max 0 s4)
+
+  -- With explicit type abstraction and application
+  filterMax :: Vector Int -> (Vector Int, Int)
+  filterMax vec
+   = runSeries @Int @(Vector Int, Int) vec go1
+   where go1 = \(\Lambda\)(k1 : &). \(\lambda\)(s1 : Series k1 Int). 
+               let s2    : Series k1 Int   
+                         = map @k1 @Int @Int  (+ 1) s1
+                   flags : Series k1 Bool
+                         = map @k1 @Int @Bool (> 0) s2
+               in  mkSel @k1 @(Vector Int, Int)
+                          flags (go2 @k1 s2)
+
+         go2 = \(\Lambda\)(k1 : &). \(\lambda\)(s2  : Series k1 Int). 
+               \(\Lambda\)(k2 : &). \(\lambda\)(sel : Sel k1 k2).
+               let s4    : Series k2 Int 
+                         = pack @k1 @k2 @Int sel s2
+               in  ( create @k2 @Int s4
+                   , fold   @k2 @Int @Int max 0 s4)
+\end{alltt}
+\end{small}
+\caption{The \texttt{filterMax} example after rate inference}
+\label{f:new-filterMax}
+\end{figure}
+
+
+\begin{figure}
+\begin{small}
+\begin{alltt}
+ runSeries  :: \(\forall\)(a b : *). Vector a 
+            -> (\(\forall\)(k : &). Series k a -> b) -> b
+ 
+ runSeries2 :: \(\forall\)(a b c : *). Vector a -> Vector b
+            -> (\(\forall\)(k : &). Series k a -> Series k b -> c)
+            -> Maybe c
+
+ generate   :: \(\forall\)(a : *). Int -> (Int -> a)
+            -> (\(\forall\)(k : &). Series k a -> b) -> b
+
+ create     :: \(\forall\)(k : &). \(\forall\)(a : *)
+            .  Series k a -> Vector a
+
+ map        :: \(\forall\)(k : &). \(\forall\)(a b : *)
+            .  (a -> b)  
+            -> Series k a -> Series k b
+
+ map2       :: \(\forall\)(k : &). \(\forall\)(a b c : *)
+            .  (a -> b -> c) 
+            -> Series k a -> Series k b -> Series k c
+
+ fold       :: \(\forall\)(k : &). \(\forall\)(a b : *)
+            .  (a -> b -> a) -> a -> Series k b -> a
+
+ mkSel      :: \(\forall\)(k1 : &). \(\forall\)(a : *)
+            .  Series k1 Bool
+            -> (\(\forall\)(k2 : &). Sel k1 k2 -> a)   -> a
+
+ pack       :: \(\forall\)(k1 k2 : &). \(\forall\)(a : *)
+            .  Sel k1 k2 -> Series k1 a -> Series k2 a
+\end{alltt}
+\end{small}
+\caption{Series Operators}
+\label{f:SeriesOperators}
+\end{figure}
+
+The first definition in Figure~\ref{f:new-filterMax} shows the code of @filterMax@ after performing \emph{rate inference} as a pre-processing step. Rate inference identifies regions of code amenable to flow fusion. Moreover, it decomposes rate changing operations such as @filter@, into primitives, such as @mkSel@ and @pack@. As part of this decomposition, we have also introduced two intermediate @go@ bindings to clarify data dependencies. We will explain rate inference in \S\ref{s:rate-inference}, but first we discuss the importance of rates for flow fusion. 
+
+The second definition in Figure~\ref{f:new-filterMax} is the same function as before, but with explicit type abstractions and applications. Here $\Lambda$ indicates type abstraction and \verb|@| type application. We use @&@ as the \emph{kind of rate types}. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Vectors and Series}
+\label{s:VectorsAndSeries}
+
+Rate inference ensures that subexpressions subjected to flow fusion contain only the array combinators shown in Figure~\ref{f:SeriesOperators}. In those signatures, @Vector a@ is the type of \emph{manifest linear arrays}, represented by contiguous blocks of machine words in memory. In contrast, @Series k a@ is the type of \emph{abstract representations of sequences} of @a@-values produced at rate @k@, such that they may participate in fusion. In this respect a series is similar to a \emph{delayed array} from Repa~\cite{Keller:Repa}, except that series do not support random access indexing.
+
+The \emph{rate} @k@ of a series is a type level representation of its length, with the following key invariant: \emph{two series of the same rate are guaranteed to have the same length}. We use @&@ as the kind of rate types, leaving @*@ as the kind of value types as in standard Haskell. This distinction is important because rates are purely type-level information. There are no values that have a type of kind @&@.
+
+The rate of a series is similar to a \emph{clock type}, as used by the clock typing systems of synchronous data flow languages such as Lustre~\cite{Caspi:Lustre} and Lucid Synchrone~\cite{Caspi:kahn-networks, Pouzet:lucid-synchrone}. We compare these systems further in \S\ref{s:Related} 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Running Series Expressions}
+
+Rate inference encapsulates regions of fusible code in an abstraction @fn@, that is then passed as an argument to the function @runSeries@, @runSeries2@, or @generate@. The types for these functions are in Figure~\ref{f:SeriesOperators}. The application @(runSeries v fn)@ converts the vector @v@ to a @Series@, which is then consumed by @fn@. In the type of @runSeries@, the rate variable @k@ (which is a type-level representation of the length of @v@) is universally quantified in the type of @fn@. The inner quantification ensures that the rate information cannot escape, and that multiple series of differing lengths can never have the same rate variable. This is much like the use of a rank-2 type to encapsulate state in the @runST@ function of the @ST@ monad~\cite{Launchbury:state-threads}.
+
+The inner quantification of a rate variable logically creates a \emph{rate context}, where array data is processed at the specified rate. For example, the body of @go1@ in Figure~\ref{f:new-filterMax} is a rate context in which we construct two new @Series@ values, @s2@ and @flags@, both with the same rate @k1@ derived from the incoming series @s1@. 
+
+Flow fusion can merge all computations producing and consuming series at the same rate into a single loop. For example, fused code that performs multiple folds over multiple series at the same rate will proceed as follows: first, the code initializes an accumulator for each fold; then, in a single loop, it reads elements from each series in lock step and updates the accumulators appropriately.
+
+The @runSeries2@ function is like @runSeries@, but accepts two @Vector@s \emph{of the same length} as inputs and converts them both to @Series@ before passing them to the worker. If the input vectors do not have the same length then @runSeries2@ yields @Nothing@. This dynamic check justifies our use of the same rate variable @k@ for both @Series@. The @generate@ function is like @runSeries@, but generating a series from a function producing array elements, instead of from a manifest vector.
+
+Finally, @create@ materializes a @Series@ into a @Vector@. The latter is free of an associated rate variable, and hence can be passed outside the current rate context.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Maps and Folds}
+
+The types of @map@ and @fold@ in Figure~\ref{f:SeriesOperators} are standard, except for the inclusion of the rate variable @k@. The function @map2@ is much like Haskell's standard @zipWith@, but requires both series to have the same rate (length). In our full implementation we have an entire family of functions @map3@, @map4@ and so on.
+
+In the explicitly typed code of Figure~\ref{f:new-filterMax}, the rate variables used as type arguments identify which rate context each operator belongs to. We will see in \S\ref{s:Normalizing} that these type arguments indicate the set of series that ought to be evaluated in a single loop. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Selectors and Packing}
+\label{s:SelectorsAndPacking}
+
+In the expression @(pack sel s2)@, the \emph{selector} @sel@ identifies the values in series @s2@ that should be included in the shorter result series. For example, suppose that during evaluation of @go2@ from Figure~\ref{f:new-filterMax}, we have the following values for @s2@ and @flags@, where @flags@ identifies the positive elements of @s2@:
+%
+\begin{code}
+  s2    :: Series k1 Int
+  s2    = [+4 -1 +5 +3 +8 -4 +2 +1 -5]
+
+  flags :: Series k1 Bool
+  flags = [ T  F  T  T  T  F  T  T  F]
+\end{code}
+%
+The application @(mkSel flags fn)@ converts @flags@ into a \emph{selector}, which is passed to @fn@, just as with @runSeries@ before. The selector is an abstract representation of the vector containing the indices of all the @T@ (True) values in that series: 
+%
+\begin{code}
+  sel :: Sel k1 k2
+  sel = [0 2 3 4 6 7]
+\end{code}
+%
+The selector is then used by @pack@ to select just those elements of @s2@ that had their corresponding flag set: 
+%
+\begin{code}
+  s4  :: Series k2 Int
+  s4  = pack sel s2  =  [+4 +5 +3 +8 +2 +1]
+\end{code}
+
+Importantly, because the selector maps a series of one length onto a series of another, we tag the selector type with two different rate variables. For @filterMax@, we have @sel :: Sel k1 k2@ where @k1@ is the rate of @s2@ and @flags@, and @k2@ is the rate of @s4@ --- the series resulting from @pack@. Additionally, because selectors are always produced from a series of flags, we know that the length (rate) of the selector is no greater than the length (rate) of the original series. To put this another way, the rate context @k2@ is \emph{contained by} the rate context @k1@, and the selector is \emph{evidence} and a \emph{witness} for this relationship. Figure~\ref{f:nested-contexts} shows this graphically.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Data Flow Languages and Clock Calculi}
+\label{s:DataFlowLanguages}
+
+Figure~\ref{f:nested-contexts} shows that @filterMax@ is a first order, non-recursive data-flow program, as one might expect. The expressions that flow fusion can fuse all have this form: they consist of a number of manifest data sources, and a hierarchy of well nested rate contexts containing a directed acyclic graph of data flow operators terminated by manifest data sinks. Any program of this form can be completely fused by flow fusion.
+
+The programs that we handle constitute a fragment of a more general data flow language such as Lustre~\cite{Caspi:Lustre} or Lucid Synchrone~\cite{Pouzet:lucid-synchrone}. These larger languages work over infinite streams with recursion and delay elements, and prior work on compiling them has focused on dealing with these extra features~\cite{Halbwachs:data-flow-compilation}. These languages come with clock typing systems that ensure the program can be evaluated synchronously, and without unbounded buffering. In contrast, the fragment that we compile is defined by the API of Figure~\ref{f:SeriesOperators}, which only provides finite series. We do not have delay elements or recursion. We use rate variables to express relationships between different series, but as we start with a simpler language, we can get by with a simpler rate analysis as described next.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Rate Inference}
+\label{s:rate-inference}
+
+Rate inference identifies non-recursive data flow expressions that are amenable to flow fusion, and turns them into applications of @runSeries@. These expressions may only contain the following operators: (1) the vector operators from Figure~\ref{f:SeriesOperators} and (2) operators with scalar argument and result types. All higher-level array operators must be implemented in terms of these primitives to participate in flow fusion. Before rate inference, we assume the definitions of these composite operators have been inlined and the resulting code converted to a-normal form (administrative-normal form).
+
+Rate inference proceeds in two phases: first, we identify, and if necessary, rearrange vector-valued subexpressions that we can fuse into single loops. For this we adapt the existing \emph{size inference and scheduling algorithm} described by Chatterjee et al~\cite{Chatterjee:size-access-inference}.
+
+After solving the constraints as in \cite{Chatterjee:size-access-inference}, we proceed to the second phase. We rewrite the expression using operators on @Vector@s to use operators on @Series@, and wrap it in a @runSeries@. For this we replace all free vector-valued variables $\tt{v}_1 \tt{::} \tt{Vector}~ \tt{a}_1$ to $\tt{v}_n \tt{::} \tt{Vector}~ \tt{a}_n$ with fresh variables $\tt{s} \tt{::} \tt{Series}~ k~ \tt{a}_i$. The rate inference algorithm ensures that all such variables have the same rate @k@. Rewriting the expression to use series operators is mostly trivial. Only @filter@ needs special handling, to expand each occurrence into a use of @mkSel@ and @pack@. As the input code is already in ANF, @filter@ can only occur in bindings of the form:
+%
+\begin{code}
+ let s1 = filter fn s0 
+ in  e2
+\end{code}  
+%
+which we rewrite to
+%
+\begin{alltt}
+ let flags = map fn s0
+ in  mkSel flags (\(\lambda\)sel. let s1 = pack sel s0 in e2)
+\end{alltt}  
+%
+Finally, we wrap the series expression @e'@ obtained this way with a @runSeries@:
+%
+\begin{alltt}
+ runSeriesN v\_1 \(\ldots\) v_n (\(\lambda\) s\_1 \ldots s\_n. e')
+\end{alltt}
+

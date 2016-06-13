@@ -1,0 +1,10 @@
+# FilterMax: on MacBook Pro
+# 2.8GHz Intel Core i7, 8GB RAM
+# Input size (points), Stream fusion(ms), Flow fusion, Flow fusion fallback
+
+500000      3               3           7
+1000000     6               5           15
+5000000     31              27          75
+10000000    59              54          148
+50000000    285             258         724
+100000000   567             521         1496

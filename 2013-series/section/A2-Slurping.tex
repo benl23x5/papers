@@ -1,0 +1,86 @@
+%!TEX root = ../Main.tex
+
+
+% Process
+% ~~~~~~~   
+%    Process  ::= process name (a : Kind)* (x : Type)* (s : Series k Type)*
+%                    with  Operator*  yields  Exp
+
+%    Operator ::= mkSel (k_inner : &) (x_sel : Sel k_outer k_inner)
+%                     from k_outer s_flags  in  Operator*
+%             |   s_out    <- map^n  k_in  Type*n  Exp_work  s_in*n
+%             |   s_out    <- pack   k_out k_in  Type_in  x_sel  s_in
+%             |   x_result <- fold   k_in  Type_in  Type_result  s_in
+%                               with  Exp_work  and Exp_zero
+%             |   x_vec    <- create k_in  Type_in  s_in
+
+
+\clearpage{}
+\section{Slurping}
+
+\begin{alltt}
+Core 
+~~~~
+   Prog    ::= Top*                                (Core program)
+   Top     ::= let v1 : Type = Exp                 (top level binding)
+
+   Exp     ::= x                                   (variable)
+            |  \(\Lambda\)(a : Kind). Exp                    (type abstraction)
+            |  \(\lambda\)(x : Type). Exp                    (value abstraction)
+            |  Exp @Type                           (type application)
+            |  Exp  Exp                            (value application)
+            |  let Binding in Exp                  (local binding)   
+                     
+   Binding ::=  x : Type = Exp
+
+Strip 
+~~~~~
+ !! STRIP   :: Exp -> ((Var, Kind)*, (Var, Type)*, (Var, Type)*,  Exp)
+    Takes an expression with some outer-most lambda abstractions and strips
+    off the type parameters, non-series value parameters, and series parameters,
+    also returning the body of the inner-most abstraction.
+
+Slurping
+~~~~~~~~
+ !!  SLURPP|- Top => Process
+
+     STRIP[ X1 ] = (aks, xts, sts, X_body)   SLURPX|- nil | X_body => P_ops ; X_yield
+   ----------------------------------------------------------------
+     SLURPP|- let v_name : T1 = X1  
+           => process  v_name aks xts sts  with  P_ops  yields  X_yield
+
+
+ !!  SLURPX|- Binding* | Exp => Operator* ; Exp
+
+     SLURPX|- BS | X2 => PS ; X0
+   ------------------------------------------------------------------------------- (mkSel)
+     SLURPX|- BS | mkSel @k1 @T1 s1 (\(\Lambda\)(k2 : &). \(\lambda\)(l1 : Sel k1 k2). X2) ]
+           => mkSel (k2 : &) (l1 : Sel k1 k2) from  k1 s1 in PS            ; X0
+
+     SLURPX|- BS | X2 => PS ; X0
+   -------------------------------------------------------------------------------- (map)
+     SLURPX|- BS | let s1 : Series k1 T2 = map  @k1 @T1 @T2 X1 s2     in X2
+           =>                       (s1 <- map   k1  T1    X1 s2)    ++ PS ; X0
+
+     SLURPX|- BS | X2 => PS ; X0
+   -------------------------------------------------------------------------------- (pack)
+     SLURPX|- BS | let s1 : Series k2 T2 = pack @k1 @k2 @T2 l1 s2    in X2
+           =>                       (s1 <- pack  k1  k2  T2 l1 s2)   ++ PS ; X0
+
+     SLURPX|- BS | X2 => PS ; X0
+   -------------------------------------------------------------------------------- (create)
+     SLURPX|- BS | let x1 : Vector T1    = create @k1 @T1 s1         in X2
+           =>                       (x1 <= create k1 T1 s1)          ++ PS ; X0
+
+     SLURPX|- BS | X2 => PS ; X0
+   ------------------------------------------------------------------------------------ (fold)
+     SLURPX|- BS | let x1 : T1 = fold @k1 @T1 @T2 X1 X2 s1 in X3
+           =>             (x1 <= fold  k1  T1  T2 s1 with X1 and X2) ++ PS ; X0
+
+     SLURPX|- BS ++ (x : T1 = X1) | X2 => PS ; X0      T1 /= Series k T  for any  k, T
+   ------------------------------------------------------------------------------------ (let)
+     SLURPX|- BS | let x : T1 = X1 in X2 => PS ; X0
+
+   ------------------------------------------------------------------------------------ (var)
+     SLURPX|- BS | x  => nil ; let BS in x
+\end{alltt}

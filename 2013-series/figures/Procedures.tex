@@ -1,0 +1,74 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\begin{tabbing}
+MMMMx           \= MM \= \kill
+$name$  \> $\to$ \> (procedure name)            \\
+$x,~ s$ \> $\to$ \> (value variable)            \\
+$a,~ k$ \> $\to$ \> (type variable)             
+\\[1ex]
+
+$vec$   \> $\to$ \> (vector variable)           \\
+$acc$   \> $\to$ \> (accumulator)
+\\[2ex]
+
+$kind$          \> \tt{::=}
+                \>      $\tt{*} ~~|~~ \tt{\&}$
+
+\\[1ex]
+$type$          \> \tt{::=}
+                \>      $a ~~|~~ \tt{Int} ~~|~~ \tt{Float} ~~|~~ ...$ 
+\end{tabbing}
+
+\begin{tabbing}
+MMMMx           \= MM \= M \= MMMM \= \kill
+$procedure$ 
+ \> \tt{::=}    
+        \> $\tt{procedure}~ name~ (k_{in} : \&)~ \ov{(a : kind)}$ \\
+ \>     \> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ $\ov{(x : type)} 
+                ~~ \ov{(s : \tt{Series}~ k_{in}~ type)}$     \\
+ \>     \> ~~~$\tt{with}~~ \ov{nest}
+                ~~ \tt{yields}~~ exp$
+\end{tabbing}
+
+\begin{tabbing}
+MMMMx            \= MM \= x \= MMMM \= \kill
+$nest$ 
+ \> \tt{::=}       \> $\tt{loop}~~ k$            \\
+ \>             \> \> \tt{start}  \> $\ov{stmtstart}$   \\
+ \>             \> \> \tt{body}   \> $\ov{stmtbody}$    \\
+ \>             \> \> \tt{inner}  \> $\ov{nest}$        \\
+ \>             \> \> \tt{end}    \> $\ov{stmtend}$     
+ \\[1ex]
+
+ \> $~~|~~$     \> $\tt{guard}~~ (k_{inner} : \&)~~   
+                        \tt{with}~~ k_{outer}~~ x_{flag}$ \\
+ \>             \> \> \tt{body}   \> $\ov{stmtbody}$      \\
+ \>             \> \> \tt{inner}  \> $\ov{stmtend}$
+\end{tabbing}
+
+\begin{tabbing}
+MMMMx            \= Mx \= MMMx \= MMMM \= \kill
+$stmtstart$     
+ \> \tt{::=}    \> ~~ $vec$      \> $\tt{ =}~~~ \tt{newVec}~~ k$         \\[0.5ex]
+ \> $~~~|$      \> ~~ $acc$      \> $\tt{ =}~~~ \tt{newAcc}~~ exp_{zero}$
+\\[1.5ex]
+
+$stmtbody$      
+ \> \tt{::=}    \> ~~ $x_{elem}$ \> $\tt{ =}~~~ x'_{elem}$               \\[0.5ex]
+ \> $~~~|$      \> ~~ $x_{elem}$ \> $\tt{ =}~~~ \tt{next}~~ k~~ s_{in}$  \\[0.5ex]
+ \> $~~~|$      \> ~~ $x_{elem}$ \> $\tt{ =}~~~ exp_{worker}~~ \ov{x_{elem}} $  \\[0.5ex]
+ \> $~~~|$      \> ~~ $acc$      \> $\tt{:=}~~~ exp_{worker}~~ acc~~ x_{elem}$  \\[0.5ex]
+ \> $~~~|$      \> ~~ $\tt{writeVec}~~ k~~ vec~~ x_{elem}$
+\\[1.5ex]
+
+$stmtend$
+ \> \tt{::=}    \> ~~ $x_{result}$ \> $\tt{ =}~~~ \tt{read}~~ acc$      \\[0.5ex]
+ \> $~~~|$      \> ~~ $\tt{sliceVec}~~ k~~ vec$
+\end{tabbing}
+
+\caption{Series Procedures as Abstract Loop Nests}
+\label{f:Procedure}
+\end{figure}
+

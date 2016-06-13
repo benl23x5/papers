@@ -1,0 +1,158 @@
+%!TEX root = ../Main.tex
+\section{Benchmark Code}
+This appendix gives normalized Haskell source code for the Benchmarks described in \S\ref{s:Benchmarks}. This code is currently available in the head repository for our plugin \url{http://code.ouroborus.net/repa/repa-head/repa-plugin/test/07-SimpleBench/} and will be released as auxiliary material along with the full paper. Names qualified with @U.@ are from @Data.Vector.Unboxed@ of the @vector@ library.
+
+% -----------------------------------------------------------------------------
+\subsection{Dot Product}
+
+\begin{small}
+\begin{code}
+dotp :: Series k Int -> Series k Int
+     -> Series k Int -> Series k Int
+     -> Vector   Int
+dotp x1 y1 x2 y2
+ let px    = map2 (*) x1 x2
+     py    = map2 (*) y1 y2
+ in  create (map2 (+) px py)
+\end{code}
+\end{small}
+
+% -----------------------------------------------------------------------------
+\subsection{MapMap}
+\begin{small}
+\begin{code}
+mapMap     :: Series k Int 
+           -> (Vector Int, Vector Int)
+mapMap xs
+ = let xs' = map (\x -> x * 2)  xs
+       ys  = map (\x -> x + 50) xs'
+       zs  = map (\x -> x - 50) xs'
+   in  (create ys, create zs)
+\end{code}
+\end{small}
+
+
+% -----------------------------------------------------------------------------
+\subsection{FilterMax}
+\begin{small}
+\begin{code}
+filterMax :: Series k Int -> (Vector Int, Int)
+filterMax s1
+ = let  s2      = map (\x -> x + 1) s1
+        s3      = map (\x -> x > 0) s2
+   in   mkSel1 s3 
+         (\sel -> let s4   = pack sel s2
+                  in  ( create s4
+                      , fold max 0 s4))
+
+max :: Int -> Int -> Int
+max x y = if x > y then x else y
+\end{code}
+\end{small}
+
+
+% -----------------------------------------------------------------------------
+\subsection{FilterSum}
+\begin{small}
+\begin{code}
+filterSum :: Series k Int 
+          -> (Vector Int, Int, Int)
+filterSum xs
+ = let xsS = map (\x -> x > 50) xs
+   in  mkSel xsS (\sel ->
+       let xs'  = pack sel xs
+           sum1 = fold (+) 0 xs
+           sum2 = fold (+) 0 xs'
+       in  (create xs', sum1, sum2))
+\end{code}
+\end{small}
+
+
+% -----------------------------------------------------------------------------
+\subsection{NestedFilter}
+\begin{small}
+\begin{code}
+nestedFilter :: Series k Int 
+             -> (Vector Int, Vector Int)
+nestedFilter xs
+ = let xsS = map (\x -> x > 50) xs
+   in  mkSel xsS (\selX ->
+       let ys  = pack selX xs
+           ysS = map (\x -> x < 100) ys
+       in  mkSel ysS (\selY ->
+            (create ys, create (pack selY ys))))
+\end{code}
+\end{small}
+
+
+% -----------------------------------------------------------------------------
+\eject
+\subsection{QuickHull}
+As our Flow Fusion API does not yet include append or cons functions (described in \S\ref{s:FutureWork}) we perform these operations using Data.Vector.Unboxed at top-level. The two series processes @minMax@ and @filterMax@ that we fuse are marked below. The @foldIndex@ function is a simple extension of @fold@ where the worker also takes the current array index.
+
+\begin{small}
+\begin{code}
+quickhull :: U.Vector (Int,Int) 
+          -> IO (U.Vector (Int,Int))
+quickhull ps
+ | U.length ps == 0  = return U.empty
+ | otherwise
+ = do   let (uxs, uys) = U.unzip ps
+        xs      <- fromUnboxed uxs
+        ys      <- fromUnboxed uys
+        let (ix,iy) = ps U.! 0
+            Just (imin, imax) 
+             = runSeries2 xs ys (minMax ix iy)
+            pmin    = ps U.! imin
+            pmax    = ps U.! imax
+        u1      <- hsplit xs ys pmin pmax
+        u2      <- hsplit xs ys pmax pmin
+        return (uncurry U.zip u1 U.++ uncurry U.zip u2)
+
+hsplit xs ys p1@(x1,y1) p2@(x2,y2)
+ = do  let Just (pxs,pys,im) 
+            = runSeries2 xs ys (filterMax x1 y1 x2 y2)
+       upxs   <- toUnboxed pxs
+       upys   <- toUnboxed pys
+       case V.length pxs <# 2# of
+        True
+         ->    return ( x1 `U.cons` upxs
+                      , y1 `U.cons` upys)
+        False
+         -> do let pm = (upxs U.! im, upys U.! im)
+               (ux1,uy1) <- hsplit pxs pys p1 pm
+               (ux2,uy2) <- hsplit pxs pys pm p2
+               return (ux1 U.++ ux2, uy1 U.++ uy2)
+
+-- First series process.
+minMax    :: Int          -> Int
+          -> Series k Int -> Series k Int
+          -> (Int, Int)
+minMax ix iy xs ys
+ = let imin = foldIndex minIx (ix,0) xs
+       imax = foldIndex maxIx (ix,0) xs
+   in  (snd imin, snd imax)
+
+-- Second series process.
+filterMax :: Int -> Int
+          -> Int -> Int
+          -> Series k Int -> Series k Int
+          -> (Vector Int, Vector Int, Int)
+filterMax x1 y1 x2 y2 xs ys
+ = let cross = (\x y -> (x1-x)*(y2-y) - (y1-y)*(x2-x))
+       cs    = map2 cross xs ys
+       pack  = map  (\d -> d > 0) cs
+   in mkSel1 pack (\sel ->
+       let xs'   = pack sel xs
+           ys'   = pack sel ys
+           cs'   = pack sel cs
+           pmax  = foldIndex maxIx (0,0) cs'
+       in  (create xs', create ys', snd pmax))
+
+minIx i (x', i') x 
+ = if x < x' then (x, I# i) else (x', i')
+
+maxIx i (x', i') x 
+ = if x > x' then (x, I# i) else (x', i')
+\end{code}
+\end{small}

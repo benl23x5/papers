@@ -1,0 +1,18 @@
+%!TEX root = ../Main.tex
+
+\vspace{-1ex}
+\section{Future Work}
+\label{s:FutureWork}
+
+This paper only discusses a few array combinators: @map@, @fold@, @pack@ and so on, but others such as @append@ and @scan@ can be implemented in a similar way. For example, @append@ is an instance of the more general @combine@ combinator, that takes a series of flags, two series of elements, and then chooses which element to return based on the flag:
+\begin{code}
+  combine [T F T T F] [1 2] [3 4 5] = [3 1 4 5 2]
+\end{code}
+
+After \S\ref{s:SelectorsAndPacking}, the vector of flags would be implemented as an extended selector @Sel2 k1 k2 k3@ that relates three separate rates: the rate of the flags, the rates of the two input vectors of elements. In the @Procedure@ language, this new selector context would be compiled as a real @if@ construct with both a @then@ and @else@ branches, unlike our @guard@ construct that only has the @then@ branch.
+
+In future work we will perform further transformations at the @Procedure@ level to introduce SIMD instructions and multicore evaluation. Unlike the loop parallelization systems in imperative language compilers, we do not need an iteration dependency analysis. Our our loops lack such dependencies by construction.
+
+
+
+

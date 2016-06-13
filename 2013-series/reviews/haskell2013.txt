@@ -1,0 +1,154 @@
+
+----------------------- REVIEW 1 ---------------------
+PAPER: 7
+TITLE: Data Flow Fusion with Series Expressions in Haskell
+AUTHORS: Ben Lippmeier, Manuel Chakravarty, Gabriele Keller and Amos Robinson
+
+OVERALL EVALUATION: 2 (accept)
+REVIEWER'S CONFIDENCE: 4 (high)
+
+----------- REVIEW -----------
+The paper introduces data flow fusion, a new technique for optimizing
+array calculus, made available via GHC optimization plugin and repa
+library interface. The paper begins by introducing the problems with
+stream fusion, and then describes the ways to fix them with flow
+fusion. Finally, benchmark results are presented for six programming
+patterns. Sufficient analyses are given for every benchmark results.
+
+The execution speed compared to C/Fortran has been one of the main
+reason that kept people away from learning new programming languages.
+Therefore, we cannot over-emphasize the importance of constant factor
+optimization of simple programs in order to attract new Haskell
+users. The result presented in this paper, that four out of six
+examples (including the most complex one) can be optimized up to
+nearly or over 90% of the hand-written C counterpart, constitutes a
+solid evidence for stating that the performance of the Haskell array
+libraries matches that of the hand written C codes in the domain
+considered. In addition to that, in my opinion repa interfaces are
+well-designed and are accessible with modest Haskell knowledge. The
+firm performance and not so scary interfaces are necessary condition
+of advertising Haskell for C/Fortran programmers.
+
+I think this paper contributes in increasing the Haskell user
+community and in my opinion deserves presentation at the Haskell
+symposium.
+
+The appendix section that summarizes the benchmark codes makes this
+paper more readable to Haskell users. Adding a small dictionary for
+non-Haskell notations that appear in this paper may further improve
+the readability of this paper.
+
+
+----------------------- REVIEW 2 ---------------------
+PAPER: 7
+TITLE: Data Flow Fusion with Series Expressions in Haskell
+AUTHORS: Ben Lippmeier, Manuel Chakravarty, Gabriele Keller and Amos Robinson
+
+OVERALL EVALUATION: -1 (weak reject)
+REVIEWER'S CONFIDENCE: 3 (medium)
+
+----------- REVIEW -----------
+Summary:
+========
+
+This paper tackles the problem of fusing arrays (ie. eliminating intermediate
+arrays) in the presence of branching data-flows. This program transformation
+step is used for compiling Data Parallel Haskell and is implemented as a GHC
+plugin. The technique builds on the framework of series expressions by Waters,
+and applies it to a functional setting.
+
+General comments:
+=================
+
+This improves on short-cut fusion which is limited to data-structures that have a 
+single consumer.
+
+The core of the fusion is a transformation into a strict, first-order, non-recursive
+data-flow graph, followed by a scheduling step that translates the DFG into a 
+specific form of loops, with re-use of loop-indices guaranteed by construction.
+The resulting code, is imperative loop based code embedded in Haskell.
+
+The core technical material for this fusion optimisation comes from Waters (1991).
+He develops this in the context of a Common Lisp Macro package, and generates loops
+in a stateful language. The work presented here embeds this technology into GHC, as
+plugin, and generates either explicitly monadic code or code with unchecked effects,
+very close to Waters. One notable difference is the usage of rate inference, and 
+rank-2 types to capture "rate" information on type-level.
+In summary, I believe this paper makes only a small contribution in the area of
+automated program transformations, mainly adapting existing technology.
+
+Performance results from a small set of micro-benchmarks show significant improvements 
+in performance, in most cases achieving results comparable to hand-coded C.
+The results cover the main points  in terms of performance, and evaluate w.r.t. a 
+realistic (C-level) baseline, however, given that the core technology isn't novel I
+would have expected a more thorough evaluation, both in terms of test programs used, 
+and discussing the performance results. There is little further discussion  on limitations
+of the approach, beyond the good results presented here.
+
+There are several issues with presentation in the paper. It fails to clearly separate
+the core transformation steps from merely administrative operations. It goes down to
+a lot of detail of the embedding as a GHC plugin. It doesn't separate out the notions
+introduced in Waters' framework before going to the discussion of implementing it.
+There is also some confusion over terminology, mainly because the paper mixes established
+GHC compilation terms, with DPH-style extensions, terminology from Shivers and concepts 
+from Water's framework. Rephrasing, trying to minimise the number of new notions and 
+targeting Haskell community would help.
+
+Overall, while I think this is a publishable paper and of interest for compiler developers,
+I believe its contributions are too small w.r.t. existing work (Waters, 1991) to warrant
+publication, and I am suggesting a (weak) reject.
+
+Specific comments:
+==================
+
+Sec 1 works very well to motivate the work.
+
+It would be good to introduce the concepts from Waters' work early, in a separate section.
+This would help to avoid confusion on terminology (see above) and to contrast the work
+presented here from existing technology. Maybe a new section btw Sec 2 and 3.
+
+Sec 3: The reference to rate inference is vague here, due to lacking context.
+
+Sec 4:
+In general, I found the style of highlighting issues in presented source code etc,
+a bit awkward. Rather than using text markers like *CHANGE in \tt formatted code, I'd
+prefer visual highlighting with font, underline or such.  Similarly, in the list of 
+steps at the beginning of Sec 4 it would seem natural to highlight Phases 2-6, as those
+covered in the GHC plugin, and in particular Phase 4 as the main technical one.
+It would be good to highlight Phase 4 prominently in the text to separate it from
+mainly administrative steps.
+
+Sec 6:
+I realise that the micro-benchmarks are motivated from the use of the optimisation for DPH.
+But since this paper presents this optimisation as a stand-alone operation, it would be really
+nice to have some larger applications as well, even if they don't come with hand-coded C versions
+to compare to. 
+
+Some typos in the text
+
+
+----------------------- REVIEW 3 ---------------------
+PAPER: 7
+TITLE: Data Flow Fusion with Series Expressions in Haskell
+AUTHORS: Ben Lippmeier, Manuel Chakravarty, Gabriele Keller and Amos Robinson
+
+OVERALL EVALUATION: 1 (weak accept)
+REVIEWER'S CONFIDENCE: 3 (medium)
+
+----------- REVIEW -----------
+This paper presents a new fusion system for Haskell that handles branching data flow. Unlike short-cut fusion, which rewrites producer-consumer pairs locally and thus cannot fuse one producer with multiple consumers, the new "flow fusion" system forms a pipeline of specialized IRs to convert functional code on vectors into imperative loops that may construct multiple results in one pass. The three major IR stages are
+(1) series operators (Figure 3), which represent rates of data flow by phantom-type eigenvariables;
+(2) process descriptions (Figure 4), which represent the data flow graph and nested rate contexts of a fusable process;
+(3) loop nests (Figure 6), which break up the parts of a loop (start, body, end) so that multiple loops can be interleaved to run concurrently.
+Overall, this work brings Waters's series expressions and online criteria to the Haskell audience.
+
+I'm happy to see that this new fusion system is useful and usable by Haskell programmers today. I'm also happy to see that rank variables, series expressions, and loop anatomies can be "functionally flavoured" and made so pleasant to understand and work with. However, the fusion GHC-plugin as it currently stands doesn't seem to take much advantage of the fact that series operators can be rank-2-typed in the familiar way (Figure 3). After all, the series operators and their types are not visible to the end programmer at all, are they? Wouldn't it be even more useful if a DSL of static, first order, non-recursive data flows were embedded in a Haskell data type and perhaps compiled at what Haskell would call run time? Instead of such a programmer-accessible embedding, just porting Waters's compilation method to live inside GHC doesn't seem so surprising in its success.
+
+Local comments:
+
+p5 "If the Core version of the series process cannot be converted to our internal Process language..." -- Given that the "slurp" phase takes place after rate inference, I'm unclear what could obstruct the conversion to Process and cause "a compile-time warning". If badSwitchy in Section 4.1.2 is an example, please point to it from near the beginning of Section 4.1.
+
+The beginning of Section 4.1.1 reminds me to ask: What is a "worker" and a "worker expression"? I see that Figure 4 defines what an "operator" is, but what are the "series arguments to" an operator?
+
+p6 "We also use a preparation transform to force worker functions to be floated into their use sites -- so that combinators like mkSel, map and fold are directly applied to workers." -- Are the two following code snippets the "before" and "after" of applying this preparation transform? (If not, please do give an example of this preparation transform in action. If so,) which worker function is floated in this example into which use site, so that which combinator is directly applied to which worker?
+

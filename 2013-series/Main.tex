@@ -1,0 +1,81 @@
+
+\documentclass[preprint]{sigplanconf}
+\usepackage{pdf14}
+\usepackage{version}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{hyperref}
+\usepackage{alltt}
+\usepackage{url}
+\usepackage{float}
+\usepackage{style/utils}
+\usepackage{style/proof}
+\usepackage{style/code}
+
+
+% -----------------------------------------------------------------------------
+\begin{document}
+
+\title	{Data Flow Fusion with Series Expressions in Haskell}
+
+\authorinfo{ 
+  Ben Lippmeier$^\dagger$
+  \and Manuel M. T. Chakravarty$^\dagger$
+  \and Gabriele Keller$^\dagger$ 
+  \and Amos Robinson$^\dagger$ 
+}{
+  \vspace{5pt}
+  \shortstack{
+    $^\dagger$Computer Science and Engineering \\
+    University of New South Wales, Australia \\[2pt]
+    \textsf{\{benl,chak,keller,amosr\}@cse.unsw.edu.au}
+  }
+}
+
+\exclusivelicense
+\conferenceinfo{Haskell~'13}{September 23--24, 2013, Boston, MA, USA}
+\copyrightyear{2013} 
+\copyrightdata{978-1-4503-2383-3/13/09} 
+\doi{2503778.2503782} 
+\maketitle
+\makeatactive
+
+
+% -----------------------------------------------------------------------------
+\begin{abstract}
+Existing approaches to array fusion can deal with straight-line producer consumer pipelines, but cannot fuse branching data flows where a generated array is consumed by several different consumers. Branching data flows are common and natural to write, but a lack of fusion leads to the creation of an intermediate array at every branch point. We present a new array fusion system that handles branches, based on Waters's series expression framework, but extended to work in a functional setting. Our system also solves a related problem in stream fusion, namely the introduction of duplicate loop counters. We demonstrate speedup over existing fusion systems for several key examples.
+\end{abstract}
+
+\category
+	{D.3.3}
+	{Programming Languages}
+	{Language Constructs and Features---Concurrent programming structures; Control structures; Abstract data types}
+
+\keywords
+	Arrays; Fusion; Haskell
+
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction.tex}
+\input{section/02-Streams.tex}
+\input{section/03-Rates.tex}
+\input{section/04-Loops.tex}
+\input{section/05-Conversion.tex}
+\input{section/06-Benchmarks.tex}
+\input{section/07-Related.tex}
+\input{section/08-Conclusion.tex}
+
+
+% -----------------------------------------------------------------------------
+\vspace{-1ex}
+\paragraph{Acknowledgements}
+Thanks to Barry Jay for the suggestion to phrase the problem with short cut fusion in terms of what information is available to the program transformations; Peter Gammie for the connection with John Hughes's early work; Simon Peyton Jones and Geoff Mainland for comments on a draft version of this paper. This work was supported in part by the Australian Research Council under grant number LP0989507. 
+
+\bibliographystyle{plain}
+\vspace{-1ex}
+\bibliography{Main}
+
+\end{document}
+

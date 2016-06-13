@@ -1,0 +1,43 @@
+%!TEX root = ../Main.tex
+
+\section{Details of the Conversion}
+\label{s:Conversion}
+
+The previous section contains the main details of the fusion transformation, starting with a high level description of the computation to be performed, and ending in imperative loop code.
+
+As GHC Core is a pure functional language, the imperative code in Figure~\ref{f:filterMax-extracted} is not the end of the story. In our implementation we express the code in Figure~\ref{f:filterMax-extracted} in an imperative version of GHC Core named Core Flow. This language is essentially the same as GHC Core, being a version of System-F, except that it is strict, has untracked side effects and includes imperative functions like @newVec@ and @readRef@ as primitive operators.
+
+
+% -----------------------------------------------------------------------------
+\subsection{State Threading}
+As GHC uses monadic state threading to sequence effectful statements, we must thread GHC's primitive world token though the extracted code before converting it back to real GHC Core. We have implemented this state threading transform generically, so it is parameterized by two sets of type signatures: one that assumes a language with untracked side effects, and one that uses state threading. For example, the two versions of the signature for @writeVec#@ are as follows, where @writeVecE#@ has untracked effects and @writeVecW#@ uses a world token of type @W@.
+
+\begin{alltt}
+writeVecE# :: \(\forall\)(a:*). Vector a -> Int -> a -> ()
+writeVecW# :: \(\forall\)(a:*). Vector a -> Int -> a -> W -> W
+\end{alltt}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Loop Winding}
+\label{s:LoopWinding}
+After the extracted code of Figure~\ref{f:filterMax-extracted} has had the world token threaded through it, it can converted back to real GHC Core and type checked. 
+
+In our implementation we originally wrote @newVec@, @newRef@, @loopI@, @guardI@, @next@ and so on as standard Haskell library functions. Although this allows the program to run, the fact that GHC does not track pointer aliasing between heap objects results in inefficient object code when using mutable references.
+
+To avoid this problem, we instead perform a \emph{loop winding} transformation on the code that converts uses of @loopI@ and @guardI@ into real tail recursive loops, and mutable references into accumulating parameters. This transform is ad-hoc because it assumes that mutable references do not escape the extracted function, and that there is no additional aliasing between reference variables like @acc@ and @k2_acc@. However, because we generated the code ourselves we know these properties are true. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Primitive Arithmetic and Unboxed Types}
+Unlike GHC Core, the Core Flow language does not make a distinction between boxed and unboxed types \cite{PeytonJones:unboxed}. When we @slurp@ a @Process@ description from the original GHC Core program we require that program to use boxed numeric values and operators. However, when we convert extracted code \emph{back} to GHC Core, we use the unboxed versions. Unboxed primitive operators typically compile down to single machine instructions. To handle the impedance mismatch we then generate a wrapper function that marshals between the signature of the original source function and the extracted version. For example, the wrapper for @filterMax@ function would be:
+
+\begin{alltt}
+ filterMax = \(\Lambda\)(k : &). \(\lambda\)(s : Series k Int).
+             case filterMax_x s of
+              (# vec, n #) -> (vec, I# n)
+\end{alltt}
+
+Standard unboxing techniques guided by strictness information \emph{usually} work, but as strictness analysis is conservative the unboxing is not guaranteed. When the rest of the loop body has been fused well enough to execute in only a handful of cycles, the cost of a single unboxing operation in an inner loop can easily dominate program runtime. Brutally converting arithmetic operations from their boxed to unboxed versions during flow fusion ensures that we never pay the price of thunk entry in fused code.
+ 
+

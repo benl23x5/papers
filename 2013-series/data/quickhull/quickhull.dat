@@ -1,0 +1,16 @@
+# Quickhull: on MacBook Pro
+# 2.8GHz Intel Core i7, 8GB RAM
+# Input size (points), Stream fusion(ms), Flow fusion, Flow fusion fallback, Hand-fused C
+
+# 32768       1               1           3           1
+# 65536       3               2           6           1
+131072      5               3           10          3
+262144      12              5           22          5
+524288      26              12          51          10
+1048576     45              23          92          20
+2097152     90              45          183         42
+4194304     176             89          368         79
+8388608     349             179         722         156
+16777216    700             357         1446        317
+33554432    1408            719         2938        625
+67108864    2801            1439        7522        1276

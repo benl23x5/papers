@@ -1,0 +1,78 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+
+\begin{tabbing}
+MMMM           \= MM \= \kill
+$name$  \> $\to$ \> (process name)      \\
+$x,~ s$ \> $\to$ \> (value variable)    \\
+$a,~ k$ \> $\to$ \> (type variable)
+\\[2ex]
+
+$kind$          \> \tt{::=}
+                \>      $\tt{*} ~~|~~ \tt{\&}$
+
+\\[2ex]
+$type$          \> \tt{::=}
+                \>      $a ~~|~~ \tt{Int} ~~|~~ \tt{Float} ~~|~~ ...$ 
+\end{tabbing}
+
+\begin{tabbing}
+x           \= MM \= MMMMMM \= \kill
+$process$ \\
+ \> \tt{::=}     
+          \> $\tt{process}~~ name~~ (k_{in} : \&)~~ \ov{(a : kind)}$ \\
+ \>       \> $~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                        \ov{(x : type)}~~
+                        \ov{(s : \tt{Series}~~ k_{in}~~ type)}$      \\
+ \>       \> ~~~ $\tt{with}~~     \ov{operator~}~~ 
+                \tt{yields}~~       exp$
+
+\\[2ex]
+$operator$  \\
+ \> \tt{::=}
+ \> $\tt{mkSel}
+                        ~~ (k_{inner} : \tt{\&})
+                        ~~ (x_{sel} : \tt{Sel}~~ k_{outer}~~ k_{inner})$ \\
+ \>       \> ~~~ $\tt{from}
+                        ~~ k_{outer}
+                        ~~ s_{flags}
+                        ~~ \tt{in}
+                        ~~ \ov{operator}$
+
+ \\[1ex]
+ \> $~~|$ \> $s_{out} ~~~~~\tt{<-}
+                ~~~ \tt{map}^{\;n}
+                        ~~ k_{in}
+                        ~~ \ov{type}^{\;n}
+                        ~~ exp_{work}
+                        ~~ \ov{s_{in}}^{\;n}$ 
+
+ \\[1ex]
+ \> $~~|$ \> $s_{out} ~~~~~\tt{<-}
+                ~~~ \tt{pack} 
+                        ~~ k_{out}
+                        ~~ k_{in}
+                        ~~ type_{in}
+                        ~~ x_{sel}      ~~ s_{in}$
+
+ \\[1ex]
+ \> $~~|$ \> $x_{result}~~  
+                        \tt{<= fold}~~ k_{in}~~ type_{in}~~ type_{result}~~ s_{in}$ \\
+ \>       \> \> $\tt{with}   ~~ exp_{work}
+                  ~~    \tt{and}    ~~ exp_{zero}$
+
+ \\[1ex]
+ \> $~~|$ \> $x_{vec}~~~~~
+                        \tt{<= create}~~ k_{in}~~ type_{in}~~ s_{in}$
+\end{tabbing}
+
+\begin{tabbing}
+MMMM           \= MM \= \kill
+$exp$   
+ \> \tt{::=} \>  ... Haskell expressions ...
+\end{tabbing} 
+\caption{Data Flow Process Description}
+\label{f:Process}
+\end{figure}

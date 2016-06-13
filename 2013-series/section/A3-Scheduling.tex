@@ -1,0 +1,194 @@
+%!TEX root = ../Main.tex
+
+\clearpage{}
+\section{Scheduling}
+
+\medskip
+\fbox{$process \Rightarrow procedure$}
+$$
+\hspace{2.7em}
+\infer  { \begin{aligned}
+           & \tt{process}~~~~
+                ~~ name
+                ~~      (k_{in} : \tt{\&})
+                ~~      \ov{(a : kind)}
+                ~~      \ov{(x : type)}
+                ~~      \ov{(s_{n} : \tt{Series}~ k_{in}~ type_n)}^{n}
+                ~~ \tt{with}
+                ~~      \ov{operator}
+                ~~ \tt{yields}
+                ~~      exp
+          \\ 
+          \Rightarrow~~
+          & \tt{procedure}
+                ~~ name
+                ~~      (k_{in} : \tt{\&})
+                ~~      \ov{(a : kind)}
+                ~~      \ov{(x : type)}
+                ~~      \ov{(s_{n} : \tt{Series}~ k_{in}~ type_n)}^{n}
+                ~~ \tt{with}
+                ~~      nest
+                ~~~~~~~~~~ \tt{yields}
+                ~~      exp
+          \end{aligned}
+        }
+        { \tt{loop}~~ k_{in}
+                ~\rhd~ (k_{in}~ \times~ \ov{s^{elem}_n ~\tt{=}~ \tt{next}~~ k_{in}~~ s_{n}}^{n})
+        ~~ \vdash
+        ~~      \ov{operator}
+        ~~ \Rightarrow
+        ~~      nest
+        }
+$$
+
+\medskip
+\fbox{$procedure \vdash \ov{operator} \Rightarrow procedure$}
+$$
+\hspace{2.7em}
+\infer  {  nest  
+        ~~ \vdash
+                ~~ \tt{mkSel}
+                ~~      (k_{inner} : \tt{\&})
+                ~~      (x_{sel} : \tt{Sel}~~ k_{outer}~~ k_{inner})
+                ~~ \tt{from}
+                ~~      k_{outer}
+                ~~      s_{flags}
+                ~~ \tt{in}
+                ~~ \ov{operator}
+        ~~ \Rightarrow
+                ~~ nest'
+        }
+        { nest 
+        ~~ \rhd
+        ~~ (k_{outer}~ \times
+                ~~ \tt{inner}
+                ~~ \{   ~~ \tt{guard}~~ (k_{inner}~ : \tt{\&})
+                        ~~ \tt{with}~~ k_{outer}~~ s^{elem}_{flags} 
+                ~~ \})
+        ~~ \vdash
+        ~~      \ov{operator}
+        ~~ \Rightarrow
+        ~~      nest'
+        }
+$$
+
+
+\begin{tabbing}
+MMM \= MMM \= MMMMMMMMMMMMMMMMMMMM \= M \= MMM \= MMMx \= \kill
+
+% -- map ----------------
+ \> $nest~ \vdash$    
+        \> $s_{out} ~~~~~\tt{<-}
+                ~~~ \tt{map}^{\;n}
+                        ~~ k_{in}
+                        ~~ \ov{type}^{\;n}
+                        ~~ exp_{work}
+                        ~~ \ov{s_{in}}^{\;n}$
+
+\> $\Rightarrow$ 
+        \> $nest$
+        \> $\rhd~~ (k_{in}$
+        \> $\times~~ \tt{body}~~~~ 
+                \{~~ s^{elem}_{out} ~~~~~~\tt{=}~~ exp_{work}~~ \ov{s^{elem}_{in}}^{\;n} \} )$ 
+\\[1em]
+
+
+% -- pack --------------
+ \> $nest~ \vdash$
+        \> $s_{out} ~~~~~\tt{<-}
+               ~~~ \tt{pack} 
+                       ~~ k_{out}
+                       ~~ k_{in}
+                       ~~ type_{in}
+                       ~~ x_{sel}
+                       ~~ s_{in}$
+\> $\Rightarrow$
+        \> $nest$
+        \> $\rhd~~ (k_{out}$
+        \> $\times~~ \tt{body}~~~~ 
+                \{~~ s^{elem}_{out} ~~~~~~\tt{=}~~ s^{elem}_{in} ~~\})$
+\\[1em]
+
+
+% -- fold --------------
+ \> $nest~ \vdash$
+        \> $x_{result}~~  
+                        \tt{<= fold}~~ k_{in}~~ type_{in}~~ type_{result}~~ s_{in}$ 
+ \> $\Rightarrow$
+        \> $nest$
+        \> $\rhd~~ (\top$
+        \> $\times~~ \tt{start}~~   
+                \{~~ x^{acc}_{result} ~~~~\tt{=}~~ \tt{newAcc}~~ exp_{zero} ~~\})$
+ \\[0.5ex]     
+
+
+ \>     \> \hspace{5em} $\tt{with}   ~~ exp_{work}
+                      ~~ \tt{and}    ~~ exp_{zero}$
+ \>     \> 
+        \> $\rhd~~ (k_{in}$
+        \> $\times~~ \tt{body}~~~~    
+                \{~~ x^{acc}_{result}~~ \tt{:=}~~ exp_{work}~~ x^{acc}_{result}~~ s^{elem}_{in} ~~\})$
+ \\[0.5ex]
+
+
+ \>     \>
+ \>     \> 
+        \> $\rhd~~ (\top$
+        \> $\times~~ \tt{end}~~~~~~ 
+                \{~~ x_{result}~~~~~ \tt{=}~~ \tt{read}~~ x^{acc}_{result} ~~\})$
+ \\[1em]
+
+
+% -- create ------------
+ \> $nest~ \vdash$    
+        \> $x_{vec}~~~~~
+                        \tt{<= create}~~ k_{in}~~ type_{in}~~ s_{in}$
+ \> $\Rightarrow$
+        \> $nest$
+        \> $\rhd~~ (\top$
+        \> $\times~~ \tt{start}~~
+                \{~~ x_{vec}~~~~~~~~ \tt{=}~~ \tt{newVec}~~ k_{in} ~~\})$
+ \\[0.5ex]
+
+ \>     \>
+ \>     \> 
+        \> $\rhd~~ (k_{in}$
+        \> $\times~~ \tt{body}~~~~
+                \{~~ \tt{writeVec}~~ k_{in}~~ x_{vec}~~ s^{elem}_{in}~~ \})$
+ \\[0.5ex]
+
+ \>     \>
+ \>     \>
+        \> $\rhd~~ (\top$
+        \> $\times~~ \tt{end}~~~~~~
+                \{~~ \tt{sliceVec}~~ k_{in}~~ x_{vec}~~ \})$
+
+ \\ [1em]
+\end{tabbing}
+
+
+
+% $$
+% \hspace{2em}
+% \infer  [~ (\tt{map})]
+%         { nest
+%         ~~ \vdash
+%                 ~~ s_{out} ~~\tt{<-}
+%                 ~~ \tt{map}^{\;n}
+%                 ~~      k_{in}
+%                 ~~      \ov{type}^{\;n}
+%                 ~~      exp_{work}
+%                 ~~      \ov{s_{in}}^{\;n}
+%         ~~ \Rightarrow
+%         ~~ nest
+%         ~~ \rhd
+%         ~~ (k_{in}~ \times
+%                 \tt{body}~~~~ 
+%                 \{~~ s^{elem}_{out} ~~~~~~\tt{=}~~ exp_{work}~~ \ov{s^{elem}_{in}}^{\;n} \} )
+%         }
+%         {}
+% $$
+
+% loop \(k_{in}\) body \(se_{out}\)
+
+ % = exp_{work} se_{in} \) 
