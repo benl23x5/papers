@@ -1,0 +1,63 @@
+\documentclass[preprint]{sigplanconf}
+\usepackage{version}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{style/code}
+\usepackage{style/utils}
+
+% -----------------------------------------------------------------------------
+\begin{document}
+\title	{Work Efficient Higher-Order Vectorisation\\(Appendix)}
+
+\authorinfo{
+  \shortstack{%
+    Ben Lippmeier$^\dagger$            \and
+    Manuel M. T. Chakravarty$^\dagger$ \and 
+    Gabriele Keller$^\dagger$           \and 
+    Roman Leshchinskiy$^\dagger$       \and
+    \\[4pt]
+    Simon Peyton Jones$^\ddagger$
+  }
+}{
+  \vspace{5pt}
+  \shortstack{
+    $^\dagger$Computer Science and Engineering \\
+    University of New South Wales, Australia \\[2pt]
+    \textsf{\{benl,chak,keller,rl\}@cse.unsw.edu.au}
+  }
+  \and
+  \shortstack{
+    $^\ddagger$Microsoft Research Ltd \\
+    Cambridge, England \\[2pt]
+    \textsf{\{simonpj\}@microsoft.com}
+  }
+}
+
+\maketitle
+\makeatactive
+
+\section{Technical Report}
+This appendix will be appended to the main paper to become the technical report cited in the paper. 
+
+\section{Example Code}
+A sequential reference implementation of our new array representation is available from:
+\begin{small}
+\begin{code}
+http://www.cse.unsw.edu.au
+         /~benl/papers/replicate/dph-reference-array.tgz
+\end{code}
+\end{small}
+This package also contains the example derivations as Haskell modules and works with at least GHC 7.0.4 and GHC 7.4.1.
+
+\medskip
+\noindent
+The production implementation is part of DPH 0.6.1.2 which is available on Hackage. This library needs GHC 7.4.1 to run. The @dph-lifted-vseg@ package implements the lifted combinators, while the @dph-prim-seq@ and @dph-prim-par@ packages implement the flat array operators.
+
+\medskip
+\noindent
+The benchmark programs presented in the paper are part of the @dph-examples@ package, also on Hackage.
+
+\input{section/09-Appendix.tex}
+% \input{section/99-Notes.tex}
+\end{document}

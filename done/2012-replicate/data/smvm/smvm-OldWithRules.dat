@@ -1,0 +1,6 @@
+# MatrixSize, NonZeroElements, OldWithRules(ms)
+2000    38308           3
+4000    157086          9
+5000    249457          14
+6000    354768          17
+# OOM with matrix size 7000

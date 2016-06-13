@@ -1,0 +1,558 @@
+
+\clearpage{}
+\section{Notes and unused text}
+
+% -----------------------------------------------------------------------------
+\subsection{
+        \cite{Blelloch:compiling-collection-oriented-languages}
+        Blelloch 1989: Compiling Collection Oriented Languages}
+\begin{itemize}
+\item	Source language is Paralation LISP, not NESL yet.
+\item	Vectorisation is mapping of data structures as well as transformation of source code.
+\item	Describes plain segment descriptor representation. Array is data elements plus lengths of segments.
+\item	Section 5.2.2 explains how free variables of an @elwise@ should be copied across all elements of the @elwise@. Like \emph{scalar extension} from APL, but any value will be copied, not just scalars.
+\item	Replicate function is called @distrubute@ (for scalars) and @distribute-segment@ (for arrays) instead. \emph{``If the value is a field, a @distribute-segment@ operation is inserted that creates a nested field with the original field in each element''}.
+\item	Has only one example program, QuickSort.
+\item	The single QuickSort example given only uses plain @distribute@ on a scalar, not @distribute-segment@ on arrays. Quicksort needs to distribute the pivot to each array element to do the comparision.
+\item	With QuickSort, the level of nesting increases with every step in the recursion.
+\item	Mentions trade-offs with packing sparse segments. When a variable is free in both alternatives of an if-then-else expression, may want alternatives to operate on the sparse segments instead of packing down to just the ones relative to each alternative.
+\end{itemize}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Blelloch 1990: Vector models for parallel computing}
+\begin{itemize}
+\item	Riely1995 states that this text proves a that the high-level step/work metric of a program accurately reflects its cost on a VRAM, but only for the class of expressions with no free variables.
+\item   Lifting of functions to vector form is referred to as \emph{code replicating}. 
+\end{itemize}
+
+
+% -----------------------------------------------------------------------------
+\subsection{
+        \cite{Prins:transformation-vector-operations}
+        Prins 1993: Transforming High-Level Data-Parallel Programs into Vector Operations }
+
+\begin{itemize}
+\item	Mentions replicate/index problem in Section 4.5. Says that shared array should not be replicated, but does not give a transformation for it, or discuss how this optimisation should be applied in the general case. \ben{Problem is that user defined functions can perform indexing internally, so rewrite rules that operate on replicate/index pairs won't apply universally.}
+\item	Function values must be fully parameterised, no partial application.
+\item	Presents vectorisation as a formal program transformation, instead of as English Prose as in Blelloch 1989.
+\item	Replicates variables free in iterator expressions, in rule (R2d) of Section 3.
+\end{itemize}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Hill 1993: Vectorising a non-strict data parallel functional language}
+
+
+% -----------------------------------------------------------------------------
+\subsection{
+        \cite{Blelloch:implementation-portable}
+        Blelloch 1994: Implementation of a Portable Nested Data-Parallel Language}
+\begin{itemize}
+\item 	Discusses NESL as an interpreter that issues VCODE instructions on segmented arrays.
+\item 	Benchmarks paper. Gives brief overview of NESL then presents example programs.
+\item 	Says one of the main overheads is the fine granularity of instructions issued by the interpreter.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\subsection{Riely 1994: Compilation of Nested Parallel Programs: Soundness and Efficiency}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Blelloch 1995: NESL A Nested Data Parallel Language}
+\begin{itemize}
+\item	Comes in several versions as CMU technical reports dated Jan 1992, April 1993, September 1995.
+\item 	Both equations given in Section 1.5 to calculate the complexity of apply-to-each have exceptions. 
+\item	First exception introduces the idea of a \emph{contained} function. Non-contained functions have a different depth complexity in an apply-to-each. 
+\item	Second exception is the replicate problem. States that the free variables in an apply-to-each are copied across each iteration.
+\end{itemize}
+
+
+% ----------------------------------------------------------------------------
+\subsection{
+        \cite{Riley:provably-correct-vectorisation}
+        Riely 1995: Provably Correct Vectorisation of Nested-Parallel Programs}
+\begin{itemize}
+\item	Equivalence of programs includes the asymptotic efficiency.
+
+\item	Introduces idea of contained functions.
+
+\item	States that the discussion of the handling of free variables is the main contribution of the paper.
+
+\item	Describes three alternative semantics: \emph{ideal}, where the step complexity of an iterator is just the maximum of all steps taken by the iterator; \emph{construct-parameters}, where free variables are copied across each iteration, as used by NESL; \emph{construct-results}, middle ground between the two that relies on static analysis, as used by Proteus as in \cite{Palmer:work-efficient-nested-data-parallelism}.
+
+\item	States that \emph{ideal} semantics forces a reference-based implementation of sequences, with the necessity of unbounded contention on a CREW PRAM. \ben{DPH shows that we don't actually need a reference-based implementation}.  
+
+\item	Gives complexity bounds on the array primitives. The function @dist(n, A)@ (replicate) must have work proportional to @n@. The functions @rstr@ and @comb@ (pack and combine) must have work proportional to the length of their first arguments. ``Note that these restrictions point to a reference based implementation''. 
+
+\item	Says that we cannot implement the ideal semantics in a bounded-CREW machine, and that one solution is to copy free variables of array comprehensions across all iterations. \ben{This is over pessimistic. We need concurrent reads proportional to the number of threads, not the number of array elements. In a multicore setting, the number of threads is much smaller than the number of array elements. In a machine with a hierarchical cache, access to shared data implicitly copies it out to thread-local caches.}
+
+\item	Gives complexity bounds on @pack@ and @combine@ to achieve the ideal semantics.
+
+\item	The construct-result semantics bans the use of user defined projection functions.
+
+\item	Uses ``lifted'' terminology to refer to version of functions that work on arrays.
+\end{itemize}
+
+
+% -----------------------------------------------------------------------------
+\subsection{
+        \cite{Palmer:work-efficient-nested-data-parallelism}
+        Palmer 1995: Work Efficient Nested Data Parallelism (Proteus) }
+\begin{itemize}
+\item	Explicitly says that vectorisation has a problem with un-nessesary replication with index operations.
+
+\item	Implements randomised indexing to reduce concurrent reads.
+
+\item	Says that NESL provides many primitives that, in parallel, select values from sequences in common access patterns. Using these functions interferes with function modularity, because programmer needs to move single operations from inside functions to outside, to work on the aggregate. Need to specialise each function containing indexing to every call pattern, depending on what shared structure it is indexing.
+
+\item	No partial application. Functions must be fully applied.
+
+\item	\ben{When vectorising Haskell, cannot use this approach because the thunk passed into a higher order function may have a closure containing a shared array. Cannot vectorise functions based on whether their arguments are shared because this information isn't visible. Even if it was, would need to specialise functions for every call pattern.}
+
+\item	Discusses using a rewrite rule to transform \\ @index^ (rep n arr) ixs@ into @indexs arr ixs@. \ben{Point out problem with rewrite rule. If the nested array to be indexed is the result of an arbitrary function call, then the rule will not fire. In the following code, the call to the known function @f@ prevents using this transform when vectorising @thing@.}
+
+\begin{code}
+xs  = [...]
+thing f arr ixs = mapP (! (f arr)) ixs
+main            = thing length xs ...
+\end{code}
+
+\item	Has hierarchical indices and copies the top level of the tree to reduce the number of concurrent reads. Expect this is not needed for current architectures.
+
+\item	Tags array variables that are only used as the source of an indexing operation with a new primitive @only_indexed@. Says to use an (un-described) static analysis to propagate @only_indexed@ across function call boundaries and throughout the program. The primitive @only_indexed@ is at the value level, not the type level. It seems one should use a fixpoint process to propagate it, instead of unification of types. This process won't work with higher order functions. Will fix the replication problem for some specific examples, but is not a general solution for higher-order programs.
+\end{itemize}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Palmer 1995: Piecewise Execution of Nested Data-Parallel Programs}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Blelloch 1996: A Provable Time and Space Efficient Implementation of NESL}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Riely 2000: Flattening is an Improvement}
+\begin{itemize}
+\item   Containment is not sufficient to guarantee that flattening results in weak improvement.
+\end{itemize}
+
+
+
+% ---------------------------------------------------------------------------
+\subsection{Leshchinskiy 2002: Costing nested array codes}
+
+% ----------------------------------------------------------------------------
+\subsection{Spoonhower 2008: Space Profiling for Parallel Functional Programs}
+
+
+
+\clearpage{}
+% -- QuickHull ----------------------------------------------------------------
+\subsection{QuickHull}
+\begin{itemize}
+\item	Example of a program that does not suffer the replicate problem. No free variables are captured and replicated in the closures.
+\end{itemize}
+
+\begin{small}
+\begin{code}
+split :: [:Point:] -> Line -> [:Point:]
+split points line@(p1, p2)
+ | lengthP packed == 0 = [:p1:]
+ | otherwise
+ = concatP [: split packed ends 
+            | ends <- [:(p1, pm), (pm, p2):] :]
+ where
+  cross  = [: distance p line | p <- points :]
+  packed = [: p | (p,c) <- zipP points cross, c > 0.0 :]
+  pm     = points !: maxIndexP cross
+
+distance :: Point -> Line -> Double
+distance (xo, yo) ((x1, y1), (x2, y2))
+ = (x1-xo) * (y2 - yo) - (y1 - yo) * (x2 - xo)
+\end{code}
+\end{small}
+
+
+\clearpage{}
+% -----------------------------------------------------------------------------
+\section{The Trouble with Index Space Transforms}
+
+Vectorisation has three main components: the transform that rewrites the user program to use primitive parallel array operators, the implementation of those operators, and the array representation itself. Although we sometimes refer to just the program transform as ``vectorisation'', the three components are inseparable as the design of each has profound effects on the others. Figure \ref{figure:VectorisationTransform} shows the complete vectorisation transform, though we will introduce it in stages throughout this paper. Figure \ref{figure:UserVisibleArrayOperators} shows some representative user-visible array operators, while Figure \ref{figure:OldArrayRepresentation} gives our old array representation and signatures for some parallel primitives. We will improve over these in the coming sections.
+
+The operators in Figure \ref{figure:OldArrayRepresentation} are all \emph{index space transforms}. They change the mapping of array indices to array elements, but do not create new element values. The fact that vectorisation introduces such transforms is to be expected, as its purpose is to provide a mapping between the singular bulk array operations that the user writes, and the many parallel processors of the underlying machine. Vectorisation is a process of ``rearrangement'', rather than the definition of new values.
+
+Returning to the @gather@ example from \S\ref{section:Introduction}, the vectorised version has the wrong complexity because the index space transform @replicate@ was implemented by physically copying data. This was a consequence of the representation of nested arrays used in NESL, and inherited by DPH. For example, replicating the array @[1 2 3 4 5]@ four times yields a value 
+of type @PA (PA Int)@, which is represented thus:
+
+\begin{small}
+\begin{code}
+  [[1 2 3 4 5] [1 2 3 4 5] [1 2 3 4 5] [1 2 3 4 5]]
+ ----------------------------------------------- (ARR0)
+  PA 4 (PNested
+   (Segd lengths: [5 5 5 5] indices: [0 5 10 15]
+           elems: 20)
+   (PInt [1 2 3 4 5 1 2 3 4 5 1 2 3 4 5 1 2 3 4 5]))
+\end{code}
+\end{small}
+
+We have shown the \emph{logical value} of the array above the line, and its \emph{physical representation} below. The representation is determined by the data type declararations in Figure~\ref{figure:OldArrayRepresentation}.  Every @PA@ value is built with an outer @PArray@ constructor,
+with the payload in the @pdata@ field of type @PData (PA a)@.  The @lengths@ field gives the lengths of the inner arrays, also known as \emph{segments}, while the @indices@ field gives the starting index of each segment in the @PData@ array. A @Vector@ is a primitive flat array of elements. The @lengths@ and @indices@ are bundled up into the \emph{segment descriptor} @Segd@. Arrays of greater nesting depth are created by adding more @Segd@ layers on top. We will give an example of this in \S\ref{section:Replicate}.
+
+Nested arrays are given this representation for two reasons: so all the element data lie contiguously in a single flat array, and so the nested array can be concatenated simply by discarding the segment descriptor. Storing the element data in a single flat array allows us to process it with the fast vector operations supported by the underlying hardware. Concatenation is used when vectorising higher-order functions, and is the core feature of the \emph{flattening nested parallelism} approach. We will discuss this further in \S\ref{section:ConcatUnconcat}. Unfortunately, although the array representation has these two fundamental properties, it cannot be used to represent index space transforms such as replication without copying data. This shortfall, in turn, can break the complexity of the vectorised programs. This brings us to the question of why we need such transforms in the first place.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Replicate Operations Broadcast Shared Values}
+On an abstract level, the role of @replicate@ is to \emph{broadcast} a shared value to all processors in the machine. For example, suppose our machine model supports lifted addition as a parallel primitive:
+\begin{code}
+  add_l :: Int -> PA Int -> PA Int -> PA Int
+\end{code}
+
+This function takes two arrays of the same length, adds corresponding elements together, and produces an array of results. The first argument is the \emph{lifting context}, which provides the length of the argument and result arrays, and represents the maximum number of parallel tasks. Suppose we wish to evaluate the following:
+\begin{code}
+  add_l 4 [1 2 3 4] [6 7 8 9]
+\end{code}
+
+Ignoring practical issues with small grain size, to evaluate this expression on a four processor machine we could send one pair of elements to each processor. Suppose instead we want to add the value @10@ to every element of the second array. We can also do this with @add_l@, provided we send the shared value to each processor. This is the job of @replicate@:
+\begin{code}
+  add_l 4 (replicate 4 10) [6 7 8 9]
+\end{code}
+
+The type of @add_l@ suggests a machine model where the processors are physically separate. Each pair of integers is added individually, and the addition of each pair does not affect another. With this model, replicating shared values by physically copying them makes sense. For example, the ``processors'' might be the ALU slices that implement the SIMD-ways in a vector machine, and @replicate@ would fill a vector register with copies of a the same scalar value. However, if the additions were instead performed individually on a shared-memory multicore machine, then replicating a shared value by physically copying would just waste work and space.
+
+Instead, want each processor to read a single instance of the shared value. On the physical level, the cache hardware will then make as many additional copies as it sees fit, though we assume that these additional copies are not visible from the programming model of our implementation language. Adding a shared value to all the elements of an array is embodied by the following operator:
+\begin{code}
+  add_s :: Int -> Int -> PA Int -> PA Int
+\end{code}
+
+In contrast to @add_l@, the first array parameter has been replaced by a single scalar which will be shared during the computation. We highlight the distinction between @add_l@ and @add_s@ because the vectorisation transform itself only introduces the former. Given a user-defined function such as:
+\begin{code}
+ z           = 5
+ f x y       = add z (add x y)
+\end{code}
+
+\noindent
+The vectoriser creates a lifted version of @f@ as follows:
+\begin{code}
+ z           = 5
+ f_l c xs ys = add_l c (replicate c z) (add_l xs ys)
+\end{code}
+
+The lifted version @f_l@ performs the same operation as @f@, except that it works on multiple values at the same time, in parallel. The vectoriser \emph{lifts} each of the parameters of the original function to \emph{vector space} (it makes them arrays). It replaces top-level functions such as @add@ with their lifted equivalents. Finally, it performs impedance matching of constants and free variables by replicating them according to the lifting context. This is a somewhat simplified view of vectorisation as we have not discussed how to handle higher-order functions, but we will leave this until \S\ref{section:VectorisationOfRetrieve}.
+
+
+\clearpage{}
+% -----------------------------------------------------------------------------
+\section{Array representation}
+As mentioned in the previous section, for the vectorised program to have the correct complexity relative to the source program, we must be able to represent the index space transforms introduced by the vectoriser without copying segment data. We will discuss transforms other than @replicate@ in the coming sections.
+
+For now, note that if we restrict ourselves to worrying about asymptotic complexity, then we only need to consider index space transforms on nested arrays. Suppose we transform the top level of a nested array. If we implement the transform by copying segment data then the work involved is proportional to the total number of elements in those segments, where it should really be proportional to the number of segments themselves. This highlights the difference between the \emph{size} of an array, which is the total number of elements contained within, and the \emph{length} which is the number of arrays in the top level of nesting. In a flat, non-nested array, the size and the length are the same, so the work performed by our index space transforms is automatically bounded by the length.
+
+An example array using the new representation is shown in Figure \REF, and the concrete definition is in Figure \ref{figure:NewArrayRepresentation}. This representation has two main features compared with the old one, which was shown in Figure \ref{figure:OldArrayRepresentation}.
+
+
+\begin{enumerate}
+\item   We distinguish between \emph{physical} and \emph{virtual} segments. Physical segments consist of real element data in memory, while virtual segments are aliases for the physical segments. This distinction enables us to define nested arrays with repeated segments without copying element data.
+
+\item   The segments of a nested array may now be scattered through memory, instead of being contiguous. This enables us to perform filtering operations on nested arrays also without copying element data.
+\end{enumerate}
+
+In the example, there are seven virtual segments but only four physical segments, and the physical segments lie in two separate flat arrays. This array could have been generated with a combination of the @append@, @replicate_s@ and @pack@ operators, which we will discuss in the coming sections.
+
+In the concrete representation, we have implemented these features firstly by extending the segment descriptor data type. The segment descriptor is now stratified into three layers: @VSegd@ (virtual segments); plain @Segd@ (contiguous segments), and @SSegd@ (scattered segments). In our terminology, we refer to all of @VSegd@, @Segd@ and @SSegd@ ``segment descriptors''. At the bottom the @SSegd@ gives the index of the flat array, and starting position for each physical segment. The @Segd@ above it provides the lengths of each segment, and the @VSegd@ provides the mapping between virtual and physical segments. We discuss why we have split this information into three separate segment descriptor data types in \S\ref{section:PromotionDemotion}.
+
+The second extension over the previous representation is that the element data can now be allocated in multiple flat heap objects, instead of just a single one. This is necessary for the efficient implementation of  operations that aggregate multiple nested arrays, such as @append@ and @combine@ (\S\ref{section:Append}). In Figure \ref{figure:NewArrayRepresentation} the element data is represented with the @PData@ and @PDatas@ type families (Parallel Data). Members of the @PData@ family are flat arrays with a linear index space, while members of @PDatas@ represent multiple linear arrays. Alternatively, @PDatas@ can be seen as an array with an irregular 2-dimensional index space. In Figure \REF we have a @PDatas@ consisting of two @PData@.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Replicate}
+\label{section:Replicate}
+Now let us implement @replicate@ using our new array representation.
+The start is easy, because the result @PA@ array must be built
+with a @PA@ constructor:
+\par
+\begin{small}
+\begin{code}
+ replicate :: Int -> a -> PA a
+ replicate c i = PA c (replicatePR c i)
+\end{code}
+\end{small}
+\par
+\noindent
+The real work is in {\small @replicatePR :: Int -> a -> PData a@}.  But now we encounter a slight problem: since the representation of @PData@ is indexed by the element type @a@, we require a type-indexed function to operate over @PData@ values.  That is, we need a type class, with an instance for @Int@ and an instance for @(PA a)@:
+\begin{code}
+ class PR a where
+   replicatePR :: Int -> a -> PData a    
+   ...more methods...
+
+ instance PR Int where
+   replicatePR = replicateI
+   ...
+ instance PR a => PR (PA a) where
+   replicatePR = replicatePA
+   ...
+\end{code}
+The @PR@ (Parallel Representation) class is given in Figure \ref{figure:NewArrayOperators}, and conveniently collects all the necessary primitive operations over arrays.  We will see more of them in this section, but @replicatePR@ is one. So in fact we lied: the types of @replicate@ and @replicatePR@ are overloaded thus:
+\par
+\begin{small}
+\begin{code}
+ replicate   :: PR a => Int -> a -> PA a
+ replicatePR :: PR a => Int -> a -> PData a
+\end{code}
+\end{small}
+\par \noindent
+(In what follows we will often omit the ``@PR =>@'' context from types.)
+Now we are ready to implement the two cases.
+The case for @Int@ is straightforward:
+\par
+\begin{small}
+\begin{code}
+ replicateI :: Int -> Int -> PData Int
+ replicateI c i = PInt (replicateV c i)
+\end{code}
+\end{small}
+\par
+\noindent
+where @replicateV@ is the @Vector@-level replication operation 
+(Figure~\ref{figure:NewArrayRepresentation}).
+The interesting case is the one for nested arrays.  It should be clear that with our new array representation, we can replicate an existing array by building an array with a single physical segment, whose @PsId@ is repeated in the @vsegids@ field. The element data does not need to be copied.  Repeating the @ARR0@ example from \S\ref{section:naive-flat} yields the following result: \par
+\begin{small}
+\begin{code}
+  replicate 4 [1 2 3 4 5]
+ ------------------------------------------------ (ARR3)
+  PA 4 (PNested
+   (VSegd vsegids: [0 0 0 0]
+   (SSegd  starts: [0] sources: [0])
+   (Segd  lengths: [5] indices: [0]))
+   (PInt [1 2 3 4 5])
+\end{code}
+\end{small}
+\par
+\noindent
+Here is the definition of the @replicatePA@ function itself:
+\par
+\begin{small}
+\begin{code}
+ replicatePA :: Int -> PA a -> PData (PA a)
+ replicatePA c (PA n pdata)
+  = PNested (replicatedVSegd n c) 
+            (singletondPR pdata)
+
+ replicatedVSegd :: Int -> Int -> VSegd
+ replicatedVSegd segLen c 
+  = VSegd (replicateV c 0) (singletonSSegd segLen)
+
+ singletonSSegd :: Int -> SSegd
+ singletonSSegd segLen
+  = SSegd (singletonV 0) (singletonV 0)
+          (Segd (singletonV segLen) (singletonV 0))
+\end{code}
+\end{small}
+\par
+\noindent
+Notice that the cost of @(replicate n a)@ is $O(@n@)$, regardless of how much data is contained in @a@, thereby meeting the Complexity Goal
+of \S\ref{section:goal}.
+
+Here is an example of replicating an array of greater depth: 
+\par
+\begin{small}
+\begin{code}
+  replicate 2 [[1 3 5] [2 7] [8] [5 4] [9]]
+ ------------------------------------------------ (ARR4)
+  PA 2 (PNested
+   (VSegd vsegids: [0 0] 
+   (SSegd  starts: [0] sources: [0]
+   (Segd  lengths: [5] indices: [0])))
+   (PNesteds 
+    0: PNested 
+         (VSegd vsegids: [0 1 2 3 4]
+         (SSegd sources: [0 0 0 0 0]  starts: [0 3 5 6 8]
+         (Segd  lengths: [3 2 1 2 1] indices: [0 3 5 6 8])))
+         (PInts 0: [1 3 5 2 7 8 5 4 9])))
+\end{code}
+\end{small}
+\par
+Once again, to replicate an array we simply add a new segment descriptor. We do not need to copy the element data. The complexity of @replicate@ is now linear in the length of the created @vsegids@ field, which is also the length of the result. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Index space transforms}
+
+To stay within the expected complexity bounds, @replicates@ should not traverse the data payload, and it should definitely not produce multiple copies of the data payload of the source array. Instead, it should arrange matters such that a traversal of the array produced by @replicates@ repeatedly traverses the payload of the source array.  In other words, it should map the index space of the resulting array onto the (usually smaller) index space of the source array.  We call such a function an \emph{index space transformation.}
+
+Replication is not the only transform that vectorisation introduces. As discussed in \S\ref{section:PackCombine} it also introduces @pack@, which performs filtering, and @combine@ which intersperses the elements of two arrays. Both of these are used to vectorize the @if-then-else@ expression. However, the original array representation cannot represent the result of these operations either, except by copying data. Suppose we filter out every second subarray of @ARR0@ from the previous section.  The result of this is as follows:
+\begin{small}
+\begin{code}
+   pack [T F T F T F] ARR0 = [[A B] [A B] [C D E]]
+  -------------------------------------------------
+   PA 3 (PNested
+    (Segd  lengths: [2 2 3] indices: [0 2 4]
+    (PChar [A B A B C D E]))
+\end{code}
+\end{small}
+
+To keep just the desired segments, we must copy all the elements into a new flat @PChar@ array. As we will discuss in \S\ref{section:PackCombine} this results in vectorised @if-then-else@ statements that return arrays to have the wrong complexity, similarly to the problem with @replicates@ from before.  
+
+The fact that vectorisation introduces index space transformations is to be expected, as its purpose is to provide a mapping between the singular bulk array operations that the user writes, and the many parallel processors of the underlying machine. Vectorisation is a process of ``rearrangement'', rather than the definition of new values. However, the original segmented array representation is unable to represent the result of these transforms except by copying data, which ruins the asymptotic complexity of vectorised programs. There is only one thing left to be done: we must change the representation of nested arrays.
+
+
+\clearpage{}
+% ----------------------------------------------------------------------------
+\section{Old asymptotic complexity section}
+The following example illustrates the basic problem. The code gathers multiple character values from a shared array called @table@:
+%
+\begin{code}
+  gather :: [:Char:] -> [:Int:] -> [:Char:]
+  gather table indices
+   = mapP (\ix -> table !: ix) indices
+\end{code}
+%
+In the type signature, @[:Char:]@ refers to \emph{bulk-strict, parallel, one-dimensional arrays}, @mapP@ is a parallel version of @map@ on such arrays, and @(!:)@ is array indexing --- Figure~\ref{figure:UserVisibleArrayOperators} has some typical array operations. All element values are stored unboxed, so that demanding any element causes them all to be computed. 
+
+The vectorised code for @gather@ corresponds to the following:
+\begin{code}
+ gather_v :: PA Char -> PA Int -> PA Char
+ gather_v table indices
+  = index_l len (replicate len table) indices
+  where len = length indices
+\end{code}
+%
+The type @PA@ is an generic representation type that determines the layout of the user-visible type @[::]@ in a type-dependent manner~\cite{chak-etal:DPH}. A vectorised function is implemented in terms of a set of primitive flat data-parallel array operators. Here, we have used @replicate@, @length@, and @index_l@. The functions @replicate@ and @length@ behave like their standard list equivalents, while the \emph{lifted indexing operator} @index_l@ has the following signature:
+%
+\begin{code}
+ index_l :: Int -> PA (PA e) -> PA Int -> PA e
+\end{code}
+%
+Given an array of arrays and an array of indices of the same length, for each subarray-index pair, @index_l@ retrieves the corresponding element from the array. In other words, @index_l@ is effectively @zipWithP (!:)@, which gets the length of the two arrays as an additional first argument.
+
+The parallelism of the vectorised function (@gather_v@) is entirely due to @index_l@ performing all indexing operations in one parallel step.  In the code for @gather_v@, @replicate@ makes @len@ copies of the shared value @table@, to match the number of @indices@. In a direct implementation of @gather_v@, the result of @replicate@ would be an array of @len@ pointers to a single @table@.  However, the \emph{whole point of the vectorisation transformation is to flatten out such nested arrays}, so a naive implementation of @replicate@ in a vectorised setting would build a flat array with @len@ copies of @table@. \ben{We haven't said anything about vectorisation flattening the data representation yet. The introduction only talked about the parallelism.}
+
+Hence, if @table@ and @indices@ have the same size, then naive vectorisation turned an $O(n)$ function into a $O(n^2)$ function, in both time and space: disaster! 
+
+It turns out that the trouble with @replicate@ is just one of a class of problems related to the mishandling of index space transforms, which we will discuss in detail in the next two sections. In addition to identifying index space transforms as the culprit, we contribute a novel delayed implementation of these index space transforms, which enables vectorised programs to remain within the required complexity bounds.  \ben{say what an index space transform is.} What are those bounds?  Consider an absolutely direct implementation of DPH, in which a value of type @[:e:]@ is represented by an ordinary array of pointers to values of type @e@.
+
+
+\clearpage{}
+% -----------------------------------------------------------------------------
+\section{A new representation for nested arrays}
+
+To stay within the expected complexity bounds, @replicate@ should not traverse the data payload, and it should definitely not produce multiple copies of the data payload of the source array. Instead, it should arrange matters such that a traversal of the array produced by @replicate@ repeatedly traverses the payload of the source array.  In other words, it should map the index space of the resulting array onto the (usually smaller) index space of the source array.  We call such a function an \emph{index space transformation.}
+
+The function @replicate@ is not the only index space transformation.  We discuss two others in Subsection~\REF to motivate the new representation by example and then introduce the new representation in all its gory detail in Subsection~\REF.  The reminder of this section will then cover the technical details of why this representation enables us to meet the Compelxity Goal.
+
+
+\subsection{The new representation by example}
+\label{sec:new-rep-ex}
+
+\begin{figure*}
+\begin{center}
+\centering\includegraphics[scale=0.5,trim=0cm 13cm 0cm 0cm,clip=true]{figures/ReplicateOld.pdf}
+\caption{The function replicate using the old representation}
+\end{center}
+\label{figure:replicate-old}
+\end{figure*}
+%
+\begin{figure*}
+\begin{center}
+\centering\includegraphics[scale=0.5,trim=0cm 11cm 0cm 0cm,clip=true]{figures/ReplicateNew.pdf}
+\caption{The function replicate using virtual segments in the new representation}
+\end{center}
+\label{figure:replicate-new}
+\end{figure*}
+%
+Let us continue the @gather@ example from Section~\ref{section:problem}, which gathers multiple character values from a shared array. Its vectorised version @gather_v@ had the expression @replicate len table@ to use @table@ for each of the @len@ parallel index operations.  With the old representation, the input @table@ and result look as in Figure~\ref{figure:replicate-old} awkwardly copying the data payload.  We want the new representation to avoid touching the payload, and instead, to use a \emph{virtual} segment descriptor that may refer multiple times (here, twice) to the same physical segments.
+
+The key contribution of nested data parallelism is the ability to arbitrarily nest parallel computations --- a set of data parallel computations can, all at once, invoke further data parallel computations of arbitrary complexity.  Not surprisingly, this property is also a central challenge in designing our new representation for nested arrays; hence, we need to extend the @gather@ example such that it makes essential use of nesting.
+
+The new function @multigather@ performs multiple @gather@ operations in parallel. These parallel operations act on different character tables, but use the same @indices@ to gather character values:
+%
+\begin{code}
+  multigather :: [:[:Char:]:] -> [:Int:] 
+              -> [:[:Char:]:]
+  multigather tables indices
+   = mapP (\table -> gather table indices) tables
+\end{code}
+%
+Once vectorised, @multigather@ makes use of a lifted version of @gather@, which we call @gather_l@ and which semantically corresponds to @zipWithP gather@ --- i.e., the pointwise application of @gather_v@ to two arrays of inputs.
+%
+\begin{code}
+  multigather_v :: PA (PA Char) -> PA Int 
+                -> PA (PA Char)
+  multigather_v tables indices
+   = gather_l tables (replicate len indices)
+   where len = length tables
+\end{code}
+%
+The structure is very similar to that of @gather_v@ in Section~\ref{section:problem}; more interesting is the definition @gather_l@ that it uses:
+%
+\begin{code}
+  gather_l :: PA (PA Char) -> PA (PA Int) 
+           -> PA (PA Char)
+  gather_l tables indicess
+   = unconcat indices 
+       (index_l len (concat (replicates lens tables)) 
+                    (concat indices))
+   where lens = segd indicess
+         len  = sum lens
+\end{code}
+%
+\TODO{A sentence about @concat@/@unconcat@ story; this is what @mapP (mapP f)@ vectorises to.} In the context of higher-order functions, the fully general code is more complicated, but the above completely captures the behaviour for our example --- see \cite{PeytonJones:harnessing-the-multicores} for the details.
+
+\begin{figure*}
+\begin{center}
+\centering\includegraphics[scale=0.5,trim=0cm 4cm 0cm 0cm,clip=true]{figures/Replicates.pdf}
+\caption{Segmented replicate using virtual segments}
+\end{center}
+\label{figure:replicates}
+\end{figure*}
+%
+The most important aspect of @gather_l@ for our discussion is the use of @replicates@, \emph{segmented replicate}.  It implements the multiple parallel replication operations in a single data parallel construct --- hence, it effectively behaves as @zipWithP replicate@.  It is only here where virtual segment descriptors are fully exploited.  The first and second segment of the source array are replicated twice and four times, respectively, merely by manipulating the virtual segment descriptor --- the data payload needs neither to be copied nor to be traversed as Figure~\ref{figure:replicates} illustrates.
+
+\begin{figure*}
+\begin{center}
+\centering\includegraphics[scale=0.5,trim=0cm 1cm 0cm 0cm,clip=true]{figures/Append.pdf}
+\caption{Append using scattered segment descriptors}
+\end{center}
+\label{figure:append}
+\end{figure*}
+%
+The index space transformation implemented by @replicates@ generalise that of @replicate@.  However, if we combine multiple nested arrays ---for example, by array concatenation (+:+)--- virtual segment descriptors alone are not sufficient.  Given two singleton arrays @[:table1:]@ and @[:table2:]@, with one table each, if we concantenate them, we again do not want to copy the data payload.  Instead, we use a \emph{scattered} segment descriptor to refer to segments in two \emph{separate} payload arrays as illustrated in Figure~\REF  In this simple example, the two payload arrays $A$ and $B$ contain only one segment each --- usually, they will both have multiple segments, all of which can be referred to from the scattered segment descriptor.
+
+\begin{figure*}
+\begin{center}
+\centering\includegraphics[scale=0.5,trim=0cm 4cm 0cm 0cm,clip=true]{figures/Replicatesscattered.pdf}
+\caption{Segmented replicate with scattered segment descriptors}
+\end{center}
+\label{figure:replicates-scattered}
+\end{figure*}
+%
+Finally, a nested array using a scattered segment descriptor may end up as input to segmented replicate ---e.g., in 
+%
+\begin{code}
+  multigather (zipWithP (++) tables1 tables2) indices
+\end{code}
+%
+We handle this by virtualising the scattered segment desciptor as illustrated in Figure~\ref{figure:replicates-scattered}.
+
+
+
+% ----------------------------------------------------------------------------
+\subsection{The Edge Case}
+\ben{I don' t think handling this separately is a good idea anymore. We could alternately use a single empty data block and keep the sources starts lengths and indices fields all the same length.}
+
+As a final note on our array representation: there is one case that requires special handling in Invariant 1 of \S\ref{section:Segds}. We need to store a value in the @segmap@ field to distinguish between the array @[]@ and the array @[[]]@. This implies that we also need to store an zero segment length in the @lengths@ field. However, as there is no element data and no physical segments, the @sources@ and @starts@ fields are empty.
+\par
+\begin{small}
+\begin{code}
+                        [ [] ]
+  ----------------------------------------------------
+   (PA 1 (PNested
+    (VSegd  segmap: [0]
+    (SSegd sources: []  starts:  []
+    (Segd  lengths: [0] indices: [0])))
+    (PInts {}))
+\end{code}
+\end{small}
+\par

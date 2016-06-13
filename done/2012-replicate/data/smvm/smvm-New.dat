@@ -1,0 +1,47 @@
+# MatrixSize, NonZeroElements, New(ms)
+1000       9615          0.20
+2000       38308         0.69
+4000       157086        2.65
+8000       640845       10.95
+10000      996411       17.20
+20000      3978229      69.35
+40000      15940844    284.44
+# 80000      63721065        4842
+
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-1000x1000-9615 
+elapsedTimeMS   = 20
+cpuTimeMS       = 20
+vector length   = 1000
+result sum      = 107568.64424462816
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-2000x2000-38308 
+elapsedTimeMS   = 69
+cpuTimeMS       = 69
+vector length   = 2000
+result sum      = 440360.29422513366
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-4000x4000-157086 
+elapsedTimeMS   = 265
+cpuTimeMS       = 265
+vector length   = 4000
+result sum      = 2084404.2173232997
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-8000x8000
+elapsedTimeMS   = 1095
+cpuTimeMS       = 1095
+vector length   = 8000
+result sum      = 8028806.7971580755
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-10000x10000-996411 
+elapsedTimeMS   = 1720
+cpuTimeMS       = 1720
+vector length   = 10000
+result sum      = 1.3518655404840318e7
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-20000x20000-3978229 
+elapsedTimeMS   = 6935
+cpuTimeMS       = 6935
+vector length   = 20000
+result sum      = 5.345275824509383e7
+desire:dph-examples benl$ examples/spectral/SMVM/dph/Main vectorised 100 ~/tmp/matrix/matrix-40000x40000-15940844 
+elapsedTimeMS   = 28444
+cpuTimeMS       = 28443
+vector length   = 40000
+result sum      = 2.186912580071386e8
+
+

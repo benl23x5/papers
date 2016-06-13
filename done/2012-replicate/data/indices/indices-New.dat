@@ -1,0 +1,13 @@
+# Indices example using new dph-lifted-vseg
+# vector length, Runtime(ms)
+1024	 4
+2048	 6
+4096	 12
+8192	 21
+16384	 42
+32768	 84
+65536	 175
+131072	 363
+262144	 716
+524288	 1480
+1048576	 3011

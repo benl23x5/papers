@@ -1,0 +1,14 @@
+# NBody using -s nested-bh -package dph-lifted-vseg
+# Bodies        Runtime(ms)
+8	9
+16	12
+32	18
+64	29
+128	72
+256	233
+512	876
+1024	3354
+2048	13291
+4096	53086
+# 5000	OOM
+

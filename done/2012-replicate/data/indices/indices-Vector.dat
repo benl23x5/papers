@@ -1,0 +1,10 @@
+# Indices example using unboxed Data.Vector
+# vector length, Runtime(ms)
+8192	 1
+16384	 3
+32768	 6
+65536	 14
+131072	 27
+262144	 56
+524288	 114
+1048576	 236

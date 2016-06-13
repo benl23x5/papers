@@ -1,0 +1,61 @@
+
+2012/1/24
+-------------------------------------------------------------------------------
+
+Old lifted backend.
+------------------
+Comp -package dph-lifted-copy -fllvm -optlo-O3 -Odph -fcpr-off -fno-liberate-case
+     Disabled hacky rewrite rules in dph-lifted-copy.
+Run  +RTS -N1
+MatrixSize	NonZeroElements	Runtime(ms)
+100x100		48		0
+1000x1000	9615		183
+1200x1200	13731		307
+1500x1500	21548		599
+2000x2000	38308		1437
+4000x4000	*OutOfMemory
+
+
+Comp -package dph-lifted-copy -fllvm -optlo-O3 -Odph -fcpr-off -fno-liberate-case
+     Enabled hacky rewrite rules in dph-lifted-copy.     
+Run  +RTS -N1
+MatrixSize	NonZeroElements	Runtime(ms)
+100x100		48		0
+1000x1000	9615		1
+2000x2000	38308		3
+4000x4000	157086		9
+5000x5000	249457		14
+6000x6000	354768		17
+7000x7000	*IndexOutOfBounds
+
+
+New lifted backend.
+------------------
+Comp -package dph-lifted-vseg -fllvm -optlo-O3 -Odph -fcpr-off -fno-liberate-case
+Run  +RTS -N1
+MatrixSize	NonZeroElements	Runtime(ms)
+100x100		48		0
+1000x1000	9615		0
+2000x2000	38308		2
+4000x4000	157086		10
+5000x5000	249457		15
+6000x6000	354768		23
+8000x8000	640845		40
+10000x10000	996411		62
+20000x20000	3978229		251
+40000x40000	15940844	1228
+
+
+C-program.
+---------
+Comp gcc -O3 -m32 
+MatrixSize	NonZeroElements	Runtime(ms)
+1000x1000	9615		0
+2000x2000	38308		0
+4000x4000	157086		0
+5000x5000	249457		
+6000x6000	354768		
+8000x8000	640845		1
+10000x10000	996411		2
+20000x20000	3978229		12
+40000x40000	15940844	58

@@ -1,0 +1,77 @@
+
+n-body example
+
+2011/11/30
+-------------------------------------------------------------------------------
+Comp -package dph-lifted-copy -fllvm -Odph -fcpr-off -fno-liberate-case
+Run  -s nested-bh --max-steps 1 +RTS -N1
+Bodies	Elapsed (ms)
+100  	147
+200  	289
+400   	758
+1000	3610
+2000	13534
+4000	52041
+10000	*OOM with ~3GB resident
+20000
+40000
+100000
+
+
+2012/1/23
+-------------------------------------------------------------------------------
+Comp -fllvm -Odph -fcpr-off -fno-liberate-case
+Run -s vector-bh --max-steps 1 +RTS -N1 
+Bodies	Elapsed (ms)
+10	0
+20	0
+100	1
+200	1
+1000	10
+2000	21
+10000	126
+20000	122
+100000	1587
+
+
+Comp -package dph-lifted-vseg -fllvm -Odph -fcpr-off -fno-liberate-case
+Run  -s nested-bh --max-steps 1 +RTS -N1
+Bodies	Elapsed (ms)
+10	30
+20	66
+100	80
+200	81
+1000	204
+2000	376
+10000	1491
+20000	3035
+100000	15965
+
+
+Comp -package dph-lifted-vseg -fllvm -Odph -fcpr-off -fno-liberate-case
+Run  -s nested-bh --max-steps 1 +RTS -N2
+Bodies	Elapsed (ms)
+10	39
+20	90
+100	106
+200	129
+1000	216
+2000	361
+10000	1185
+20000	2319
+100000	11602
+
+
+Comp -package dph-lifted-vseg -fllvm -Odph -fcpr-off -fno-liberate-case
+Run  -s nested-bh --max-steps 1 +RTS -N4
+Bodies	Elapsed (ms)
+10	61
+20	137
+100	158
+200	185
+1000	286
+2000	433
+10000	1153
+20000	2122
+100000	10452
+

@@ -1,0 +1,32 @@
+
+\clearpage{}
+% -----------------------------------------------------------------------------
+\section{Baseline Representation of Nested Arrays} 
+\label{section:naive-flat}
+A key idea of Blelloch's vectorisation transformation is to flatten the representation of nested arrays, as well as the parallelism itself. More precisely: an array $A$ of sub-arrays $A_0, A_1, ..., A_{n-1}$ (each with its own length) is represented by (a) a single long array of data, $D = [A_0, A_1, ..., A_{n-1}]$ all laid out in one contiguous block, and (b) a \emph{segment descriptor} that gives the length of each $A_i$ in the data block $D$.  We call $A_i$ the \emph{segments} of $A$.  The idea is to divide the data block $D$ evenly over the processors, and process each chunk independently in parallel. This provides both excellent granularity and excellent data locality, which is intended to satisfy the second part of our Complexity Goal. There is some book-keeping to do on the segment descriptor; generating that book-keeping code is the job of the vectorisation transformation.
+
+Figure~\ref{figure:OldArrayRepresentation} gives the representation of nested arrays in Haskell, using GHC's \emph{data families}~\cite{chak-etal:ATs}.  An array of type @(PA e)@ is represented by a pair @PA n d@, where @n@ is the length of the array, and @d :: PData e@ contains its data.  The representation of @PData@ is type-dependent --- hence, its declaration as a @data family@.  When the argument type is a scalar, matters are simple: @PData Int@ is represented merely by a @Vector Int@, which we take as primitive here\footnote{It is provided by the @vector@ library.}. Arrays of @Char@ are represented similarly. On the other hand, the data component of a \emph{nested array}, with type @PData (PA e)@ is represented by a pair of a segment descriptor of type @Segd@, and the \emph{data block} of type @PData e@.  
+The segment descriptor @Segd@ has two fields, @lengths@ and @indices@.  The latter is just the scan (running sum) of the former, but we maintain both in the implementation to avoid recomputing @indices@ from @lengths@ repeatedly.  Each is a flat @Vector@ of @Int@ values.
+
+Using the example from the previous section, the array @xss1@ has type @(PA (PA Char))@ and is represented like this:
+%
+\begin{small}
+\begin{code}
+   replicates [3 1 2 1] [[A B] [C D E] [F G] [H]]
+   = [[A B] [A B] [A B] [C D E] [F G] [F G] [H]] 
+ ----------------------------------------------- (ARR0)
+  PA 7 (PNested
+   (Segd lengths: [2 2 2 3 2 2  1] 
+         indices: [0 2 4 6 9 11 13])
+   (PChar [A B A B A B C D E F G F G H]))
+\end{code}
+\end{small}
+%
+We show the \emph{logical value} of the array above the line, and its \emph{physical representation} below. The representation is determined by the data type declarations in Figure~\ref{figure:OldArrayRepresentation}.  The result array is built with an outer @PA@ constructor, pairing its length, @7@, with the payload of type @PData (PA Char)@.  From the @data instance@ for @PData (PA e)@, again in Figure~\ref{figure:OldArrayRepresentation}, we see that the data field consists of a @PNested@ constructor pairing a segment descriptor with a value of type @PData Char@.  Finally, the latter consists of a @PChar@ constructor wrapping a flat @Vector@ of @Char@ values.
+
+The process continues recursively in the case of deeper nesting: the reader may care to write down the representation of a value of type @PA (PA (PA Int))@. We will see an example in \S\ref{section:PlainReplicate}.
+
+Now the problem with @replicates@ becomes glaringly obvious. The baseline representation of arrays, which was carefully chosen to give good locality and granularity, is \emph{physically incapable of representing the sharing between subarrays in the result} --- and losing that sharing leads directly to worsening the asymptotic complexity. It is not possible to simply eliminate the call to @replicates@ itself, because this function plays a critical role in vectorisation. In the example from \S\ref{section:problem}, @replicates@ distributes shared values from the context of the outer computation (@zipWithP mapP@) into the inner computation (@mapP indexP@). Since we cannot eliminate @replicates@, the only way forward is to change the representation of nested arrays.
+
+
+

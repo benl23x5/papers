@@ -1,0 +1,11 @@
+# SMVM Version with Data.Vector. 
+# Matrix is a boxed vector of unboxed vectors.
+# MatrixSize, NonZeroElements, Runtime(ms)
+1000    9615            0.15
+2000    38308           0.36
+4000    157086          1.24
+8000    640845          4.81
+10000   996411          7.28
+20000   3978229        30.02
+40000   15940844      129.1
+# 80000   63721065        3057

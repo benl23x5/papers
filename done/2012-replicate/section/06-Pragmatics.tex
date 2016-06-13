@@ -1,0 +1,99 @@
+
+\clearpage{}
+% -----------------------------------------------------------------------------
+\section{Pragmatics}
+\label{section:Pragmatics}
+Although our new array representation allows the index space transforms introduced by the vectoriser to have the correct asymptotic complexity, there are several cases where a direct implementation would perform poorly in absolute terms. For example, implementing @promoteSSegd@ from \S\ref{section:Promotion} by physically filling the @segmap@ with @[0 1 2 ...]@ leaves something to be desired. However, in many cases the construction of these fields can be sidestepped using rewrite rules. For example, in our concrete implementation we have the following functions:
+%
+\begin{small}
+\begin{code}
+  sum_vs :: VSegd -> PDatas Int -> PData Int
+  sum_s  :: Segd  -> PData  Int -> PData Int
+\end{code}
+\end{small}
+%
+\noindent
+Both of these can be used to implement lifted sum (@sum_l@) by using a simple wrapper. The difference is that while @sum_vs@ accepts a full @VSegd@ to describe the segmentation of the array,  @sum_s@ only accepts a plain @Segd@. The implementation of the latter is simpler, as it does not need to worry about the @segmap@, @starts@ and @sources@ fields that define the sharing and scattering of segments. During code transformation, we apply the following rewrite rule:
+%
+\begin{small}
+\begin{code}
+ RULE "sum_vs/promote"  forall segd arr.
+       sum_vs (promoteSSegd (promoteSegd  segd)) 
+              (singletondPR arr)       = sum_s segd arr
+\end{code}
+\end{small}
+%
+The rule says that to sum the segments of a nested array defined by a promoted @Segd@, we can just use the @Segd@ directly. Rules like this one are frequently applicable because the definition of key operations such as @unconcat@ and @extractvsPR@ explicitly use @promoteSegd@ and so on to construct their results. Note that the ability to apply rules such as this depends critically on the split between the @VSegd@, @SSegd@ and @Segd@ types, and the fact that @indices@ field is in @Segd@ rather than @SSegd@. Abstractly, the fact that an array is representable with just a @Segd@ tells us that all the segments lie contiguously in the store. The fact that it is representable with just a @SSegd@ tells us that the number of physical segments matches the number of logical segments, though several entries in the @SSegd@ may still point to the same element data.
+
+Another technique we use is to store a lazy, pre-concatenated version of the array in the array structure itself. In our concrete implementation, the @PNested@ structure contains two extra fields holding a plain @Segd@ and the @PData@ corresponding to the concatenated version of the overall array. Every function that constructs an array is responsible for initialising these fields, either with pre-existing concatenated data, such as produced by @extractvsPR@, or a suspended computation that will concatenate when demanded. When a consumer, such as @mapP@, requires a concatenated version of the array, it can use these fields instead of explicitly concatenating the data itself. With this method array consumers avoid repeatedly concatenating (and thus copying) arrays that the producers know are already concatenated. 
+
+We use a similar method to avoid some applications of the @cullOnSegmap@ function discussed in \S\ref{section:Culling}. The key point here is that while reduction operations like @sum_l@ need invariant 6 to avoid duplicating work, indexing operations are oblivious to unreachable physical segments. In our implementation, we suspend calls to @cullOnSegmap@ with lazy evaluation, and also keep an \emph{unculled} version of the @SSegd@ in the array representation. If, say, a nested array is packed and then immediately indexed, then the indexing operation uses the unculled @SSegd@, avoiding the need to call @cullOnSegmap@ at all.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Rewrite Rules and Replication}
+\label{section:RewriteRules}
+A reader may be wondering why we cannot also use a rewrite rule to eliminate calls to replication operators in the vectorised program, instead of introducing a new array representation. Suppose we vectorise the following function that gathers multiple character values from a shared array called @table@. 
+\begin{small}
+\begin{code}
+  gather :: [:Char:] -> [:Int:] -> [:Char:]
+  gather table indices
+   = mapP (\ix -> table !: ix) indices
+\end{code}
+\end{small}
+%
+The vectorised version is as follows:
+%
+\begin{small}
+\begin{code}
+ gather_v :: PA Char -> PA Int -> PA Char
+ gather_v table indices
+  = index_l len (replicate len table) indices
+  where len = length indices
+\end{code}
+\end{small}
+%
+As per \S\ref{section:problem}, @index_l@ is lifted indexing. Note that with the old array representation, this function would have the wrong asymptotic complexity due to the use of @replicate@. However, suppose we had a second version of indexing (@index_s@) that could retrieve elements from a single shared array. This operation is also known as \emph{backwards permutation}.
+\begin{small}
+\begin{code}
+ index_l :: Int -> PA (PA a) -> PA Int -> PA a
+ index_s :: Int ->     PA a  -> PA Int -> PA a
+\end{code}
+\end{small}
+%
+Given @index_s@, a seemingly obvious way to optimise @gather_v@ is to apply the following rewrite rule:
+%
+\begin{small}
+\begin{code}
+  RULE "index_l/index_s" forall c xs ys.
+        index_l c (replicate c xs) ys = index_s c xs ys
+\end{code}
+\end{small}
+%
+The problem is that this rule improves the asymptotic complexity of the program, which turns out to be a bad thing engineering wise. The left of the rule uses work and space $O(length~ @xs@ ~.~ length~ @ys@)$ while the right uses $O(length~ @ys@)$. These are different because indexing is a \emph{projection}, which does not inspect all of its input data. 
+
+The trouble is that for the rule to fire, the producer (@replicate@) and consumer (@index_l@) of the replicated array must come together during code transformation. If the program is written in a way that prevents this from happening, then @replicate@ will not be eliminated. For example, suppose we parameterised @gather@ over a function to apply to each index value:
+\begin{small}
+\begin{code}
+ gatherFun ::([:Char:] -> Int -> Char) 
+           -> [:Char:] -> [:Int:] -> [:Char:]
+ gatherFun fun table indices = mapP (fun table) indices
+\end{code}
+\end{small}
+\noindent
+
+\noindent
+Vectorising this function yields the following:
+\begin{small}
+\begin{code}
+ gatherFun_v :: PA (PA Char :-> Int :-> Char)
+             -> PA Char -> PA Int -> PA Char
+ gatherFun_v (AClo fv fl envs) table indices
+  = fl c envs (replicate c table) $:^ indices
+  where c = length indices
+\end{code}
+\end{small}
+
+When we vectorize higher order functions, the parameter function is represented as an \emph{array closure}. The array closure constructor @AClo@ bundles up the closure-converted version of the function (@fv@), the lifted version (@fl@) and the environment that was captured in its closure (@envs@). The lifted application operator @($:^)@ then applies the closure to its final argument @indices@. See \cite{Leshchinskiy:higher-order-flattening, Leshchinskiy:higher-order-ndp} for a more detailed explanation. The main point here is that the parameter function @fl@ is unknown to the vectoriser. With just the code above, it is impossible to eliminate the @replicate@ operation, because we do not know what @fl@ will turn out to be. 
+
+A tempting hack-around is to force every function in the program to be inlined, and hope that follow on code transformation discovers the true identity of @fl@. We used this approach in our previous implementation of DPH, and it turns out to be a slippery slope to suffering. Small changes in the structure of the source program, or behaviour of the various transforms, can result in a previously well performing program becoming unrunnable due to the changed asymptotic complexity. This approach also does not ``fix'' recursive programs where the producer and consumer are the same function, as the the same function cannot be inlined into itself indefinitely. An example of such a program is given in \S\ref{section:TreeLookup}. Our solution is to instead provide a new array representation, that guarantees that even with all follow-on optimisations disabled, the program will still run with the correct asymptotic complexity.

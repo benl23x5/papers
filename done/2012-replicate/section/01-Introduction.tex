@@ -1,0 +1,21 @@
+\section{Introduction}
+\label{section:Introduction}
+
+Data Parallel Haskell (DPH) is an extension to the Glasgow Haskell Compiler (GHC) that offers \emph{nested data parallelism}.  With nested parallelism, each parallel computation may spawn further parallel computations of arbitrary complexity, whereas with flat parallelism, they cannot; so nested data parallelism is vastly more expressive for the programmer.  On the other hand, flat data parallelism is far easier to implement, because flat data parallelism admits a simple load balancing strategy and can be used on SIMD hardware (including GPUs). The \emph{higher-order vectorisation} (or \emph {flattening}) transform~\cite{PeytonJones:harnessing-the-multicores} bridges the gap, by transforming source programs using \emph{nested} data parallelism into ones using just \emph{flat} data parallelism \cite{Blelloch:compiling-collection-oriented-languages,PeytonJones:harnessing-the-multicores}. That is, it transforms the program we want to write into the one we want to run.
+
+Unfortunately, practical implementations, including ours, have had a serious flaw: the standard transformation only guarantees to preserve the parallel \emph{depth complexity} of the source program, and not its asymptotic \emph{work complexity} as well. If our benchmark machines had an infinite number of processors, this would be of no concern, but alas they do not.  Nor is this phenomenon rare: while working on DPH we have encountered simple programs that suffer a severe, and sometimes even exponential, blow-up in time and space when vectorised.
+
+This is a well-known problem that arises due to the flat representation of nested arrays in vectorised code~\cite[Appendix~C]{Blelloch:nesl-3_1}. Several attempts have been made to solve it, but so far they have been either incomplete~\cite{Palmer:work-efficient-nested-data-parallelism}, do not work with higher order languages~\cite{Hill:vectorising}, or give up on flattening the parallelism~\cite{Blelloch:provable-type-and-space-efficient, Fluet:2008:Manticore} or arrays \cite{Riely:flattening-improvement} altogether. In this paper, we will show how to overcome the problem for full-scale higher-order vectorisation.
+Overall, we make the following contributions: 
+%
+\begin{enumerate}
+\item   We present the first approach to higher-order vectorisation that, we believe, ensures the vectorised program maintains the asymptotic work complexity of the source program, while allowing nested arrays to retain their flattened form (\S\ref{section:Segds}). We only require that vectorised programs are \emph{contained}~\cite{Blelloch:vector-models, Riely:flattening-improvement}, a property related to the standard handling of branches in SIMD-style parallel programming (\S\ref{section:PackCombine}).
+
+\item   We identify the key problem of mishandled index space transforms, which worsen the asymptotic complexity of vectorised code using prior flat array representations (\S\ref{section:naive-flat}).
+
+\item   We introduce a novel delayed implementation of the central index space transforms (\S\ref{section:Segds}) and discuss the pragmatics of achieving good constant factors, in addition to the required asymptotic performance (\S\ref{section:Pragmatics}).
+
+\item Finally, we present performance figures for several realistic programs, including the Barnes-Hut $n$-body algorithm. This supports our claim that our delayed implementation of the index space transforms leads to vectorised programs that operate within the required asymptotic bounds (\S\ref{section:Benchmarks}).
+\end{enumerate}
+%
+The claim that our new approach to higher-order vectorisation is work efficient is supported by experiments with a concrete implementation in GHC --- but not yet by formal proof, which we leave to future work. Nevertheless, our work presents a significant advance of the state of the art on a long-standing problem. Achieving good \emph{space} complexity is an orthogonal problem that we discuss in \S\ref{section:SpaceUsage}. A reference implementation of our new array representation is available in the companion technical report \cite{lippmeier-etal:replicate-tr}.

@@ -1,0 +1,294 @@
+
+% -----------------------------------------------------------------------------
+\section{Projection, Concatenation and Reduction}
+The @replicates@ and @append@ operators described in the previous sections highlight the fundamental features of our array representation. The work efficient implementation of @replicates@ requires that we represent shared segments without copying element data. As @replicates@ may also drop segments, we must handle scattered segments as well. In addition, the work efficient implementation of @append@ requires multiple data blocks with scattered segments as well as the use of the culling operations from \S\ref{section:Culling}. Culling ensures that the size of the physical representation of an array is bounded by the size of its logical value. We now move on to describe the other operators that we need to support with the new representation when vectorising programs. Happily, we can support them with the correct work complexity without any further extensions.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Index and Extract}
+\label{section:IndexExtract}
+Indexing into a nested array is straightforward. We use the @segmap@ to determine the target segment and then extract (slice) it from its data block. We present this operation for expository purposes only: indexing operators in the source program will be vectorised to lifted indexing, which we discuss in a moment.
+\par
+\begin{small}
+\begin{code}
+ indexPA (PNested (VSegd segmap 
+                  (SSegd sources starts
+                  (Segd  lengths _))) pdatas) ix
+  = PA len (extractPR pdata start len)        
+  where psegid  = segmap  ! ix
+        source  = sources ! psegid
+        start   = starts  ! psegid
+        len     = lengths ! psegid
+        pdata   = indexdPR pdatas source
+\end{code}
+\end{small}
+For indexing to be constant time, @extractPR@ must be as well. When the returned value is a @Vector Int@, or some other vector of scalars, the @vector@ package provides constant time extract by storing a starting index as well as the slice length in the returned @Vector@. To extract a range of subarrays from a nested array we extract their physical segment identifiers from the @segmap@ and then cull the other fields to enforce invariants 6 and 7 from \S\ref{section:Segds}. For example, extracting the middle two segments from @ARR4@ yields:
+\par
+\begin{small}
+\begin{code}
+                    [[F G] [F G]]
+ ------------------------------------------------- (ARR6)
+   PA 2 (PNested
+    (VSegd  segmap: [0 0]
+    (SSegd sources: [0]    starts: [0] 
+    (Segd  lengths: [2]   indices: [0])))
+    (PInts 0: [F G X X H X X X]))
+\end{code}
+\end{small}
+%
+Unfortunately, when @indexPA@ returns a nested array, the called @extractPR@ instance must cull unused physical segments; hence, the overall indexing operation is not constant time. For this reason, our new array representation cannot perform all operations that the direct pointer based one could within the same complexity bounds. However, this does \emph{not} worsen the complexity of vectorised programs relative to the baseline representation, because only \emph{lifted} index and extract operators are used in vectorised code. We can perform the lifted operations within the required complexity bounds. 
+
+Lifted indexing itself is a simple wrapper for the @indexvsPR@ function, whose signature is shown in Figure~\ref{figure:NewArrayOperators}.
+\par
+\begin{small}
+\begin{code}
+ indexlPR :: Int -> PData (PA e) -> PData Int -> PData e
+ indexlPR c (PNested vsegd pdatas) (PInt is)
+   = indexvsPR pdatas vsegd $ zipV (enumFromN 0 c) is
+\end{code}
+\end{small}
+%
+The @indexvsPR@ function takes a set of data blocks, a virtual segment descriptor, and an array of pairs of virtual segment identifiers and element indices within those segments. As we wish to lookup one element from each segment, we enumerate all the available segment identifiers with @enumFromN@. The @indexvsPR@ function itself implements \emph{virtual shared indexing}, it retrieves several elements from some shared data blocks (@pdatas@). It uses the index space transform expressed by the @vsegd@ to map the logical view of the array referred to by the segment identifiers and element indices, to the physical view of the array in terms of the @pdatas@. The definition of @indexvsPR@ is similar to @indexPR@, though we leave the full details for the technical report~\cite{lippmeier-etal:replicate-tr}.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Concatenation}
+\label{section:ConcatUnconcat}
+The central feature of Blelloch's approach to flattening nested parallelism is that it does not need multiply lifted versions of source functions in vectorised code. This is achieved by using the @concat@ and @unconcat@ operators when vectorising higher order functions such as @mapP@ and @zipWithP@. Every source-level application of such a function uses a @concat@/@unconcat@ pair in the vectorised version. An example of this is shown in @retrieve_v@ from \S\ref{section:problem}.
+
+With the baseline array representation from Figure~\ref{figure:OldArrayRepresentation}, both @concat@ and @unconcat@ are constant time operations. To concatenate an array we simply remove the segment descriptor, and to unconcatenate we reattach it. This is possible with the baseline representation, because the form of the segment descriptor implies that the physical segments lie contiguously in a single, flat data block. The description of the segments consists fundamentally of the @lengths@ field, with the @indices@ being computed directly from it. There is no scattering information such as the @starts@ and @sources@ fields of our @SSegd@. 
+
+As we have seen, the limitation of the baseline representation is that it cannot represent index space transformations on nested arrays except by copying element data. In our new representation, we encode such index space transforms in the segment descriptor, which avoids this copying. The price we pay is that the physical segments in a nested array are no longer guaranteed to be contiguous, so we cannot simply discard the segment descriptor to concatenate them. Instead, the @concat@ function must now copy the segment data through the index space transform defined by the segment descriptor, to produce a fresh contiguous array. This is essentially a \emph{gather} operation. The main job is done by @extractvsPR@ from Figure~\ref{figure:NewArrayOperators}, with @concat@ itself being a wrapper for it:
+\par
+\begin{small}
+\begin{code}
+ concat :: PA (PA e) -> PA e
+ concat (PA _ (PNested vsegd pdatas))
+  = let  pdata   = extractvsPR pdatas vsegd
+    in   PA (lengthPR pdata) pdata
+\end{code}
+\end{small}
+\par
+The @extractvsPR@ function takes some data blocks, a segment descriptor that describes the logical array formed from those blocks, and copies out the segment data into a fresh contiguous array. Importantly, although both @extractvsPR@ and @concat@ are now \emph{linear} in the length of the result, this does not worsen the complexity of the vectorised program compared with the baseline representation. The reason is that @concat@/@unconcat@ trick is only needed when vectorising higher order functions such as @mapP@. In terms of the unvectorised source program, @mapP@ is at least linear in the length of its argument array, because it produces a result of the same length. The vectorised version of @mapP@ is implemented by concatenating the argument array, applying the (lifted) worker function, and then unconcatenating the result. The @concat@ and @unconcat@ functions can then be linear in the length of this result, because the unvectorised version of @mapP@ has this complexity anyway. 
+
+Note that the linear complexity of @concat@ is independent of the depth of nesting of the source array. To concatenate an array of type @(PA (PA (PA (PA Int))))@ we only need to merge the two outer-most segment descriptors. The third level segment descriptors, and underlying @Int@ data blocks are not touched. There is an example of this in the accompanying technical report \cite{lippmeier-etal:replicate-tr}.
+
+% -----------------------------------------------------------------------------
+\subsection{Demotion, Promotion and Unconcatenation}
+\label{section:PromotionDemotion}
+The @unconcat@ function is defined in terms of generally useful demotion and promotion operators that convert between the different segment descriptor types. We will discuss these operators first before continuing onto @unconcat@. The operators are as follows:
+\par
+\begin{small}
+\begin{code}
+  demoteVSegd  :: VSegd -> SSegd
+  demoteSSegd  :: SSegd -> Segd
+  promoteSegd  :: Segd  -> SSegd
+  promoteSSegd :: SSegd -> VSegd
+\end{code}
+\end{small}
+%
+Abstractly, demoting a @VSegd@ to a @SSegd@ or a @SSegd@ to a @Segd@ discards information about the extended structure of the array, such as how segments are shared or scattered through the store. Going the other way, promoting a @Segd@ to a @SSegd@ or a @SSegd@ to a @VSegd@ adds redundant information. In our concrete implementation, many array functions (including @unconcat@) are defined in terms of these operators. The fact that these functions are defined this way is also used when optimising for absolute performance, which we will discuss in \S\ref{section:Pragmatics}.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Demotion}
+\label{section:Demotion}
+Demoting a segment descriptor eliminates fields from its representation. Consider the following example:
+\par
+\begin{small}
+\begin{code}
+  virtual segs: [ [B C D] [G] [] [B C D] [E F] [A] ]
+ physical segs: [ [A] [G] [B C D] [E F] [] ]
+ ------------------------------------------------ (ARR7)
+ PA 6 (PNested 
+  (VSegd  segmap: [2 1 4 2 3 0]
+  (SSegd sources: [1 0 1 0 0] starts:  [0 2 1 0 0]
+  (Segd  lengths: [1 1 3 2 0] indices: [0 1 2 4 6])))
+  (PChars 0: [E F G] 1: [A B C D]))
+\end{code}
+\end{small}
+\par
+Here we have shown the virtual segments as described by the @VSegd@, as well as the physical segments described by the @SSegd@. Note that the virtual segments need not appear in the same order as the physical segments are defined, which allows us to implement permutation operations on nested arrays by permuting the @segmap@. Demoting the @VSegd@ to a @SSegd@ pushes the information about sharing encoded by the @segmap@ into the other fields of the segment descriptor. It also forces the entries in the @SSegd@ to appear in the same order as the logical array they define:
+\par
+\begin{small}
+\begin{code}
+         [ [B C D] [G] [] [B C D] [E F] [A] ]
+ ------------------------------------------------------
+  (SSegd sources: [1 0 0 1 0 1]  starts: [1 2 0 1 0 0]
+  (Segd  lengths: [3 1 0 3 2 1] indices: [0 3 4 4 7 9]))
+  (PChars 0: [E F G] 1: [A B C D])
+\end{code}
+\end{small}
+\par
+To demote the array we have computed new @starts@, @sources@ and @lengths@ fields by permuting the originals using the @segmap@. In practice, when we demote a @VSegd@, we must be mindful of the potential for \emph{index space overflow}. By this we mean that if a nested array consists of many virtual copies of a large sub-array, then the total number of elements in the virtual array may be larger than the address space of the machine, even though all the \emph{physical} data fits within it. In this case the elements of the @indices@ field may no longer fit in a machine word. We will return to this point in \S\ref{section:IndexSpaceOverflow}. Avoiding index space overflow is the main reason we use an explicit @segmap@, instead of representing all arrays with the above demoted form (without a @segmap@).
+
+Continuing on, we demote a @SSegd@ to a @Segd@ by simply discarding the outer @SSegd@ wrapper, along with the @sources@ and @starts@ fields. To represent the same logical array, we must then gather the segment data into a fresh data block, similarly to the @extractvsPR@ function described in \S\ref{section:IndexExtract}. For our example this produces:
+\par
+\begin{small}
+\begin{code}
+         [ [B C D] [G] [] [B C D] [E F] [A] ]
+ -------------------------------------------------------
+  (Segd lengths: [3 1 0 3 2 1] indices: [0 3 4 4 7 9])
+  (PChars 0: [B C D G B C D E F A])
+\end{code}
+\end{small}
+\par
+As with the previous demotion, our nested array still has the same logical value as the original. However, by giving up the @sources@ and @starts@ fields we have lost information about how the segments were originally scattered through the store. This forces us to copy them into a fresh data block to represent the original logical array, leaving us with the old array representation from Figure~\ref{figure:OldArrayRepresentation}.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Promotion}
+\label{section:Promotion}
+Promoting an array fills in missing segment descriptor fields with redundant information. To promote a @Segd@ to a @SSegd@, we reuse the existing @indices@ field for @starts@ and fill the @sources@ with all zeros. This indicates that all physical segments lie contiguously in a single flat array. To promote the @SSegd@ to a @VSegd@ we then enumerate the physical segments in the @segmap@. Performing both promotions to the demoted array from the previous section yields the following:
+\par
+\begin{small}
+\begin{code}
+          [ [B C D] [G] [] [B C D] [E F] [A] ]
+ ------------------------------------------------ (ARR8)
+ PA 5 (PNested 
+  (VSegd  segmap: [0 1 2 3 4 5]
+  (SSegd sources: [0 0 0 0 0 0] starts:  [0 3 4 4 7 9]
+  (Segd  lengths: [3 1 0 3 2 1] indices: [0 3 4 4 7 9])))
+  (PChars 0: [B C D G B C D E F A]))
+\end{code}
+\end{small}
+%
+Note that promoting a segment descriptor does not change the logical structure of the array, it just fills in redundant fields in the representation. In our concrete implementation the initialisation of the @segmap@ and @sources@ fields with these ``boring'' values can often be avoided (\S\ref{section:Pragmatics}).
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Unconcatenation}
+
+To unconcatenate an array, we demote the source segment descriptor down to a plain @Segd@ and then re-promote it back to a @VSegd@, before attaching it to the second array:
+\par
+\begin{small}
+\begin{code}
+ unconcatPR :: PA (PA a) -> PA b -> PA (PA b)
+ unconcatPR (PA n (PNested vsegd _)) (PA _ pdata)
+  = let  segd    = demoteSSegd  $ demoteVSegd vsegd
+         vsegd'  = promoteSSegd $ promoteSegd segd
+    in   PA n (PNested vsegd' (singletondPR pdata))
+\end{code}
+\end{small}
+%
+We need the demotion-promotion process because the sharing and scattering information in the @VSegd@ is only relevant to the first array,  not the second array (of type @(PA b)@) that we attach it to. 
+
+Finally, we can normalise the physical structure of an array by concatenating it down to atomic elements and then unconcatenating to re-apply the nesting structure. This eliminates all unused array elements from the data blocks, which improves locality of reference for subsequent operations, and is useful when writing arrays to the file system. Here is the version for triply nested arrays: 
+\begin{small}
+\begin{code}
+ normalise3 :: PA (PA (PA e)) -> PA (PA (PA e))
+ normalise3 arr2
+  = let  arr1    = concat arr2
+         arr0    = concat arr1
+    in   unconcat arr2 (unconcat arr1 arr0) 
+\end{code}
+\end{small}        
+Creating versions of @normalise@ for other degrees of nesting is straightforward. Normalising the doubly nested @ARR7@ from \S\ref{section:Demotion} yields exactly @ARR8@ from \S\ref{section:Promotion}. Note that if we were to elide the @VSegd@ and @SSegd@ layers, a normalised arrays have the same form as the baseline representation from \S\ref{section:naive-flat}.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Reduction and Dynamic Hoisting}
+\label{section:Reduction}
+Consider the following function @retsum@, which indexes several shared arrays, and adds the retrieved value to the sum of the array it came from. This has a similar structure to @retrieve@ from \S\ref{section:problem}.
+\par
+\begin{small}
+\begin{code}
+retsum :: [:[:Int:]:] -> [:[:Int:]:] -> [:[:Int:]:]
+retsum xss iss
+ = zipWithP mapP 
+           (mapP (\xs i. indexP xs i + sumP xs) xss) iss
+\end{code}
+\end{small}
+%
+Here is @retsum@ applied to some example arrays:
+
+\begin{small}
+\begin{code}
+ retsum  [[1 2]   [4 5 6] [8]]       (xss)
+         [[1 0 1] [1 2]   [0]]       (iss)
+    ==>  [[5 4 5] [20 21] [16]]
+\end{code}
+\end{small}
+%
+The subexpression @sum xs@ duplicates work for every application of the inner function abstraction, because it sums the entire @xs@ array once for each of the integer elements in the result. The result of vectorisation, inlining and simplifying @retsum@ is shown below --- the accompanying technical report \cite{lippmeier-etal:replicate-tr} includes the full derivation.
+\par
+\begin{small}
+\begin{code}
+ retsum_v :: PA (PA Int) -> PA (PA Int) -> PA (PA Int)
+ retsum_v xss iss
+  = let ns      = lengths iss
+        n       = sum ns
+        yss'    = replicates ns xss
+    in  unconcat iss 
+         $ add_l n (index_l n yss' (concat iss))
+                   (sum_l n yss')
+\end{code}
+\end{small}
+\par
+In @retsum_v@, the fact that the original sum expression duplicates work is revealed in the fact that the lifted version (@sum_l@) is being applied to a replicated array. At runtime, the segments of the first array are replicated according to the lengths of the segments in the second. The intermediate result @(replicates ns xss)@ is on the next page.
+
+\eject
+\begin{small}
+\begin{code}
+      [[1 2] [1 2] [1 2] [4 5 6] [4 5 6] [8]]
+ ----------------------------------------------- (ARR9)
+   PA 6 (PNested 
+    (VSegd  segmap: [0 0 0 1 1 2]
+    (SSegd sources: [0 0 0]    starts: [0 2 5]
+    (Segd  lengths: [2 3 1]   indices: [0 2 5])))
+    (PInts 0: [1 2 4 5 6 8])
+\end{code}
+\end{small}
+
+Our @segmap@ directly encodes which of the physical segments are being shared. Instead of repeatedly summing segments we know to be identical, we can instead sum the physical segments defined by the @SSegd@, and replicate the results according to the @segmap@. By doing this we actually \emph{improve} the asymptotic complexity of the original program, by avoiding repeated computation that it would otherwise perform. Note that this process depends on Invariant 6 from \S\ref{section:Segds}, as we do not wish to sum unreachable physical segments that are not part of the logical array.
+
+Avoiding repeated computation in this way achieves the same result as the \emph{hoisting} or \emph{full laziness} program transformation, but in a dynamic way. In contrast, performing this transform statically at compile-time would yield the following: 
+%
+\begin{small}
+\begin{code}
+ retsum xss iss 
+   = zipWithP mapP
+             (mapP (\xs. let x = sumP xs 
+                         in \i. indexP xs i + x) xss) iss
+\end{code}
+\end{small}
+%
+However, the GHC simplifier will \emph{not} in-fact perform the above transform, as it does not generally improve performance~\cite{PeytonJones:let-floating}. Finally, although dynamic hoisting may seem like an opportunistic improvement, perhaps not worth the trouble, failing to perform it has other ramifications, which we discuss in the next section.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Fused Hylomorphisms and Index Space Overflow}
+\label{section:IndexSpaceOverflow}
+A subtle point about the @retsum@ example is that if an implementation does not perform dynamic hoisting, it could risk overflowing machine words. This is a general problem with \emph{fused hylomorphisms}, with a hylomorphism being a computation that first builds a structure (like with @replicates@) before reducing it (like with @sum_l@). Although it may be possible to fuse these two operations together so the intermediate structure is never actually created, it is problematic when the index space of that structure is larger than the address space of the machine.
+
+For example, suppose the @xss@ array from the previous section contains 10 elements and  @iss@ contains 500 million. Although this amount of data is easily stored on current hardware, the total number of virtual elements produced by @replicates@ would be \mbox{5 x $10^9$}. This number is not representable in a 32-bit word. This problem is acute because the function that defines the intermediate structure @(replicates)@ is introduced by vectorisation and does not appear in the source program. Simply telling the user ``you can't do that'' would be unreasonable. 
+
+Managing this problem is the main reason that we include an explicit @segmap@ in our array representation. Without the @segmap@, we would instead record each virtual segment separately, like with the first demoted array of \S\ref{section:Demotion}. However, in cases of index-space overflow, elements of the @indices@ field would become too large to be stored. The @indices@ field itself is needed when partitioning the work in the implementation of @sum_l@. We also need the total size of the array, which would again be too large.
+
+Requiring 64-bit array indices and eliminating the @segmap@ is an alternate solution, but it is not clear whether this would be better overall. On 32-bit machines, memory traffic to the @indices@ field would double because of the larger word size. On all machines, operations such as @replicates@ would need to process both the @sources@ and @starts@ field instead of touching the singular @segmap@. On the other hand, indexing operations would not need to dereference the @segmap@, or maintain invariant 6, but as as we will see in \S\ref{section:Pragmatics} this can often be avoided anyway. The code to maintain this invariant is localised, and very similar to that needed for invariant 7, so it would not be a significant reduction in implementation complexity. For now we choose to keep the @segmap@ and leave the quantitative comparison to future work.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Flattening and Space Usage}
+\label{section:SpaceUsage}
+In contrast to the problem with replication outlined in \S\ref{section:problem}, flattening nested parallelism can increase the asymptotic space complexity in a way that this paper does not address \cite{palmer:piecewise, spoonhower-etal:space-profiling}. For example, suppose we vectorise the following function that takes an array of $n$ points and computes the maximum distance between any pair. The full derivation is in the companion technical report \cite{lippmeier-etal:replicate-tr}.
+%
+\begin{small}
+\begin{code}
+furthest :: PA (Float, Float) -> Float
+furthest ps = maxP (mapP (\p. maxP (mapP (dist p) ps)) ps)
+\end{code}
+\end{small}
+%
+The flattened version is a hylomorphism that first computes $O(n^2)$ distances before reducing them to determine the maximum. Whereas the unflattened version would run in $O(n)$ space, the flattened version needs $O(n^2)$ space to hold the intermediate vector of distances. Note that vectorisation does not increase the asymptotic \emph{work} complexity, because these distances must be computed anyway. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Pack and Combine}
+\label{section:PackCombine}
+The @pack@ and @combine@ functions from Figure~\ref{figure:NewArrayOperators} are used in the parallel implementation of @if-then-else@. The @pack@ function takes an array of elements, an array of flags of the same length, and returns only those elements that have their flag set. This function is used to split the parallel context of @if-then-else@ into the elements associated with each branch. It can be implemented in terms of @replicates@, using a replication count of  @1@ for @True@ flags and @0@ for @False@ flags. We mention it separately because @pack@ is the common name for this operation in the literature. The @combine@ function takes an array of flags, two arrays of elements, and intersperses the elements according to the flags. For example @combine [T F F T] [1 2] [3 4] = [1 3 4 2]@. This function is used to merge the results of each branch once they have been computed. On a high level, the implementation of @combine@ is similar to @append@ because the result contains elements from both source arrays, though we leave the implementation to \cite{lippmeier-etal:replicate-tr}.
+
+To achieve our Complexity Goal, both @pack@ and @combine@ must be linear in the length of the @flags@ array. This is because entering a branch in the source program is a constant time operation. In vectorised code, many branches are entered in one parallel step, so the functions that implement this operation must be linear in the number of elements being processed. Achieving this goal with the baseline array representation is not possible, because packing and combining nested arrays requires that we copy element data. In contrast, with our new representation we can simply pack and combine the segment descriptors, leaving the underlying element data untouched. In \cite{Blelloch:compiling-collection-oriented-languages}, Blelloch suggested that it would be more efficient to work on \emph{sparse segments}, which we are now able to do.
+
+As mentioned in \S\ref{section:Introduction} vectorisation can only preserve the complexity of the source program up to \emph{containment}. This problem stems from the fact that flattening @if-then-else@ causes the computations that take each branch to be executed one after another, instead of concurrently. In \cite{Riely:flattening-improvement} Riely and Prins give an example recursive function that calls itself in both branches of an @if-then-else@, and where vectorisation worsens its asymptotic complexity independent of considerations of the array representation. Luckily, the containment problem is rarely met in practice. Riely and Prins prove that provided one branch in each @if-then-else@ executes with a constant number of parallel steps, the containment problem is avoided. This constraint is met by the base case of most recursive functions. However, their language is first order, so their proof does not automatically apply to ours.
+

@@ -1,0 +1,86 @@
+\documentclass{sigplanconf}
+\usepackage{version}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{style/code}
+\usepackage{style/utils}
+
+
+% -----------------------------------------------------------------------------
+\begin{document}
+\title	{Work Efficient Higher-Order Vectorisation}
+
+\authorinfo{
+  \shortstack{%
+    Ben Lippmeier$^\dagger$            \and
+    Manuel M. T. Chakravarty$^\dagger$ \and 
+    Gabriele Keller$^\dagger$           \and 
+    Roman Leshchinskiy$^\dagger$       \and
+    \\[4pt]
+    Simon Peyton Jones$^\ddagger$
+  }
+}{
+  \vspace{5pt}
+  \shortstack{
+    $^\dagger$Computer Science and Engineering \\
+    University of New South Wales, Australia \\[2pt]
+    \textsf{\{benl,chak,keller,rl\}@cse.unsw.edu.au}
+  }
+  \and
+  \shortstack{
+    $^\ddagger$Microsoft Research Ltd \\
+    Cambridge, England \\[2pt]
+    \textsf{\{simonpj\}@microsoft.com}
+  }
+}
+
+\conferenceinfo{ICFP'12,} {September 9--15, 2012, Copenhagen, Denmark.}
+\CopyrightYear{2012}
+\copyrightdata{978-1-4503-1054-3/12/09}
+
+\maketitle
+\makeatactive
+
+% -----------------------------------------------------------------------------
+\begin{abstract}
+Existing approaches to \emph{higher-order vectorisation}, also known as \emph{flattening nested data parallelism,} do not preserve the asymptotic work complexity of the source program. Straightforward examples, such as sparse matrix-vector multiplication, can suffer a severe blow-up in both time and space, which limits the practicality of this method. We discuss why this problem arises, identify the mis-handling of index space transforms as the root cause, and present a solution using a refined representation of nested arrays. We have implemented this solution in Data Parallel Haskell (DPH) and present benchmarks showing that realistic programs, which used to suffer the blow-up, now have the correct asymptotic work complexity. In some cases, the asymptotic complexity of the vectorised program is even better than the original.
+\end{abstract}
+
+\category
+	{D.3.3}
+	{Programming Languages}
+	{Language Constructs and Features---Concurrent programming structures; Polymorphism; Abstract data types}
+
+\terms
+	Languages, Performance
+
+\keywords
+	Arrays, Data parallelism, Haskell
+
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction.tex}
+\input{section/02-Problem.tex}
+\input{section/03-Nested.tex}
+\input{section/04-Representation.tex}
+\input{section/05-Operators.tex}
+\input{section/06-Pragmatics.tex}
+\input{section/07-Benchmarks.tex}
+\input{section/08-RelatedWork.tex}
+
+
+% -----------------------------------------------------------------------------
+\paragraph{Acknowledgements}
+This work was supported in part by the Australian Research Council under grant number LP0989507.
+
+\bibliographystyle{abbrvnat}
+\bibliography{Main}
+
+
+% -----------------------------------------------------------------------------
+\appendix
+%\input{section/09-Appendix.tex}
+% \input{section/99-Notes.tex}
+\end{document}
+

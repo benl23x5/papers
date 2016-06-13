@@ -1,0 +1,7 @@
+# Indices example using old DPH library with copying replicate.
+# vector length, Runtime(ms)
+1024	 78
+2048	 299
+4096	 1131
+8192	 4611
+# 16384. Main: memory allocation failed (requested 537919488 bytes)

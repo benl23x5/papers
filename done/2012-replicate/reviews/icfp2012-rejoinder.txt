@@ -1,0 +1,40 @@
+
+Parallel Speedup Figures
+~~~~~~~~~~~~~~~~~~~~~~~~
+* Reviewer 1 states that they "believe [our] approach successfully removes the asymptotic blow-up associated with data replication", but requires evaluation of how our new array representation impacts parallel execution and speedups. The other reviewers would also like to see benchmarks from a parallel version, and question the constant-factor slowdown in our current sequential implementation.
+
+A: As stated in our contributions, we claim to have an approach to higher order vectorisation that gives the correct asymptotic complexity, and our benchmarks support this claim. Constructing a parallel implementation that also has good absolute performance and good speedup is separate, future work. We believe that our current contribution justifies publication in itself. 
+
+
+* Reviewer 1 questions the statement that our "underlying [array] primitives ... operate on bulk arrays and are amenable to parallelisation", and wonders whether our new nested array representation will support parallelisation as well. 
+
+A: Our nested array primitives are all implemented in terms of operators on flat vectors of scalars (bulk arrays). These flat vector operators (map, fold, filter, append etc) have well known parallel implementations. As the flat vector operators can be parallelised, and our nested array primitives are implemented in terms of them, the nested array primitives can be parallelised also. The sequential reference implementation submitted with the paper (dph-reference-array) contains implementations of the nested array primitives in terms flat vector operators (from the Data.Vector library), which supports our claim that they can be parallelised.
+
+
+Operations Used in the Benchmarks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Reviewer 1 asks "what operations do the benchmark timings include?" and whether "they are timings of just the core inner-loop operations, after all the data has been loaded into the new parallel array representation."
+
+A: The benchmark programs include conversions between array representations. In particular, when divide and conquer algorithms are vectorised, the resulting code increases the nesting level of the source array for every division phase (on the way down), and concatenates the result array on the way back up. We refer to these algorithms as "dynamically nested" for this reason. Both the Tree Lookup and Barnes-Hut benchmarks from Section 7 do this.
+
+As discussed in Section 5.2, concatenation effectively normalises the array, so all the data elements in the result are in one contiguous block of memory. As discussed in Section 4.5 if two arrays are appended then they are given our new blocked representation (with the element data for each source array remaining in its original block). When the appended array is concatenated this normalises it again. The Barnes-Hut benchmark discussed in Section 7.3 uses map, filter, append, concatenate, indexing etc. The full code (minus GUI) is provided in the appendix that we submitted with the paper. Some of these operators don't fuse with each other in the current implementation, which is the main reason why the absolute performance is worse than the reference version. 
+
+
+* Reviewer 1 asks how "badly chunked" can the partially flattened array blocks get. They state that "without a benchmark like QuickSort, which has both small and large segments at different points in its execution, it is hard to tell if the transformation will perform well."
+
+A: The chunk size in the array representation will depend on the particular benchmark being run. We could construct a benchmark where every array element lies in its own chunk, or a benchmark where all array elements are in a single chunk. An important point about QuickSort is that the standard formulation doesn't suffer the asymptotic complexity problem to begin with, so there is no reason to use our new array representation for it. As discussed in Section 6, in many cases we can use rewrite rules to avoid using the new representation for operations that don't need it to gain the correct asymptotic complexity.
+
+
+* Reviewer 1 asks if there is support for performing conversions between the old and new array representations in parallel, and if stream fusion is sufficient for performing these conversions within core loops.
+
+A: Yes. The conversion between the new (chunked) -> old (flat) array representation is performed by the 'concat' operator discussed in Section 5.2. An implementation was provided in the dph-reference-array package that we submitted with the paper. The implementation uses parallelisable flat vector operators. Elements can be read from a chunked nested array and 'on the fly' used in an inner loop that produces a flat array. This can be seen in the implementation of dph-reference-array:Data.Array.PArray.Int.indexvsPR. The virtual shared indexing operator (indexvsPR) is implemented in terms of Data.Array.Unboxed.map, so it will fuse with subsequent stream operators. 
+
+
+Correctness
+~~~~~~~~~~~
+* Reviewer 4 says that it would be nice to have formal proofs of correctness for the operations that shift between flattened and nested array representations. Reviewer 2 suggests the use of QuickCheck properties to justify correctness.
+
+A: We have QuickCheck properties for the key (and most complex) operations like 'concat' in the dph-test package of the DPH repository [1]. These properties compare the result of each operator with the result computed via Data.Vector. We have also validated the output of each benchmark against the reference Data.Vector version. Together, the benchmarks that we present cover all of the nested array primitives discussed in the paper.
+
+
+[1] http://darcs.haskell.org/libraries/dph.git.

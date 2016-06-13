@@ -1,0 +1,150 @@
+\clearpage{}
+% -----------------------------------------------------------------------------
+\section{The Asymptotic Complexity Problem}
+\label{section:goal}
+\label{section:problem}
+
+We start with an example illustrating vectorisation.  The function @retrieve@ simultaneously indexes several arrays, the @xss@, each of which is distributed across one subarray of indices contained in @iss@. It returns a nested array of the results and uses nested parallelism --- an inner parallel computation @(mapP indexP xss)@ is performed for each of the outer ones.
+\par
+\begin{small}
+\begin{code}
+ retrieve :: [:[:Char:]:] -> [:[:Int:]:] -> [:[:Char:]:]
+ retrieve xss iss
+   = zipWithP mapP (mapP indexP xss) iss
+\end{code}
+\end{small}
+\par
+\noindent
+Here is @retrieve@ applied to two example arrays.\footnote{The concrete syntax for array literals is @[:x1, \ldots, xn:]@. To save space, we elide the colon and comma.}
+\par
+\begin{small}
+\begin{code}
+ retrieve [[A B]   [C D E] [F G] [H]]       (xss)
+          [[1 0 1] [2]     [1 0] [0]]       (iss)
+     ==>  [[B A B] [E]     [G F] [H]]
+\end{code}
+\end{small}
+%
+In the type signature, @[:Char:]@ refers to \emph{bulk-strict, parallel, one-dimensional arrays}.  Elements of these arrays are stored unboxed, so that demanding any element causes them all to be computed.  @zipWithP@ and @mapP@ are parallel versions of the corresponding list functions, while @indexP@ is array indexing --- Figure~\ref{figure:UserVisibleArrayOperators} shows these and other typical array operations. The work-complexity of @retrieve@ is linear in the number of leaf elements of the array @iss@ (seven here), since each is used once for indexing.  (Technically it is also linear in the number of sub-arrays in @iss@, since empty arrays in @iss@ would still cost.)
+
+The vectorised form of @retrieve@ is the following --- the accompanying technical report~\cite{lippmeier-etal:replicate-tr} includes the full derivation.
+%
+\begin{small}
+\begin{code}
+ retrieve_v :: PA (PA Char) -> PA (PA Int) -> PA (PA Char)
+ retrieve_v xss iss
+  = let ns = takeLengths iss
+    in  unconcat iss 
+         $ index_l (sum ns) (replicates ns xss)
+         $ concat iss
+\end{code}
+\end{small}
+\par
+The type @PA@ is a generic representation type that determines the layout of the user-visible type @[::]@ in a type-dependent manner~\cite{chak-etal:DPH}. When applied to our example array, the function first concatenates @iss@ to yield a flat array of indices, and uses @takeLengths@ to get the lengths of the inner arrays of @iss@:
+\begin{small}
+\begin{code}
+ ns   = takeLengths iss = [3      1  2    1]
+ iss1 = concat iss      = [1 0 1  2  1 0  0]
+\end{code}
+\end{small}
+%
+\noindent
+The @replicates@ function distributes the subarrays of @xss@ across the flat indices array. It takes an array of replication counts and an array of elements, and replicates each element by its corresponding count:
+\begin{small}
+\begin{code}
+ xss1 = replicates ns xss
+      = replicates [3 1 2 1] [[A B] [C D E] [F G] [H]
+      = [[A B] [A B] [A B] [C D E] [F G] [F G] [H]]
+\end{code}
+\end{small}
+%
+Now we have one sub-array for each of the elements of @iss1@. Continuing on, we use the \emph{lifted indexing} operator @index_l@, which has the following type:
+%
+\begin{small}
+\begin{code}
+ index_l :: Int -> PA (PA e) -> PA Int -> PA e
+\end{code}
+\end{small}
+\noindent
+Given an array of arrays, and an array of indices of the same length, for each subarray-index pair, @index_l@ retrieves the corresponding element of the array. In other words, @index_l@ is effectively @zipWithP indexP@, except that it gets the length of the two arrays as an additional first argument. 
+
+\eject
+Applying @index_l@ to our example yields the following:
+%
+\begin{small}
+\begin{code}
+ xss2 
+  = index_l (sum ns) (replicates ns xss) (concat iss)
+  = index_l 7 [[A B] [A B] [A B] [C D E] [F G] [F G] [H]]
+              [1      0     1    2       1     0     0]
+  = [B A B E G F H]
+\end{code}
+\end{small}
+%
+Finally, we use @unconcat@ to reapply the original nesting structure to this flat result:
+%
+\begin{small}
+\begin{code}
+ xss3 = unconcat [[1 0 1] [2] [1 0] [0]] [B A B E G F H]
+      = [[B A B] [E] [G F] [H]]
+\end{code}
+\end{small}
+%
+In the vectorised function @retrieve_v@, all parallelism comes from the implementation of the primitive flat parallel array operators such as @index_l@ and @replicates@. However, simply converting nested parallelism to flat parallelism is not sufficient. We previously implemented @replicates@ by physically copying each of the subarrays. With that implementation, suppose we evaluate the following expression:
+%
+\begin{small}
+\begin{code}
+  retrieve [[A B C D E F G H]] [[0 1 2 3 4 5 6 7]]
+\end{code}
+\end{small}
+%
+In terms of the source program, this expression takes eight steps, one for each index in the second array. However, in the vectorised program, @replicates@ will also copy @[A B C D E F G H]@ eight times. As we have the same number of characters in the first array as indices in the second array, vectorisation turned a function that performs $O(n)$ work into an $O(n^2)$ function: Disaster! 
+
+It turns out that the trouble with @replicates@ is just one of a class of problems related to the mishandling of index space transforms during vectorisation. These transforms change the mapping between elements in the source and result arrays, but do not compute new element values. In addition to identifying index space transforms as the culprit, in the next two sections we contribute a novel delayed implementation, which enables vectorised programs to remain within the required asymptotic complexity bounds. What are those bounds? Consider an absolutely \emph{direct} implementation of DPH, in which a value of type @[:a:]@ is represented by an ordinary array of pointers to values of type @a@.
+%
+\begin{quote}
+{\bf Complexity Goal:} for the output of vectorisation to have the same \emph{asymptotic work complexity} as the direct implementation, but with much better \emph{constant factors} and \emph{amenability to parallelism}.
+\end{quote}
+
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\begin{small}
+\begin{code}
+ lengthP      :: [:e:] -> Int
+ indexP, (!:) :: [:e:] -> Int -> e
+ concatP      :: [:[:e:]:]     -> [:e:]
+ mapP         :: (d -> e)      -> [:d:] -> [:e:]
+ zipWithP     :: (c -> d -> e) -> [:c:] -> [:d:] -> [:e:]
+ foldP        :: (e -> e -> e) -> [:e:] -> e
+\end{code}
+\end{small}
+\caption{User Visible Array Operators}
+\label{figure:UserVisibleArrayOperators}
+\end{figure}
+
+
+% -----------------------------------------------------------------------------
+% NOTE Don't rename replicates to replicate_s.
+%      We're using the _s prefix for shared operators (like add_s),
+%      and the 's' in 'replicates' means "segmented" not "shared".
+\begin{figure}
+\begin{small}
+\begin{code}
+data PA e = PA {length :: Int, pdata :: PData e}
+data family   PData e
+data instance PData Int    = PInt  (Vector Int)
+data instance PData Char   = PChar (Vector Char)
+data instance PData (PA e) = PNested Segd (PData e)
+data Segd = Segd {lengths, indices :: Vector Int}
+index       :: PA e       -> Int       -> e
+index_l     :: Int        -> PA (PA e) -> PA Int -> PA e
+replicate   :: Int        -> e         -> PA e
+replicates  :: Vector Int -> PA e      -> PA e
+concat      :: PA (PA e)  -> PA e
+unconcat    :: PA (PA e)  -> PA e      -> PA (PA e)
+\end{code}
+\end{small}
+\caption{Baseline Array Representation and Parallel Primitives}
+\label{figure:OldArrayRepresentation}
+\end{figure}

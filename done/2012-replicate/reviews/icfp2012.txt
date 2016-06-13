@@ -1,0 +1,290 @@
+===========================================================================
+                           ICFP 2012 Review #60A
+                 Updated Monday 23 Apr 2012 2:03:23pm CDT
+---------------------------------------------------------------------------
+           Paper #60: Work Efficient Higher Order Vectorisation
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: X. Expert
+
+                         ===== Paper summary =====
+
+The flattening transformation is a classic technique for transforming nested
+data-parallel applications into flat data-parallel ones. But, this
+transformation also has a well-known problem --- when a less-nested piece of
+data is used in conjunction with each element of a more-nested piece of data,
+the less-nested piece of data is distributed (alternatively, replicated),
+potentially causing both a growth in space and work.
+
+Traditionally, this has been a footnote because in first-order NESL it is
+obvious when this happens and straightforward to avoid. But, in Data Parallel
+Haskell, they perform vectorisation (flattening on a higher-order language with
+recursive datatypes), making it far more difficult to avoid this problem when
+writing idiomatic code.
+
+This paper provides a solution to avoid the growth in work through a change in
+the representation of their parallel array structure and implementation of the
+distribute/replicate operations. Instead of flattening all of the data at the
+blocks and adding a segment descriptor, as is traditionally done in the
+flattening/vectorisation transformation, they allow blocks to remain in separate
+chunks and instead add a nesting structure to the parallel arrays.
+
+                      ===== Comments for author =====
+
+This approach looks promising and worthy of investigation. But, based on the
+support presented in the paper, I am not convinced that it provides a solution
+that will work in practice and I recommend that this paper be rejected.
+
+I believe that this approach successfully removes the asymptotic blow-up
+associated with data replication, but I have two major concerns with the new
+representation as presented:
+
+1) Given the very small number of benchmarks presented and absence of additional
+information about the input data and measurements, I cannot tell if this
+approach actually performs in the way that the plots in Figure 6
+suggest. Shifting from a single flat vector representation to a blocked
+representation (with potential layout conversions) adds serious potential
+memory performance issues that are not discussed in Section 7.
+
+2) The purpose of the flattening/vectorisation transformation is to enable
+parallelism. This representation change and the associated operations will have
+some impact on parallel execution and speedups, but there is no evaluation of it
+in that context.
+ 
+More detailed comments and questions follow.
+
+I was unable to understand if and when the concat operation will actually be
+applied, turning the potentially chunky blocks back into a flat
+structure. Section 5.2 seems to imply that every source-level mapP will result
+in a concat/unconcat pair in the vectorised code, but much of the rest of the
+discussion in the paper is about operations on the blocked representation. Since
+the performance of DPH relies so much on the locality (and parallelism, in the
+future), this topic seems important and worth clarifying. In particular, in
+section 7, you state that your "underlying primitives ... operate on bulk arrays
+and are amenable to parallelisation," which it seems that your new
+representation will not support if the blocks are not concatenated.
+
+The following two paragraphs assume that parallel programs such as those
+presented in the paper _may_ execute over the chunked flat arrays
+representation.
+
+How badly chunked can the partially-flattened array blocks get? Without a
+benchmark like quicksort, which has both small and large segments at different
+points in its execution, it is hard to tell if this transformation will perform
+well.
+
+What are the characteristics of the sparse matrix? If it is excessively sparse
+(very few elements per row, which would presumably lead to many blocks in your
+parallel array representation), dense, or mixed, do you still get the same close
+results to the hand-written Data.Vector version?  Depending on how your
+allocator / garbage collector orders the blocks, I would assume that you could
+end up having wildly different memory access times for small blocks scattered
+across pages vs. a sequential run down a single flat block. I have a similar
+question about the distribution of points for Barnes-Hut.
+
+If the programs may _not_ execute over chunked flat arrays (and all executions
+will only be on flattened arrays), then is parallel stream fusion sufficient to
+remove all of these conversions within core loops? Or if some of these
+conversions will remain, is there support for performing them in parallel to
+avoid linear sequential bottlenecks?
+ 
+Finally, what operations do the benchmark timings include? Do they also include
+any related operations that convert to or from this flattened structure? Or
+normalize the structure? Or are the timings just of the core inner loop
+operations, after all data has been loaded into the new parallel array
+representation (and concatenated, if that is done)?
+
+===========================================================================
+                           ICFP 2012 Review #60B
+                Updated Wednesday 2 May 2012 7:05:56am CDT
+---------------------------------------------------------------------------
+           Paper #60: Work Efficient Higher Order Vectorisation
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: Y. Knowledgeable outsider
+
+                         ===== Paper summary =====
+
+This paper is a step---and quite an important one---in the development
+of Data Parallel Haskell, an implementation of Nested Data
+Parallelism. The problem it solves is that the vectorizing
+transformation does not preserve the work complexity of programs it
+transforms: data in nested arrays must at times be replicated, for
+example turning linear algorithms into quadratic ones. This problem
+has been known for over a decade, and leads to an explosion in the
+running time of some DPH benchmarks. The solution is---as usual---an
+extra level of indirection. The array representation is changed to
+introduce "virtual segments" which are mapped to physical segments,
+enabling the data in a nested array to be distributed across many
+blocks, rather than collected into one contiguous vector.
+
+This sounds simple, but it's not: the implementation of the DPH
+operations is intricate, and to be honest, not that easy to
+follow---the paper demands very careful reading. In fact, only a part
+of the implementation is described in detail; there are many
+references to an accompanying technical report for further
+details. This makes the paper not entirely self-contained; one wonders
+whether the authors are trying to describe too much in one paper. The
+paper claims that the resulting implementation has the same work
+complexity as a "direct" implementation of the same operations using
+an unflattened representation of arrays as vectors of pointers. The
+paper argues informally for this as each operation is described, but
+there is no proof---instead, three benchmarks are presented in which
+the old DPH implementation blew up, with worse complexity than a
+sequential implementation using Vectors, while the new one performs
+with the same complexity, but a larger constant factor. The benchmarks
+measure only single-threaded performance, which is appropriate for
+comparing work complexity, but I would have liked to know how the new
+library scales on multiple cores also---a shame there are no parallel
+benchmark results.
+
+I believe nested data parallelism will be important, if it can be made
+to work, and this paper addresses a fundamental problem, probably a
+show-stopper. And yet... the benchmarks also show that the new DPH
+implementation performs (in two out of three cases) an order of
+magnitude *worse* than the reference sequential implementation. That
+is a big constant factor to try to recover through parallelism. Why is
+the absolute performance so poor? Perhaps because while the old DPH
+implementation used two auxiliary vectors of book-keeping data per
+array, the new one uses five. One is left fearing that the new idea is
+simply too expensive to be practical. Thus this paper is no more than
+a step on the way to practical nested data parallelism.
+
+                      ===== Comments for author =====
+
+The new array representation (Figure 3) is quite complex, and it took
+me a long while to understand its intent. I like your examples, but I
+would also like a *formal* specification of the meaning of the new
+representation via an abstraction function mapping the new
+representation to the old. Studying the definition of that abstraction
+function would, I think, have enabled me to understand the new
+representation more easily. I realise this is probably your "demotion"
+functions discussed later---but you don't include the definitions of
+these functions anywhere, and I would like to see them at the same
+time as you introduce the new representation. It didn't help to omit
+the indices field from the diagram, by the way---just made me wonder
+what it should be.
+
+If you defined the abstraction function, you could use it in
+QuickCheck properties to relate the new operations on arrays to the
+old. This would be a useful check on the correctness of your---quite
+complex---implementations.
+
+At the beginning of section 2, "shared across" makes no sense to
+me---what are you saying here?
+
+In section 4.3 you have been sloppy with your types: replicates, which
+was introduced with a first parameter of type PA Int earlier, now
+appears with a first parameter of type Vector Int. Then you say you
+lied, and give it a type in which the first two parameters are scalars
+rather than vectors of any type (bottom of page 4, definition of
+replicatesI). By the time you get to replicatesPA a few lines further
+on, it takes a Vector again---and a PData as the second argument now,
+rather than a PA. This is EXTREMELY CONFUSING! What on earth is going
+on?
+
+At the top of page 6, you use ++, map and length from the Vector
+library without mentioning that they are NOT the ones from the
+Prelude. You'll help the reader if you point that out explicitly.
+
+I note that even empty segments refer to a block and offset. Does this
+mean, when you come to cull blocks, that an empty segment referring to
+a block can cause it to be retained? Does this matter for your
+complexity claims?
+
+p10 unrunable should be unrunnable.
+
+p11 first line: were should be where.
+
+===========================================================================
+                           ICFP 2012 Review #60C
+                Updated Saturday 5 May 2012 11:55:29am CDT
+---------------------------------------------------------------------------
+           Paper #60: Work Efficient Higher Order Vectorisation
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: Y. Knowledgeable outsider
+
+                         ===== Paper summary =====
+
+Existing transformations used to "flatten" nested data parallelism may not preserve computational complexity but may instead asymptotically increase the amount of computational work required.  This paper identifies the reason for this flaw, and its close connection with the target representation of arrays.  The paper then describes in detail a new approach based on a different representation, including (single-threaded) results from a preliminary implementation.
+
+                      ===== Comments for author =====
+
+I enjoyed reading your paper.
+
+I found the explanations of the opening sections (1-3) clear and pleasant to read, with well-chosen illustrative examples.  Just one typo:
+
+p2 "the type PA is [an -> a] generic  representation"
+
+Though I found sections 4-5 harder going, as they go into quite a lot of technical detail about your new approach, again I was impressed by the clear exposition.  A few minor points:
+
+p3 "we refer to all of VSegd, SSegd and Segd ``segment descriptors''"  Apart from the missing "as" there is an ambiguity: do you mean all severally or all collectively?
+
+p4 It would be helpful to keep the data invariant as concise as possible.  I suggest moving the motivating observations "This ensures that ..." out of clauses 2 and 3 of the invariant itself, and into the following discussion (where other similar observations are already made).
+
+p4 The naming convention for identifiers is not always clear.  PR is first used before it is defined.  The signatures for "replicates" and "replicatesPR" seem to be those of other replicate functions and are inconsistent with Figure 5.
+
+p5 "replicating array from Figure 3 again"  Missing "the".  But I also found "again" confusing, as it does not refer to a repetition of what has gone before.  How about "an application of |replicates| to the array represented in Figure 3"?
+
+p6 I felt a "reading discontinuity" on turning the page.  Perhaps the definitions of appendPR et. al. could be made into a captioned figure?
+
+p7 I was a bit confused by the paragraph starting "Unfortunately, ...".   The key claim is "does not worsen complexity".  In Section 1 you clearly state as a contribution that under your approach "vectorised programs maintain the asymptotic work complexity of the originals".  Surely "the originals" here can only mean source programs before vectorisation, or else the statement is a tautology?  But now this "Unfortunately" paragraph seems to shift the goal-posts by continuing "... worsen the complexity of *vectorised* programs" (my emphasis).   Please make things clear in both places.
+(A similar issue recurs in Section 5.2 with "does not worsen the complexity ... compared with the baseline representation".)
+
+p9 "Whereas the sequential version ... the flattened version ...".  I found "sequential" distracting.  Perhaps just "unflattened" would be clearer?
+
+p9 "and returns [on] only those elements"
+
+p9 "Luckily, the containment problem is rarely met in practice."  Can programmers tell easily if their programs are not "contained", or is it a property that may only emerge in intermediate forms of programs during compilation?
+
+Section 6 offers some useful insights.  Just one puzzling sentence:
+
+p10 "The problem is that this rule improves the asymptotic complexity of the program which turns out to be a bad thing engineering wise."  Surely asymptotic complexity improvement is a "good thing"?  The "bad thing", as the sequel explains, is that in the context of other transformations this rule may rarely fire.
+
+It is nice to have the experimental results in Section 7.
+
+p11 "programs [were -> for which] the baseline
+
+p11 "single-threaded mode only" ... and you say good results for parallel computations depend on getting fusion to work with the new array representation.  How certain is it that this can be done?  Is it routine but laborious?  Or are there as yet unsolved problems?  The results you give show quite large constant-factor overheads of the new array representation, so its ultimate advantage depends on significant performance gains by parallel execution of multiple threads.
+
+Section 8 summarises related work, but what about overall conclusions?
+
+p12 Omit "to name a few"? (No-one is fooled; two is two!)
+
+p12 "equivalent to disallowing [functions to have free variables -> free variables in function bodies]"?
+
+p12 "contents of free variables [is -> are] copied"
+
+p12 "in [14] [he -> the authors] present[s]"
+
+p12 Substitute for "TBA" in ref [14]
+
+===========================================================================
+                           ICFP 2012 Review #60D
+                 Updated Sunday 6 May 2012 11:18:41pm CDT
+---------------------------------------------------------------------------
+           Paper #60: Work Efficient Higher Order Vectorisation
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: Z. Passing familiarity with the area
+
+                         ===== Paper summary =====
+
+This paper describes a new approach to the flattening of nested parallelism that avoids the potential increase in computational time complexity of earlier approaches.  The approach involves a change in the representation of nested arrays that allows result subarrays to be shared, with various techniques to maintain flat layout when possible to avoid loss of data locality.
+
+                      ===== Comments for author =====
+
+This seems like an important step forward, but I found the presentation difficult to follow and hence verify starting with Section 4, possibly due to the inherent complexity of the mechanism.  Indeed, the mechanisms described in this paper to shift between flattened and partiall flattened representations are complex enough that proofs of correctness and of the preservation of work complexity should really be provided.
+
+It would be nice to have one or more benchmarks that do not involve worsening of complexity to show whether there is any significant overhead for the new array representation versus Baseline DPH.  It's unfortunate that benchmarks are not available for a parallel implementation.
+
+A nod to Riely and Prins [18] should be given when you introduce your modified array structure, given the similarity of their approach.  It would also be nice and should not be difficult to back up your claim of superiority to [18] in the related work section by benchmarking a version of your implementation that always uses vectors of references.
+
+In Section 1, paragraph 1, remove the word "vastly" in "vastly more expressive" unless you have some way to justify the claim.  same with "far" in "far easier to implement".
+
+In Section 1, paragraph 2, "only guarantees to preserve" => "guarantees to preserve only"
+
+Please clarify what you mean by "parallel depth complexity" and "parallel work complexity" so the reader doesn't have to puzzle it out.
+
+In Section 7, first paragraph, "programs were the" should read "programs where the".
