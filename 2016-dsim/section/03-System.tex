@@ -1,0 +1,26 @@
+%!TEX root = ../Main.tex
+
+% ---------------------------------------------------------
+\section{Formal System}
+The grammar and meta-functions for a simply typed version of $\lambda_{dsim}$ are given in Figure~\ref{f:grammar}. We use $a$ for atomic type names, and $x$ for term variables. The abstraction form $\theta \rhd \lambda x: \tau. e$ includes a concrete substitution $\theta$. We write term application with an explicit $@$ operator for clarity. Note that the only place where an explicit substitution can appear in a term is attached to an abstraction. We use explicit substitutions to deal with the complexities of variable binding, and only the construct that binds a variable needs to be modified relative to the standard lambda calculus.
+
+The concrete substitutions $\theta$ are right biased lists of term bindings, where $\bullet$ is an empty substitution. Similarly, type environments are right biased lists of type signatures, where we overload $\bullet$ to mean an empty environment. We write the result of appending two substitutions as $\theta_1 \circ \theta_2$, and similarly for environments. 
+
+In the formal presentation we write $\msubst~ \theta~ e$ for the application of an explicit substitution $\theta$ to a term $e$. In the previous section we wrote $\{...\}$ for concrete substitutions and $[...]~ e$ for a meta-level substitution applied to a term. We did this for expositional purposes, but we see now that both the meta-level and concrete substitutions are just lists of term bindings --- in the abstract syntax there are no parenthesis. In the definition of substitution $mapExp$ is a meta level operation that applies its functional argument to the expressions in a list of bindings. 
+
+We define two right-biased lookup functions, $lookup_S$ for substitutions and $lookup_E$ for type environments. We use $None$ and $Some$ as constructors of a meta-level option type, which we use to express whether or not a particular binding appears in a substitution or type environment.
+
+
+% ---------------------------------------------------------
+\subsection{Type Checking}
+Figure~\ref{f:TypeChecking} gives the rules for type checking. The judgment $\TypeX{\Gamma}{e}{\tau}$ reads ``Under type environment $\Gamma$, expression $e$ has type $\tau$''. The judgment $\TypeS{\Gamma}{\theta}{\Delta}$ reads: ``Under type environment $\Gamma$, substitution $\theta$ has type $\Delta$'', where $\Delta$ is a list of type signatures, one for each element of the substitution.
+
+The typing rules themselves are similar to the ones for simply typed lambda calculus. In rule TySub we lift the single-expression typing judgment to an entire substitution, to yield a list of types of the term bindings. In rule TyAbs we take the types of all the bindings in the concrete substitution and add this to the environment. The types from the substitution are added to the \emph{left} of the $x : \tau_1$ signature for the formal parameter. The bound variable $x$ shadows any similarly named variables in the substitution.
+
+
+% ---------------------------------------------------------
+\subsection{Evaluation}
+Figure~\ref{f:TypeChecking} also gives the call-by-value evaluation semantics. Rule EsReduce performs the role of $\beta$-reduction. The difference for $\lambda_{dsim}$ being that when we substitute the argument into the body, we also carry down the substitution attached to the outside of the abstraction. This rule converts the concrete substitution into the meta-level version. During reduction, the meta-level substitution is converted back to an concrete one by the definition of $subst$ back in Figure~\ref{f:grammar}.
+
+In Figure~\ref{f:ValueDone} the judgment (\ValueX{e}) indicates that $e$ is a value, the only one of which is an abstraction. The judgment \mbox{(\DoneX{e})} indicates that $e$ has finished reduction. Reduction ends when the term is in weak head normal form.
+

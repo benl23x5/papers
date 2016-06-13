@@ -1,0 +1,16 @@
+%!TEX root = ../Main.tex
+
+\section{Limitations}
+The technique of not substituting into abstractions avoids name capture during reduction, but is not a ``full spectrum'' approach to binding. Specifically, the typing rules of polymorphic calculi introduce additional scoping problems that are unrelated to reduction. Consider the following System-F example:
+$$
+(\Lambda a.~ \lambda x : a.~ \Lambda a.~ \lambda y : a.~ \rpair~ x~ y)
+ :: \forall a. (a \to \forall a.~ (a \to a \times a))
+$$
+
+Here we see that reusing the names of type binders in the inferred type results in name capture. Although no reduction has taken place, we still need to introduce new names for the type to be well scoped, for example:
+$$
+(\Lambda a.~ \lambda x : a.~ \Lambda a.~ \lambda y : a.~ \rpair~ x~ y)
+ :: \forall a. (a \to \forall b.~ (b \to a \times b))
+$$
+
+In the standard presentations of System-F a side condition is added to the typing rule for type abstraction $(\Lambda)$ to ensure that the bound name is not already used in the type environment \cite{Reynolds:type-structure}. However, in general this is property is not preserved during reduction, at least without performing intermediate alpha conversions.

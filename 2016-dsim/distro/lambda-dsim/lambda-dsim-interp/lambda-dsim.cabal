@@ -1,0 +1,20 @@
+
+name:           lambda-dsim
+version:        1.0.0.0
+license:        PublicDomain
+cabal-version:  >= 1.6
+stability:      experimental
+category:       Compilers/Interpreters
+synopsis:       Don't Substitute Into Me.
+build-type:     Simple
+
+executable lambda-dsim
+ hs-source-dirs: .
+ build-depends: base, containers, transformers, haskeline
+ main-is:       Main.hs
+
+ ghc-options:   -Wall -Werror -O
+
+ extensions:
+        PatternGuards
+        ExistentialQuantification

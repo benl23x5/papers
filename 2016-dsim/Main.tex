@@ -1,0 +1,50 @@
+
+\documentclass[preprint]{sigplanconf}
+\usepackage{pdf14}
+\usepackage{version}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{alltt}
+\usepackage{url}
+\usepackage{float}
+\usepackage{style/utils}
+\usepackage{style/proof}
+
+% -----------------------------------------------------------------------------
+\begin{document}
+\title  {Don't Substitute Into Abstractions} 
+
+\authorinfo
+{       Ben Lippmeier   }
+{ \shortstack
+  {     Vertigo Technology and \\
+        University of New South Wales \\[2pt]
+        \textsf{benl@ouroborus.net}
+  }
+}
+
+\maketitle
+
+% -----------------------------------------------------------------------------
+\begin{abstract}
+We present a new view on an old solution to the problem of name capture in the lambda calculus. During reduction, by not substituting into abstractions we can retain the names present in the initial expression, and avoid the need to generate new, fresh names. 
+\end{abstract}
+
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction}
+\input{section/02-Examples}
+\input{section/03-System}
+\input{section/04-Metatheory}
+\input{section/05-Limitations}
+\input{section/06-Related}
+
+
+% -----------------------------------------------------------------------------
+\bibliographystyle{plain}
+\bibliography{Main}
+
+
+\end{document}

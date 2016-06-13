@@ -1,0 +1,61 @@
+Thankyou for the reviews!
+
+# For Review A
+The point about not having a recursive example is a good one. The untyped interpreter I implemented (and is included in the supplementary material) uses a fixpoint combinator to express recursion, and the recursive programs work fine. However, the fact that the STLC based language in the paper does not allow such a combinator is a weakness. I think I will end up adding a 'fix' form to re-introduce recusion.
+
+For the question "every closure in the substitution would recursively have to be visited, right?". Yes. The system in the paper is a bit more efficient than the standard brute-force substitution method, but not as good as some of the more heavy duty explicit substitution systems. The original motivation for the current paper was whether we could do a mechanised proof of soundness without requiring the term being reduced to be closed, and without special machinery for binding or alpha conversion. If we want to write an interpreter for the same language we then need to fix an evaluation order. The fact that the reduction method is a bit more efficient at runtime is a side benefit.
+
+
+# For Review B
+I don't understand the point about closure conversion that you were making.
+
+The example that you quoted isn't a problem:
+
+({x = 3, f = λz. x} \> (λx. f @ 3)) @ 4
+
+-> ([x = 3, f = λz. x, x = 4] \> f @ 4
+
+-> (λz. x) @ 4
+
+-> x
+
+As we'd expect, the occurrence of 'x' in the 'f' binding of the original substitution is free, and it is still free in the result. There is no name capture. There is no need to closure convert the term before reduction. In my interpreter the user can supply a term in the standard lambda calculus and the interpreter reduces it using the method described in the paper.
+
+The substitution:
+{x = 3, f = λz. x}
+
+is well typed under an environment that contains a type for the free occurrence of 'x' in the 'f' binding. For example:
+
+```
+                                 ---------------------------- (TyVar)
+                                 x: Char, z: Bool ⊢ x : Char
+ ------------------ (Prim)  --------------------------------------- (TyAbs)
+  x: Char ⊢ 3 : Nat         x: Char ⊢ λz: Bool. x : Bool -> Char
+------------------------------------------------------------------- (TySub)
+x: Char ⊢ {x = 3, f = λz: Bool. x} ⊢ { x: Nat, f: Bool -> Char }
+```
+
+In the course notes that you linked:
+http://www.cs.cmu.edu/~fp/courses/15312-f02/handouts/05-functional.pdf
+
+On the first page it says that "it is important that all variables x_i in an environment are distinct ..."
+
+On the third page it says "These properties hold under the assumption that all the x_i are distinct and that all v_1, v_2 ... v_n" are closed, which is known in our case."
+
+On the 5th page the theorem "Equivalence of Environment and Substitution Semantics" explicitly sets the type environment to be empty, which implies the term being evaluated must be closed.
+
+The point about the current paper is that we do not need such assumptions to reduce the term, or to prove soundness of the type system. I agree that it is folklore that call-by-value reduction with closed values does not need special handling to avoid name capture -- this is obvious because the values we are substituting are always closed, so they cannot contain names that can be captured.
+
+The system in the paper closure converts the term during reduction, but there is no need to closure convert the initial term to be reduced -- unless I have misunderstood your point?
+
+
+# For Review C
+
+I agree that there should be a larger example showing how recursion is handled. That is a weakness of the paper.
+
+Thankyou for the other suggestions and references. I have read other work by Lescanne and Rose, but not the papers you mentioned. I'll check them out.
+
+
+
+
+

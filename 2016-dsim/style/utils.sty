@@ -1,0 +1,70 @@
+
+\newcommand{\TODO}[1]   {\emph{\textbf{TODO:}  #1}}
+\newcommand{\ISSUE}[1]  {\emph{\textbf{ISSUE:} #1}}
+\newcommand{\CITE}[1]   {\emph{\textbf{CITE:}  #1}}
+\newcommand{\REF}       {\textbf{REF}}
+
+
+% -- Make the reversed \vdash using the graphicx package
+\makeatletter
+\providecommand*{\dashv}{%
+  \mathrel{%
+    \mathpalette\@dashv\vdash
+  }%
+}
+\newcommand*{\@dashv}[2]{%
+  \reflectbox{$\m@th#1#2$}%
+}
+\makeatother
+
+
+% -- A type rule.
+\newcommand{\ruleI}[2]
+{
+        \frac   {\displaystyle #1}
+                {\displaystyle #2} \ 
+}
+
+
+\newcommand\TypeX[3]
+{       #1 ~\vdash~  #2 ~::~ #3
+}
+
+
+\newcommand\TypeS[3]
+{       #1 ~\vdash~ #2 ~\dashv~ #3
+}
+
+\newcommand\StepX[2]
+{       #1 ~\longrightarrow~ #2
+}
+
+\newcommand\ValueX[1]
+{       #1~ \textbf{value}
+}
+
+\newcommand\DoneX[1]
+{       #1~ \textbf{done}
+}
+
+\newcommand\EvalX[2]
+{       #1~ \Downarrow~  #2
+}
+
+\newcommand\msubst              {\mathit{subst}}
+
+
+\newcommand\mi[1]               {\mathit{#1}}
+
+\newcommand\msucc               {\mathit{succ}}
+\newcommand\madd                {\mathit{add}}
+\newcommand\mone                {\mathit{one}}
+\newcommand\mtwo                {\mathit{two}}
+\newcommand\mthree              {\mathit{three}}
+\newcommand\mfour               {\mathit{four}}
+\newcommand\mfive               {\mathit{five}}
+\newcommand\mtrue               {\mathit{true}}
+\newcommand\mfalse              {\mathit{false}}
+\newcommand\mpurple             {\mathit{purple}}
+
+\newcommand\rpair               {\mathrm{pair}}

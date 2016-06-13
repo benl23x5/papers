@@ -1,0 +1,52 @@
+%!TEX root = ../Main.tex
+\section{Introduction}
+
+Let's reduce the following expression:
+$$
+(\lambda x.~ \lambda y.~ \madd~~ x~~ y)~~ (\msucc~~ y)~~ \mfive
+$$
+
+The free variables are $\madd$, $\msucc$, $\mfive$, and the right-most occurrence of $y$. Although this is a simple expression, when we reduce it we need to manage the fact that $y$ is used as both the name of a binder (on the left) as well as a free variable (on the right). We cannot naively substitute our function's first argument into its body, as the binding occurrence of $y$ will \emph{capture} the previously free occurrence of $y$, like so:
+$$
+\stackrel{\beta}{\longrightarrow}
+(\lambda \underline{y}.~ \madd~~ (\msucc~~ \underline{y})~~ \underline{y})~~ \mfive~~~~~~~~ \textrm{(wrong)}
+$$
+
+The standard solution is to rename binders so they do not clash with the names of free variables, then perform the substitution as before. The renaming process is called \emph{alpha conversion}. Doing this for the initial expression yields:
+$$
+\begin{array}{l}
+\stackrel{\alpha}{\longrightarrow}
+ (\lambda x.~ \lambda \mpurple.~ \madd~~ x~~ \mpurple)~~ (\msucc~ y)~~ \mfive
+\\
+\stackrel{\beta} {\longrightarrow}
+ (\lambda \mpurple.~ \madd~~  (\msucc~ y)~~ \mpurple)~~ \mfive
+\\
+\stackrel{\beta} {\longrightarrow}
+ \madd~~ (\msucc~~ y)~~ \mfive
+\end{array}
+$$
+
+Alpha conversion allows us to arrive at the correct answer, but we are left with the awkward question of where the new names (like $\mpurple$) come from. In standard presentations, the new names are required to be \emph{fresh}, meaning unused so far in the given reduction. However, the process of generating fresh names is usually delegated to the meta-level, rather than being part of the system defined. This approach is acceptable for pen-and-paper mathematics, but those of us building compilers and mechanized proofs of language properties are left in a bind.\footnote{or perhaps without one}
+
+Other approaches to variable binding include using de Bruijn indices or levels~\cite{deBruijn:nameless-dummies}, the locally named~\cite{Chargueraud:locally-nameless} and nameless~\cite{McKinna:pts-formalized} approaches, as well as Higher Order Abstract Syntax (HOAS)~\cite{Pfenning:hoas}, nominal techniques \cite{Pitts:nominal}, using a pointer based graphical representation of the program~\cite{Shivers:bottom-up-beta}, and simply axiomatizing alpha equivalence~\cite{Gordon:five-axioms}.
+
+However, no one approach seems to be suitable for all applications: the de Bruijn representations trade intuitive named binders for unintuitive numbers; locally named and nameless approaches still need to generate fresh names; HOAS again punts the problem to the meta-level; nominal techniques require substantial tool support; pointer based approaches are well suited to concrete implementations but not the abstract definition of language semantics, and axiomatic techniques work for proof but not for implementation. In practice, implementations of interpreters and compilers often use de Bruijn indices, or techniques (or hacks) to generate fresh names based on global counters~\cite{Augustsson:names}.
+
+The contribution of this paper is a new view on an old approach to name capture, which is at once simple, easy to explain, and limited (meaning targeted) in application. The tragedy of name capture arises when we substitute an expression into an abstraction, and the expression being substituted has a free variable with the same name as the binder. Our solution is to just not do that. 
+
+In summary we make the following contributions:
+%
+\begin{itemize}
+\item   We present a solution to the name capture problem that allows us to reduce lambda expressions without the need to generate fresh names, or rename existing ones.
+
+\item   The solution allows us to reduce open terms without needing to separate variables into multiple classes, as in locally named and nameless approaches.
+
+\item   Our calculus and its semantics are fully mechanized in Coq, and we provide a simple interpreter.
+% Hide footnote for double blind submission.
+% \footnote{\textrm{http://iron.ouroborus.net}}
+\end{itemize}
+
+Our calculus is named $\lambda_{dsim}$ (lambda don't substitute into me). It is related to prior work on explicit substitutions, in particular the 
+\mbox{$\lambda\sigma_w$ theory} of Curien, Hardin and Levy \cite{Curien:explicit-substitutions}. The main differences are that we present a standard call-by-value reduction semantics suitable for an interpreter implementation, and do not need to allow the explicit substitution to appear everywhere in the term being reduced.
+
+

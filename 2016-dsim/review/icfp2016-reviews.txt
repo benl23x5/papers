@@ -1,0 +1,367 @@
+===========================================================================
+                           ICFP 2016 Review #95A
+---------------------------------------------------------------------------
+      Paper #95: Don't Substitute Into Abstractions (Functional Perl)
+---------------------------------------------------------------------------
+
+                      Overall merit: C. Weak paper, though I will not fight
+                                        strongly against it
+                         Confidence: X. I am an expert in this area
+
+                         ===== Paper summary =====
+
+The paper presents a variant of explicit substitutions calculi that is claimed to be simpler.
+
+                      ===== Comments for author =====
+
+My first reaction was that the claims of the paper must be wrong because of the unbounded generation of names during recursion. A cursory look confirmed there was no treatment of recursion. After reading a little more, my second reaction was that the claims become believable, even in the presence of recursion, if one takes an implementation of a functional language with environments as the starting point. If these environments are propagated to the points of use this yields a system that is close to what the paper presents. 
+
+The beginning of Sec. 2 was rather confusing: there are two equations numbered (1.3) and the transition between them in not clear. I think the main problem is the mixing of meta-level and explicit substitution. I think meta-level substitutions should probably not be written at all in such a language and that one should restrict reductions to explicitly constructed syntax. 
+
+There should be a well-developed example showing a small recursive function. There should also be an explicit mention of the fact that the terms being substituted may themselves contain substitutions. What I mean is applications in which the argument is itself a lambda-expression:
+
+  ({x1 = e1} > (\x. e))  ({x2 = e2} > (\y.e'))
+
+I found it odd that the examples and the discussion until one sees Fig. 1 does not mention this point. In Fig. 1 we finally see that the right hand sides in \theta are fully fledged expressions which can be of the form \theta > \x.e
+
+I was confused by the predicates 'value' and 'done'. I would have expected the reductions in a call-by-value language to just refer to the predicate 'value' so (EsReduce) should only require that e2 is a value. After seeing the definitions on the next page, I see that because we are dealing with open terms, and because there was a decision not to treat variables as values (which is common in call-by-value calculi), the distinction is necessary. Still I think the presentation is a bit awkward and perhaps having variables as values would make it easier to follow. 
+
+The limitation in Sec. 5 is somewhat orthogonal to the current system. I would have rather seen that space used to discuss recursion or a better comparison with explicit substitution calculi. 
+
+Sec. 6 states that alpha-conversion is a non-local and inefficient computation. This is true. But is 'subst' (in the second half of Fig. 1) equally non-local and inefficient. Every closure in the substitution would recursively have to be visited, right? 
+
+The comparison with calculi for explicit substitutions is vague and weak. Is the current system just a restricted version of one of the explicit substitution calculi or not ?
+
+Typos:
+
+- because we once we => because once we
+
+
+===========================================================================
+                           ICFP 2016 Review #95B
+---------------------------------------------------------------------------
+      Paper #95: Don't Substitute Into Abstractions (Functional Perl)
+---------------------------------------------------------------------------
+
+                      Overall merit: D. Reject
+                         Confidence: X. I am an expert in this area
+
+                         ===== Paper summary =====
+
+This is a functional pearl on how to beta-reduce lambda calculus
+expressions without using alpha-renaming to avoid variable capture
+when substituting into functional expressions.
+
+The idea is to organize the evaluation of lambda terms in an abstract
+machine which also takes an explicit substitutions to bind the free
+variables. That is, the abstract machine takes the form
+
+  \Theta \\> e
+
+where \Theta is an explicit substitution. When e is an application
+(lambda x. e1) v2, the reduction proceeds to reduce e1 under a
+substitution [\Theta, x -> v2].
+
+Assessment
+
+I kept going back and forth with this paper, as it is kind of subtle,
+and the writing is not emphasizing the right points.
+
+First, the idea of using explicit substitutions (or environments) to
+encode variable bindings and avoid substituting into functional
+abstractions, is of course not new. E.g., a quick web search obtains
+the following lecture notes of Frank Pfenning on environment
+semantics, where alpha-conversion is explicitly avoided:
+
+http://www.cs.cmu.edu/~fp/courses/15312-f02/handouts/05-functional.pdf
+
+Thus, the title of the paper is a bit of a stretch, as the point it
+makes is really folklore.
+
+Now, I guess one difference between environment semantics and the current
+paper is that here, when extending a substitution, we don't insist on
+generating a fresh name, as we can just attach the binding with that name
+to the end of the substitution.
+
+That sounded suspicious to me, as I thought that it may cause accidental
+variable capture. E.g., I tried the following example, which causes
+accidental capture during evaluation, but afterwards realized that the
+example is actually not well-typed. Let me write it out nevertheless:
+
+({x = 3, f = \z. x}  \\> (\x. f @ 3)) @ 4
+
+I was guided by the idea that we will extend the substitution with
+another x, this time bound to x = 4, which will clash with the
+original x = 3 when we reach the point of evaluating f.
+
+It turns out this is not a well-typed term, because the substitution 
+
+{x = 3, f = \z. x}
+
+is not well typed. The components of a substitution all have to typecheck
+under the same variable context, and here, clearly, the binding for f
+requires x in the context, in order to typecheck.
+
+Hence, the type system will force us to write out every abstraction
+together with its closure. E.g., the above example will typecheck if
+we wrote it as:
+
+({x = 3, f = {x = 3} \\> \z. x} \\> (\x. f @ 3)) @ 4
+
+whereby the capture of x in f is prevented by the closure of f with {x = 3}.
+
+Taking all of the above into account, the point of the paper really should
+be weakened as follows. It should say that, in contrast to the folklore
+environment semantics, we can omit generating a fresh name when extending
+an environment, if we first "closure-convert" the terms. I don't know if
+this insight itself is folklore, but it doesn't really sound like a great
+trade-off to me. 
+
+On the writing front, the paper misled me several times, hence I
+can't say that it makes it's point very clearly (if indeed my reconstruction
+above is the actual point). In particular, the type system seems to be
+forcing closure conversion in the sense I outlined above, whereas the
+examples given in prior sections do not emphasize that. But good writing
+is essential for a pearl.
+
+There are additional minor, somewhat careless, issues in the figures. 
+
+- Fig 1 interchangeably uses notation lookup_S \Theta x (in the
+definition of subst), and lookup_S x \Theta elsewhere; that is, the
+parameters are permuted. 
+
+- In Figure 2, shouldn't the type in the conclusion of TyAbs rule be
+\tau_1 -> \tau_2?
+
+With all these points in mind, I will mark the paper for rejection.
+
+
+===========================================================================
+                           ICFP 2016 Review #95C
+---------------------------------------------------------------------------
+      Paper #95: Don't Substitute Into Abstractions (Functional Perl)
+---------------------------------------------------------------------------
+
+                      Overall merit: D. Reject
+                         Confidence: X. I am an expert in this area
+
+                         ===== Paper summary =====
+
+The paper presents an approach to dealing with name capture in reduction based
+semantics of lambda calculi that avoids fresh name generation or renaming. The
+main idea is to suspend substitutions at lambda abstractions and reify the
+suspended substitution into the syntax of abstractions instead of carrying the
+substitution under the abstraction. This avoids the freshening of the bound
+variable for capture avoidance. The substitution is instead resumed when the
+abstraction is beta-reduced. In this case, the critical bound variable with its
+substitute is added to the suspended substitution upon resumption. In
+particular, the approach deals with multi-substitutions and treats them in a
+first class manner. The paper discusses in detail how critical cases of name
+shadowing and nested substitutions, i.e. reifying a substitution into an
+abstraction that already has a substitution attached, are handled by the
+calculus without renaming.
+
+Furthermore, the approach is applied to the STLC. The paper discusses the typing
+rules and CBV small-step evaluation rules of the calculus and especially pays
+attention to the reified substitutions. Moreover, the author provides a
+mechanized proof of type-safety for this calculus in the Coq proof assistant.
+
+                      ===== Comments for author =====
+
+Verdict:
+----------------------------------------
+
+My overall verdict is to reject the submission. The paper falls short of
+convincingly making new contributions that are surprising, more elegant or more
+insightful than previous related work. Moreover, since the paper sticks to very
+basic examples -- first the untyped lambda calculus and later the STLC -- a lot
+of questions are left unanswered on how to adapt alpha-conversion-free explicit
+substitutions to richer languages.
+
+There is also a mismatch between the motivation and the actual presentation. The
+introduction stresses the benefits of the approach for interpreter
+implementations, the fixing of the evaluation order is mainly motivated for
+implementing interpreters and the paper also concludes with interpreters as an
+application domain, but the main text only refers to interpreter implementations
+in passing. The interpreter the author implemented is only briefly mentioned
+twice, one of which is in the list of contributions.
+
+I agree that the chosen topic may be a good candidate for a pearl, because the
+domain contains a lot of surprising results which are not common knowledge and
+should see more widespread use, but the paper in its current form lacks the
+substance and polish to support the claim of being a pearl.
+
+Despite my overall verdict, I enjoyed reading the paper. It is good and casually
+written which makes it engaging and the presentation is accessible, which is
+good for a pearl. Only the related work section was a bit wearisome for my
+taste.
+
+
+Comments:
+----------------------------------------
+
+The language \lambda_{dsim} presented in the paper is a fragment of the language
+of \sigma_w normal forms of the \lambda\sigma_w calculus of [5], i.e. the normal
+forms of the subtheory without \beta-reductions. The result that the combination
+of weak reduction and explicit substitutions avoids name capture in a simple
+named approach without needing alpha-conversion is already part of [5] and has
+been used by other authors, e.g. [A]. As a pearl, the current paper does not
+necessarily have to claim novelty, but the question remains what the added value
+is.
+
+In my opinion, the paper should have discussed a larger example which could give
+the reader more practical advice/insights into how to adapt the technique to
+richer languages. In particular, the paper only suspends substitutions at lambda
+abstractions, which are also beta-normal forms. Naturally the reader asks
+himself if this is significant or just coincidence and if there's any problem
+using the technique with binding forms that are not normal forms like let
+bindings. I would have liked the paper to answer these questions.
+
+I believe that semantic properties like beta-normal forms are insignificant and
+substitution simply has to be suspended at all binding forms to avoid
+alpha-conversion, but the approach should scale to much richer languages if one
+is willing to re-engineer the evaluation rules to account for suspended
+substitutions. The paper could have told a more well-rounded story by just doing
+that, for example for a language with let bindings -- even just single-variable
+-- and sum types with case distinction. Sum types would also cover an example
+where binding happens at the elimination form instead of the introduction form.
+
+
+
+Given the motivation and also the venue, I think that interpreters should play a
+bigger role in the main body of the paper and several ideas and key concerns
+should be discussed more explicitly. For example, Section 2.2 and the related
+work section mention the possibility of removing shadowed bindings. This seems
+to be giving the reader some information on a minor optimization in passing, but
+this is a crucial one if we consider general recursion. In that case we would be
+accumulating new shadowing bindings ad infinitum. I think it would be good to
+include an example that shows this, for example by using some fix point
+combinator in the untyped setting, and also elaborate the discussion on the
+prevention of space leaks. I think [B] is a good reference for this.
+
+Another optimization would be to consider garbage collection, i.e. the removal
+of bindings in the suspended substitutions of variables which do not appear free
+in the associated abstraction:
+
+                        x \notin fv(t) \cup {y}
+---------------------------------------------------------------------------- [gc]
+{theta , x:=s, theta'} |> \lambda y. t  -->  {theta, theta'} |> \lambda y. t
+
+This is for example discussed in [C] and [D]. The rule suggests the calculation
+of free variables, but since we never propagate substitutions under abstractions
+and never rename bound variables we can simply cache the free variables
+alongside the suspended substitution and perform the garbage collection after
+composition of substitutions. Working out the details and giving a polished
+presentation of this would give the paper a considerably better practical touch,
+fits the motivation and is also more suitable to a pearl.
+
+
+
+I do not believe that the type-safety proof of the STLC is a good basis to
+measure the amount of binding related infrastructure of a particular approach to
+variable binding, because this proof is usually quite low on binding
+infrastructure in any approach. The proof may require some infrastructure in the
+variable cases of the weakening and substitutions lemmas of the type system, but
+it does not require commutation lemmas in the non-variable cases.
+
+A better language to look at would be System F, but as the paper already
+discusses it may be tricky (or impossible) to do the type-safety proof without
+renaming. Another option would be to do a normalization proof of the presented
+weak CBV evaluation, or alternatively, strong normalization of the weak
+reduction without fixing the evaluation order. Normalization proofs based on
+reducibility candidates with simultaneous substitutions do not require
+commutation lemmas either -- which I think is advantageous -- but do require
+some more interesting properties of the substitution operation such as:
+
+ (a) two independent (meta-level) substitutions on a term can be replaced by
+     their composition
+ (b) substituting with the identity substitution is the identity function on
+     terms and
+ (c) the substitution composition is associative.
+
+Besides being a better measure, proving these properties would, as a by-product,
+also establish that \lambda_{dsim} is a correct model of the \lambda\sigma_w
+calculus.
+
+
+
+Section 5 leaves the reader hanging too much. The essential statement in this
+section is that terms which do not contain name shadowing are typeable without
+renaming in the standard presentation, but that the property of no shadowing "in
+general [..] is not preserved during reduction at least without performing
+intermediate alpha conversion". But what about the presented approach? How does
+a definition of 'no name shadowing' look like with suspended substitutions? Is
+this property preserved under weak reductions? If yes, can you sketch a proof or
+give intuition why? If no, give a counter example. And who exactly is to blame
+in this case?
+
+
+
+The related work section is a bit lengthy and does not match what I would expect
+from a pearl. As a pearl, the paper does not need to give a lot of references to
+related work and compare with existing approaches. The goal is not to claim or
+defend novelty. Instead I would expect pointers to work from which I can learn
+more. This would include other interesting application domains, pitfalls or
+problems (like confluence) and further techniques that are applicable in this
+setting.
+
+The first subsection of the related work could be split and the parts moved
+elsewhere. The first part about projecting \lambda_{dsim} terms into ordinary
+\lambda terms by using renaming could be made part of Section 2. The second part
+about the preservation of sharing could be merged with the first sentence of the
+following subsection about computational efficiency. Sharing is an important
+point and I think it's good to keep the explicit discussion in case the reader
+missed it himself. I feel that the remark: "computational efficiency of
+reduction is the main purpose of work on explicit substitutions" is not doing
+justice to the work that has gone into the study of explicit substitution
+calculi. First of all, explicit substitutions provide a way to study environment
+based evaluation of the lambda calculus by making environments part of the
+system. Furthermore, explicit substitutions provide a way to assign
+computational complexity to the lambda calculus by providing a good and fair
+notion of what a "computational step" is, which arguably is not fulfilled by the
+\beta-reduction of the pure lambda calculus. I suggest that the author read
+parts of [B] and [D] to get a better account of this motivation.
+
+The comparison to \lambda\sigma_w and the presentation of other systems does not
+add any insights. It could be trimmed to only discuss confluence as an issue if
+the reader is interested in applications where equality or equivalence checking
+is a concern.
+
+
+Typos
+----------------------------------------
+
+Figure 1 Language Grammar: There's no way to construct any term that has a
+  'type name' as type.
+
+Figure 2 Rule TyAbs: "\tau_2" -> "\tau_1\to\tau_2"
+
+Section 3: "parenthesis" -> "parentheses"
+
+Section 3.2: "back to an concrete one" -> "back to a concrete one"
+
+Section 5:   "in general this is property is" -> "in general this property is"
+
+Reference 1:  "J.-J. Lvy" -> "J.-J. L‌\'{e}vy"
+
+
+[5] P.-L. Curien, T. Hardin and J.-J. L‌\'{e}vy. Confluence properties of weak
+    and strong calculi of explicit substitutions. In Journal of the ACM, 43,
+    1996.
+
+[A] J.Forest. A Weak Calculus with Explicit Operators for Pattern Matching and
+    Substitution. In RTA'02, Springer, 2002.
+
+[B] Z.-E.-A. Benaissa, P. Lescanne and K. H. Rose. Modeling sharing and
+    recursion for weak reduction strategies using explicit
+    substitution. In PLILP'96, Springer, 1996.
+
+[C] R. Bloo, and K. H. Rose. Preservation of strong normalisation in named
+    lambda calculi with explicit substitution and garbage collection. In CSN-95,
+    1995.
+
+[D] K. H. Rose, R. Bloo and F. Lang. On Explicit Substitution with Names. JAR
+    49(2), 275-300, Springer, 2012.
+
+
+

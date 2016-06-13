@@ -1,0 +1,206 @@
+%!TEX root = ../Main.tex
+\begin{figure}[!ht]
+\begin{tabbing}
+M \= MM        \= MM           \= MMMMMMMMMMMMM \= \kill
+\textbf{Language Grammar}
+\\[1ex]
+   \> $a$       \> ::= \> (type names)
+\\[1ex]
+   \> $x$       \> ::= \> (term variables)
+\\[1ex]
+   \> $\tau$    \> ::= 
+                \> $a ~~|~~ \tau \to \tau$
+                \> (types)
+\\[1ex]
+   \> $e$       \> ::=
+                \> $x ~~|~~ \theta \rhd \lambda x : \tau.~ e ~~|~~ e ~@~ e$
+                \> (terms)
+\\[1ex]
+   \> $\theta$  \> ::=
+                \> $\bullet  ~~|~~  \theta,~ x = e$
+                \> (term substitutions)
+\\[1ex]
+   \> $\Gamma$, $\Delta$  
+                \> ::= 
+                \> $\bullet  ~~|~~  \Gamma,~ x : \tau$
+                \> (type environments)
+\\[1ex]
+\end{tabbing}
+
+\textbf{Substitution and Lookup}
+\begin{tabbing}
+M  \= MMMMMMMMMMMMMx \= Mx \= MMMMMMMMM \kill
+   \> $subst~~ \theta~~ x$
+\\
+   \> ~~~~ $|~ Some~ e \gets lookup_S~~ \theta~ x$
+   \> $=$ \> $e$
+\\ \> ~~~~ $|~ otherwise$
+   \> $=$ \> $x$
+\\[1ex]
+   \> $subst~~ \theta~~ (\theta' \rhd \lambda x ~:~ \tau.~ e)$
+\\
+\> ~~~~ $=$ $\theta \circ (mapExp~ (subst~ \theta)~ \theta') ~\rhd~ \lambda x : \tau.~ e$
+\\[1ex]
+   \> $subst~~ \theta~~ (e_1 ~@~ e_2)$
+\\
+\> ~~~~ $=$ $(subst~ \theta~ e_1) ~~@~~ (subst~ \theta~ e_2)$
+\end{tabbing}
+\begin{tabbing}
+M  \= MMMMMMMMMMMMMx \= Mx \= MMMMMMMMM \kill
+   \> $lookup_S~~ x~~ \bullet$ 
+   \> $=$
+   \> $None$  
+\\
+   \> $lookup_S~~ x~~ (\theta,~ x = e_1)$
+   \> $=$
+   \> $Some~~ e_1$  
+\\
+   \> $lookup_S~~ x~~ (\theta,~ y = e_1)$
+   \> $=$
+   \> $lookup_S~~ x~~ \theta$
+\end{tabbing}
+\begin{tabbing}
+M  \= MMMMMMMMMMMMMx \= Mx \= MMMMMMMMM \kill
+   \> $lookup_E~~ a~~ \bullet$ 
+   \> $=$
+   \> $None$  
+\\
+   \> $lookup_E~~ a~~ (\Gamma,~ a ~:~ \tau_1)$
+   \> $=$
+   \> $Some~~ \tau_1$  
+\\
+   \> $lookup_E~~ a~~ (\Gamma,~ b ~:~ \tau_1)$
+   \> $=$
+   \> $lookup_E~~ a~~ \Gamma$
+\end{tabbing}
+\caption{$\lambda_{dsim}$ Grammar and Metafunctions}
+\label{f:grammar}
+\end{figure}
+
+
+
+% -----------------------------------------------------------------------------
+\begin{figure}[ht!]
+\vspace{1ex}
+$$
+\fbox{$\TypeX{\Gamma}{e}{\tau}$}
+$$
+$$
+\ruleI
+{       lookup_E ~~x~~ \Gamma = Some~ \tau
+}
+{       \TypeX{\Gamma}{x}{\tau}
+}
+~~
+\textrm{(TyVar)}
+$$
+$$
+\ruleI
+{       \TypeS  {\Gamma}{\theta}{\Delta}
+\quad\quad   
+        \TypeX  {\Gamma ~\circ~ \Delta,~ x : \tau_1}
+                {e}{\tau_2}
+}
+{       \TypeX  {\Gamma}
+                {\theta \rhd \lambda x : \tau_1.~ e}
+                {\tau_1 \to \tau_2}
+}
+~~
+\textrm{(TyAbs)}
+$$
+$$
+\ruleI
+{       \TypeX  {\Gamma}{e_1}{\tau_{11} \to \tau_{12}}
+\quad\quad
+        \TypeX  {\Gamma}{e_2}{\tau_{11}}
+}
+{       \TypeX  {\Gamma}{e_1 ~@~ e_2}{\tau_{12}}
+}
+~~
+\textrm{(TyApp)}
+$$
+\vspace{1em}
+$$\fbox{$\TypeS{\Gamma}{\theta}{\Delta}$}$$
+$$
+\ruleI
+{       \{ \TypeX{\Gamma}{e_i}{\tau_i} \}^i
+}
+{       \TypeS  {\Gamma}
+                { \{ x_i = e_i \}^i }
+                { \{ x_i : \tau_i \}^i }
+}
+~~
+\textrm{(TySub)}
+$$
+\vspace{2em}
+$$
+\fbox{$\StepX{e}{e'}$}
+$$
+$$
+\ruleI
+{       \StepX{e_1}{e_1'}
+}
+{       \StepX{e_1 ~@~ e_2}{e_1' ~@~ e_2}
+}
+~~ \textrm{(EsAppLeft)}
+$$
+$$
+\ruleI
+{       \ValueX{e_1}
+\quad   \StepX{e_2}{e_2'}
+}
+{       \StepX{e_1 ~@~ e_2}{e_1 ~@~ e_2'}
+}
+~~ \textrm{(EsAppRight)}
+$$
+$$
+\ruleI
+{       \DoneX  {e_2}
+}
+{       \StepX  {(\theta \rhd \lambda x : \tau.~ e_1) ~@~ e_2}
+                {\msubst~ (\theta,~ x = e_2)~ e_1}
+}
+~~ \textrm{(EsReduce)}
+$$
+
+\caption{Type Checking and Evaluation}
+\label{f:TypeChecking}
+\end{figure}
+
+
+
+% -----------------------------------------------------------------------------
+\begin{figure}[ht!]
+$$
+\fbox{$\ValueX{e}$}
+$$
+$$ \ValueX{\theta \rhd \lambda x : \tau.~ e}
+~~ \textrm{(ValueAbs)}
+$$
+
+$$
+\fbox{$\DoneX{e}$}
+$$
+$$ \DoneX{x}
+~~ \textrm{(DoneVar)}
+\hspace{4em}
+\ruleI 
+{       \ValueX{e}}
+{       \DoneX{e}}
+~~ \textrm{(DoneValue)}
+$$
+$$
+\ruleI
+{       \DoneX{e_1} 
+\quad   \neg (\ValueX{e_1})
+}
+{       \DoneX{e_1 ~@~ e_2}
+}
+~~ \textrm{(DoneApp)}
+$$
+
+\caption{Value and Done}
+\label{f:ValueDone}
+\end{figure}
+
+

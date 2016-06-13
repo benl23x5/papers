@@ -1,0 +1,23 @@
+%!TEX root = ../Main.tex
+
+\section{Metatheory}
+Our Coq formalization contains the soundness theorems of Substitution, Progress and Preservation, which we state as follows:
+
+\begin{tabbing}
+M \= MMM  \= MMMM \kill
+(Substitution)\\
+\> If   \> $\TypeS{\Gamma}{\theta}{\Delta}$  
+   ~~and~~ $\TypeX{\Gamma ~\circ~ \Delta}{e}{\tau}$    \\
+\> then \> $\TypeX{\Gamma}{subst~ \theta~ e}{\tau}$
+\\[0.5ex]
+(Progress)\\
+\> If   \> $\TypeX{\Gamma}{e}{\tau}$       \\
+\> then \> $\DoneX{e}$  ~~or~~  $\StepX{e}{e'}$~ for some $e'$
+\\[0.5ex]
+(Preservation)\\
+\> If    \> $\TypeX{\Gamma}{e~}{\tau}$ ~~and~~ $\StepX{e}{e'}$   \\
+\> ~then \> $\TypeX{\Gamma}{e'}{\tau}$
+\end{tabbing}
+The Coq proof itself is quite pleasing. In particular, there are no lemmas about adjusting de Bruijn indices, no need for tactics specialized to our particular approach to variable binding, and no need to invoke any extra axioms. Our interpreter implementation also implements the semantics as written. We did prove some extra lemmas about lists, though these are completely generic, and could be added to the Coq base libraries.
+
+\input{figures/System}

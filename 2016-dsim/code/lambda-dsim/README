@@ -1,0 +1,36 @@
+
+Don't Substitute Into Abstractions.
+Tested with GHC 7.10.
+
+ $ cabal update
+ $ cabal build
+ $ dist/build/lambda-dsim/lambda-dsim
+
+You need to run the executable from the same directory as the
+Prelude.macros file so that it can find it. The Prelude.macros
+contains some macros for Church encoded things.
+
+Examples from the paper:
+
+ > (\x. \y. add x y z) (not y) five
+
+ > (\x. \y. add x ((\z. z) y)) (not y) five
+
+ > (\y. \x. \x. add one x y) x two three
+
+
+Examples using Church encoded macros:
+
+ This one produces a lambda term due to the Church encoding.
+
+ > #fac #three
+
+ If we want to get the result out then supply our own atoms
+ the successor and zero, which also forces evaluation.
+
+ > (#fac #three) s z
+
+ Here is one that goes via a representation of cons-lists.
+
+ > (#sum (#rangeDown #four)) s z
+

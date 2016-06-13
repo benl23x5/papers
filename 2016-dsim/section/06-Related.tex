@@ -1,0 +1,43 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\section{Related Work}
+
+Any $\lambda_{dsim}$ expression can be converted to one in the standard lambda calculus, provided we are willing to generate fresh names. For example, returning to the example from \S\ref{s:NestedSubstitutions} we have:
+\begin{tabbing}
+MM      \= MM \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \> $(\{x = \msucc~~ y\} \rhd (\lambda y.~ \madd~~ x~~ y~~ z))~~ \mfive$
+\end{tabbing}
+
+To eliminate the concrete substitution from the front of the abstraction we can alpha-convert the abstraction and substitute the bindings into the body:
+\begin{tabbing}
+MM      \= MM \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \> $(\lambda \mpurple.~ \madd~~ (\msucc~ y)~~ \mpurple~~ z)~~ \mfive$
+\end{tabbing}
+
+Alpha conversion is a decidedly non-local and computationally inefficient process. To alpha-convert an expression we must descend into every part of it, performing a brute-force search for all occurrences of the variable that is being renamed. Delaying the meta-level substitution by reifying it into the term being reduced avoids continuously exploring the entire term during reduction. This process also helps retain sharing of results longer than in the standard calculus. For example, with the following expression:
+\begin{tabbing}
+\= M \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \> 
+        \> $[y = \mone,~ z = \mthree] 
+                ~((\{x = \msucc~~ y\} \rhd (\lambda y.~ \madd~~ x~~ x~~ y))~~ \mfive)$
+\end{tabbing}
+
+Here we have two occurrences of $x$ in the body, so it is better to substitute into the right of the $x = \msucc~ y$ binding first, \emph{and then} carry that result into the inner abstraction, rather than the other way around.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Explicit Substitutions}
+Improving the computational efficiency of reduction is the main purpose of work on explicit substitutions, beginning with the $\lambda \sigma$ calculus \cite{Abadi:explicit-substitutions}, where $\sigma$ refers to the explicit substitution. However the named version of $\lambda \sigma$ still suffers from the usual problems of name capture --- the presentation in \cite{Abadi:explicit-substitutions} uses de Bruijn indices. The fact that $\lambda\sigma$ allows an explicit substitution to appear at any point in the term, and is phrased as a rewrite system with no particular evaluation order also leads to non-confluence~\cite{Mellies:not-terminate}. 
+
+The non-confluence of $\lambda\sigma$ arises due to an interaction between the rewrite rule for beta-reduction, and the ones that carry the explicit substitution $\sigma$ under binders. The $\lambda\sigma_{w}$ calculus \cite{Curien:explicit-substitutions} is then a restricted (weak) form of $\lambda\sigma$ that regains confluence by not carrying substitutions under binders. As a happy side effect, this restriction also ensures that the calculus does not suffer from name capture.
+
+The $\lambda_c$ calculus of closed reductions \cite{Fernandez:closed-reductions} is a related rewrite system that uses named variables but allows only closed terms to be carried under binders, thus avoiding name capture. The $\lambda_s$ calculus of delayed substitutions~\cite{Santo:delayed-substitutions} is another system with named variables which also includes a rule to convert a concrete substitution into a meta substitution, as per our own $\lambda_{dsim}$. However, $\lambda_s$ also propagates substitutions under binders and thus relies on alpha conversion to avoid name capture.
+
+By themselves, rewrite systems such as $\lambda\sigma_{w}$ are not directly implementable in interpreters as they have no implied order of evaluation. In $\lambda\sigma_{w}$ the grammar of substitutions also includes an explicit constructor that represents the result of appending two substitutions, and a rewrite rule that invokes associativity of append, rather than using standard data structures to represent substitutions.
+
+The system in this paper, $\lambda_{dsim}$, closes the loop. We take $\lambda\sigma_{w}$, impose a specific evaluation order (call-by-value), and lift most of the substitution machinery back to the meta-level. Representing substitutions by lists means that we can reuse existing list libraries, in both the implementation and proof, and variable lookup is just list lookup. For an interpreter implementation we could also use other standard container types to represent substitutions, like finite maps of named variables to terms. With a finite map representation the space leak due to name shadowing mentioned in \S\ref{s:NestedSubstitutions} disappears, as inserting a binding with an existing name into a map replaces the old one.
+
+Exactly which calculus is \emph{best} for a particular application depends on the application. However, if your goal is to reduce some open lambda expressions, and you want a cheap and cheerful implementation that does not fuss around with alpha conversion, then we claim the answer is $\lambda$--don't--substitute--into--me.
+
+

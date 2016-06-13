@@ -1,0 +1,156 @@
+%!TEX root = ../Main.tex
+
+\clearpage{}
+\section{Don't Substitute into Abstractions}
+Starting with the initial expression:
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \> 
+        \> $(\lambda x. \lambda y.~ 
+                \madd~~ x~~ ((\lambda z.~ z)~~ y))~~ (\msucc~~ y)~~ \mfive$ 
+        \>  (1.1)
+\end{tabbing}
+
+We want to apply the left-most function to its first argument, substituting $(\msucc~ y)$ for $x$ in its body. We use the syntax \mbox{$[x = \msucc~ y]$} (with square parenthesis) for the meta-level operation of performing this substitution.
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $([x = \msucc~ y]~~ (\lambda y.~ 
+                \madd~~ x~~ ((\lambda z.~ z)~ y)))~~ \mfive$
+        \> (1.2)
+\end{tabbing}
+
+At this point we have a problem, because carrying $\msucc~ y$ under the $\lambda y$ binder would result in the capture of $y$. Instead, we reify the meta-level substitution into the syntax, writing $\{ x = \msucc~ y \}$ for a concrete substitution (with curly parenthesis), which is attached to the outside of the abstraction. Here, $\rhd$ is pronounced ``attached to''.
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $(\{x = \msucc~ y\} 
+                \rhd (\lambda y.~ \madd~~ x~~ ((\lambda z.~ z)~ y)))~~ \mfive$
+        \> (1.3)
+\end{tabbing}
+
+When we apply the function to its \emph{next} argument, we add the associated binding $y = \mfive$ to the one we already have, and carry the result into the body, using meta-level substitution. Applying an abstraction eliminates its binder, so it is no longer a problem.
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $[x = \msucc~ y,~ y = \mfive]~~ 
+                (\madd~~ x~~ ((\lambda z.~ z)~ y))$
+        \> (1.3)
+\end{tabbing}
+
+Again, when we reach an abstraction we reify the meta-level substitution into the syntax, attach the resulting bindings to the outside of the abstraction, then wait until we can apply that abstraction to its argument: 
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \> $\stackrel{sub}{\longrightarrow}$
+        \> $\madd~ (\msucc~ y)~ ((\{x = \msucc~ y,~ y = \mfive\} 
+                \rhd (\lambda z.~ z))~~ \mfive)$
+        \> (1.4)
+\end{tabbing}
+
+Applying the final abstraction to its argument completes the job: 
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $\madd~ (\msucc~ y)~ 
+                ([x = \msucc~ y,~ y = \mfive,~ z = \mfive]~~ z)$
+        \> (1.5)
+\\
+        \> $\stackrel{sub}{\longrightarrow}$
+        \> $\madd~ (\msucc~ y)~~ \mfive$
+        \> (1.6)
+\end{tabbing}
+
+Note that in step (1.3), when we add the new binding $y = \mfive$ to the substitution, the binding goes on the \emph{right}. A substitution is an ordered list of bindings, where the ones on the right have priority. Also note that the bindings $x = \msucc~ y$ and $y = \mfive$ are in the same order as the binders $\lambda x$ and $\lambda y$ in the initial expression (1.1). 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Name Shadowing}
+Suppose we want to reduce a different expression where an inner binder shadows an outer one:
+%
+$$
+(\lambda y.~ \lambda x.~ \lambda x.~ \madd~~ \mone~~ x~~ y)~~ 
+                x~~ \mtwo~~ \mthree
+$$
+
+Now we have two binders named $x$, as well as a free occurrence of $x$ on the right. Performing the reduction yields:
+%
+\begin{tabbing}
+x \= MM \= MMMMMMMMMMMMMMMMMMMMMMMMx \= MMM \kill
+        \>
+        \> $(\lambda y.~ \lambda x.~ \lambda x.~ \madd~~ \mone~~ x~~ y)~~ 
+                x~~ \mtwo~~ \mthree$
+        \> (2.1)  
+\\
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $(\{y = x\}
+                \rhd (\lambda x.~ \lambda x.~ \madd~~ \mone~~ x~~ y))~~ 
+                        \mtwo~~ \mthree$
+        \> (2.2)
+\\
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $(\{y = x,~ x = \mtwo\}
+                \rhd (\lambda x.~ \madd~~ \mone~~ x~~ y))~~ \mthree$
+        \> (2.3)
+\\
+        \> $\stackrel{\beta}{\longrightarrow}$
+        \> $([y = x,~ x = \mtwo,~ x = \mthree]~~
+                (\madd~~ \mone~~ x~~ y))$
+        \> (2.4)
+\\      
+        \> $\stackrel{sub}{\longrightarrow}$
+        \> $\madd~~ \mone~~ \mthree~~ x$
+        \> (2.5)
+\end{tabbing}
+
+%
+In the result the variable $x$ is free, as it was in the initial expression. Our substitution $[y = x,~ x = \mtwo,~ x = \mthree]$ is in fact a \emph{right biased simultaneous priority substitution}. It is a right-biased priority substitution because when we apply it to a particular variable, say $x$, we replace that variable with the expression in the right-most matching binding. It is a simultaneous substitution because we once we replace a variable with an expression, we do not additionally apply the substitution to that expression. Each binding in the substitution operates independently.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Nested Substitutions}
+\label{s:NestedSubstitutions}
+The final piece of our system is the mechanism for applying a meta-level substitution to an expression that already has an attached concrete substitution. Consider the following:
+\begin{tabbing}
+\= MM \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \>
+        \> $(\{x = \msucc~~ y\} \rhd (\lambda y.~ \madd~~ x~~ y~~ z))~~ \mfive$
+\end{tabbing}
+
+Suppose we want to apply a further substitution to this expression, say to replace $y$ by $\mone$ and $z$ by $\mthree$. We represent this as follows:
+\begin{tabbing}
+\= MM \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \> 
+        \> $[y = \mone,~ z = \mthree] 
+                ~((\{x = \msucc~~ y\} \rhd (\lambda y.~ \madd~~ x~~ y~~ z))~~ \mfive)$
+\end{tabbing}
+
+To combine the outer substitution with the inner one, we first apply the outer substitution to each binding of the inner one, then append the outer substitution to the \emph{left} of that result.
+\begin{tabbing}
+\= M \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \> 
+        \> $(\{y = \mone,~ z = \mthree,~ x = \msucc~ \mone\}
+                \rhd (\lambda y.~ \madd~~ x~~ y~~ z))~~ \mfive$
+\end{tabbing}
+
+Completing the reduction yields:
+\begin{tabbing}
+M \= MM   \= MMMMMMMMMMMMMMMMMMMMMMMM \= MMM \kill
+        \>
+        \> $[y = \mone,~ z = \mthree,~ x = \msucc~ \mone,~ y = \mfive] 
+                ~~ (\madd~~ x~~ y~~ z)$
+\\
+        \> $\stackrel{sub}{\longrightarrow}$
+        \> $\madd~~ (\msucc~~ \mone)~~ \mfive~~ \mthree$
+\end{tabbing}
+
+In the last step, the binding $y = \mfive$ at the front (right) of the list shadows the $y = \mone$ binding at the back (left). We choose to preserve shadowed bindings in the list to simplify the semantics and meta-theory. In an interpreter implementation it would be more helpful to remove shadowed bindings during evaluation, and reclaim the associated space.
+
+Finally, note that the interaction between meta-level substitution and beta-reduction makes this evaluation method work out nicely. Reifying a meta-level substitution into the term allows us to suspend its execution and avoid ever needing to handle the case that can result in name capture. Once the meta-level operation is suspended, performing the next beta-reduction both eliminates the problematic binder and re-starts the substitution process.
+
+
