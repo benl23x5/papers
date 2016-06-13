@@ -1,0 +1,84 @@
+DIGEST 688086f08d50b07506d826f5e1d7e76b
+FIron.Language.SystemF2Effect.Type.Relation.KindTs
+R16:63 Iron.Language.SystemF2Effect.Type.Relation.KindT <> <> lib
+def 150:155 <> KindTs
+R163:167 Iron.Language.SystemF2Effect.Kind.Ki <> kienv def
+R176:182 Iron.Language.SystemF2Effect.Store.Prop <> stprops def
+R191:194 Coq.Init.Datatypes <> list ind
+R196:197 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R206:211 Coq.Lists.List <> Forall ind
+R240:241 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts var
+R223:227 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R237:237 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R235:235 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> t var
+R232:233 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R229:230 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R256:261 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+prf 343:353 <> kindTs_head
+R412:416 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R427:427 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R425:425 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> t var
+R422:423 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R419:420 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R383:388 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R406:406 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R399:402 Iron.Data.List.Base <> ::x_':>'_x not
+R403:403 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> t var
+R397:398 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts var
+R393:394 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R390:391 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R482:492 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> kindTs_head thm
+prf 503:513 <> kindTs_tail
+R572:577 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R588:588 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R585:586 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts var
+R582:583 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R579:580 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R543:548 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R566:566 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R559:562 Iron.Data.List.Base <> ::x_':>'_x not
+R563:563 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> t var
+R557:558 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts var
+R553:554 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R550:551 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R643:653 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> kindTs_tail thm
+prf 664:674 <> kindTs_snoc
+R751:756 Coq.Init.Logic <> :type_scope:x_'/\'_x not
+R734:739 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R750:750 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R747:748 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts var
+R744:745 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R741:742 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R757:761 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R772:772 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R770:770 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> t var
+R767:768 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R764:765 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R705:710 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R728:728 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R721:724 Iron.Data.List.Base <> ::x_':>'_x not
+R725:725 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> t var
+R719:720 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts var
+R715:716 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R712:713 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R807:817 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> kindTs_snoc thm
+prf 828:837 <> kindTs_app
+R916:921 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R942:942 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R933:936 Coq.Init.Datatypes <> :list_scope:x_'++'_x not
+R930:932 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts1 var
+R937:939 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts2 var
+R926:927 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R923:924 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R893:898 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R910:910 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R906:908 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts2 var
+R903:904 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R900:901 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R870:875 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R887:887 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> k var
+R883:885 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ts1 var
+R880:881 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> sp var
+R877:878 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> ke var
+R969:974 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> KindTs def
+R1007:1016 Iron.Language.SystemF2Effect.Type.Relation.KindTs <> kindTs_app thm

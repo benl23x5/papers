@@ -1,0 +1,281 @@
+%!TEX root = ../Main.tex
+
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\boxfig{
+$$
+\begin{array}{cc}
+
+% ---------------------------------------------------------
+\fbox{$\StepP   {\mexp}
+                {\mexp}$}       
+& \trm{(StepP)}
+\\[2ex]
+
+% -------------------------------------
+% | SpAppSubst
+%   :  forall t11 x12 v2
+%   ,  STEPP (XApp (VLam t11 x12) v2)
+%            (substVX 0 v2 x12)
+\ruleA  
+{       \StepP  {(\lambda \bra{z} : t_{11}.~ x_{12})~ v_2}
+                {x_{12}[v_2/\un{0}\bra{z}]_x}
+}
+& \trm{(SpAppSubst)}
+\\[2ex]
+
+
+% -------------------------------------
+% | SpAPPSubst
+%   :  forall k11 x12 t2      
+%   ,  STEPP (XAPP (VLAM k11 x12) t2)
+%            (substTX 0 t2 x12)
+\ruleA
+{       \StepP  {(\Lambda \bra{a} : k_{11}.~ x_{12})~ t_2}
+                {x_{12}[t_2/\un{0}\bra{a}]_t}
+}
+& \trm{(SpAPPSubst)}
+\\[2ex]
+
+
+% -------------------------------------
+% | SpSucc
+%   :  forall n
+%   ,  STEPP (XOp1 OSucc (VConst (CNat n)))
+%            (XVal (VConst (CNat (S n))))
+\hspace{-4ex}
+\begin{array}{lllr}
+        & \tt{succ}~ n
+\lto    & \hspace{-1ex} n'
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where}
+            &  n' = \tt{S}~ n
+          }
+\end{array}
+
+% -------------------------------------
+% | SpZero
+%   :  forall n
+%   ,  STEPP (XOp1 OIsZero (VConst (CNat n)))
+%            (XVal (VConst (CBool (beq_nat n 0)))).
+\begin{array}{lllr}
+        & ~~~~\tt{isZero}~ n
+\lto    & \hspace{-1ex} b'
+\\
+        & \mcarray{2}{l}{lll}
+          { ~~~~~~~ \trm{where}
+            & b' = \trm{beq\_nat}~ n~ 0
+          }
+\end{array}
+& \trm{(SpSucc/Zero)}
+\\[3ex]
+
+
+% -----------------------------------------------
+\fbox{ $\StepF{\mstore}{\mstprops}{\mstack}{\mexp}
+              {\mstore}{\mstprops}{\mstack}{\mexp}$}
+& \trm{(StepF)}
+\\[2ex]
+
+
+% -------------------------------------
+% | SfStep
+%   :  forall ss sp fs x x'
+%   ,  STEPP           x           x'
+%   -> STEPF  ss sp fs x  ss sp fs x'
+\ruleI
+{       \StepP  {x}{x'}
+}
+{       \StepF  {\mss}{\msp}{\mfs}{x}
+                {\mss}{\msp}{\mfs}{x'}
+}
+& \trm{(SfStep)}
+\\[3ex]
+
+
+% -------------------------------------
+% | SfLetPush
+%   :  forall ss sp fs t x1 x2
+%   ,  STEPF  ss sp  fs               (XLet t x1 x2)
+%             ss sp (fs :> FLet t x2)  x1
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs 
+        & \hspace{-1em} ~|~  \cx{\klet~ \bra{z} : t = x_1~ \kin~ x_2}   \\
+\lto    & \mss ~|~ \msp ~|~ \mfs,~ \klet~ \bra{z} : t = \circ~ \kin~ x_2 
+        & \hspace{-1em} ~|~  \cx{x_1}
+\end{array}
+& \trm{(SfLetPush)}
+\\[3ex]
+
+
+% -------------------------------------
+% | SfLetPop
+%   :  forall ss sp  fs t v1 x2
+%   ,  STEPF  ss sp (fs :> FLet t x2) (XVal v1)
+%             ss sp  fs               (substVX 0 v1 x2)
+\hspace{-8ex}
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs,~ \klet~ \bra{z} : t = \circ~ \kin~ x_2
+        & \hspace{-1em} ~|~ \cx{v_1}                                    \\
+\lto    & \mss ~|~ \msp ~|~ \mfs
+        & \hspace{-1em} ~|~ \cx{x_2[v_1/\un{0}\bra{z}]_x}
+\end{array}
+& \trm{(SfLetPop)}
+\\[3ex]
+
+
+% -------------------------------------
+% | SfPrivatePush
+%   :  forall ss sp fs x p
+%   ,  p = allocRegion sp
+%   -> StepF  ss sp                       fs                  (XPrivate x)
+%             ss (SRegion p <: sp)       (fs :> FPriv None p) (substTX 0 (TRgn p) x)
+\hspace{-4ex}
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs 
+        & \hspace{-1em} ~|~ \cx{\kprivate~ \bra{r}~ \kin~ x_1}              \\
+\lto    & \mss ~|~ \sregion{p},~ \msp ~|~ \mfs,~ \fprivd{p} ~~~~
+        & \hspace{-1em} ~|~ \cx{x_1[\trgn{p}/\un{0}\bra{r}]_t}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where} 
+                & p~~  & = ~\trm{allocRegion}~ \msp
+          }
+\end{array}
+& \trm{(SfPrivatePush)}
+\\[4ex]
+
+
+% -------------------------------------
+% | SfPrivatePop
+%   :  forall ss sp  fs v1 p
+%   ,  StepF  ss                         sp (fs :> FPriv None p) (XVal v1)
+%             (map (deallocRegion p) ss) sp  fs                  (XVal v1)
+\hspace{-10ex}
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs,~ \fprivd{p}        ~|~ \cx{v_1}
+\lto    & \hspace{-1ex} \mss' ~|~ \msp ~|~ \mfs       ~|~ \cx{v_1}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where}
+                & \mss' & = ~\trm{map}~ (\mdeallocB~ p)~ \mss
+          }
+\end{array}
+& \trm{(SfPrivatePop)}
+\\[4ex]
+
+
+% -------------------------------------
+% | SfExtendPush
+%   :  forall ss sp fs x p1 p2
+%   ,  p2 = allocRegion sp
+%   -> StepF ss sp                  fs                        (XExtend (TRgn p1) x)
+%            ss (SRegion p2 <: sp) (fs :> FPriv (Some p1) p2) (substTX 0 (TRgn p2) x)
+\hspace{-2ex}
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs 
+        & \hspace{-4em} ~|~ \cx{\kextend~ (\trgn{p_1})~ \kwith~ \bra{r}~ \kin~ x_1}          \\
+\lto    & \mss ~|~ \sregion{p_2},~ \msp ~|~ \mfs,~ \fprivm{p_1}{p_2} 
+        & \hspace{-1em} ~|~ \cx{x_1[\trgn{p_2}/\un{0}\bra{r}]_t}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where} 
+                & p_2  & = ~\trm{allocRegion}~ \msp
+          }
+\end{array}
+& \trm{(SfExtendPush)}
+\\[4ex]
+
+
+% -------------------------------------
+% | SfExtendPop
+%   :  forall ss sp fs p1 p2 v1
+%   ,  StepF  ss                      sp (fs :> FPriv (Some p1) p2) (XVal v1)
+%             (map (mergeB p1 p2) ss) sp fs                   (XVal (mergeV p1 p2 v1))
+\hspace{-2ex}
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs,~ \fprivm{p_1}{p_2}  ~|~ \cx{v_1}
+\lto    & \hspace{-1ex} \mss' ~|~ \msp ~|~ \mfs       ~|~ \cx{v_1}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where}
+                & \mss' & = ~\trm{map}~ (\mmergeB~ p_1~ p_2)~ \mss
+          }
+\end{array}
+& \trm{(SfExtendPop)}
+\\[4ex]
+
+
+% -------------------------------------
+% | SfStoreAlloc
+%   :  forall ss sp fs r1 v1
+%   ,  STEPF  ss                    sp  fs (XAlloc (TCap (TyCapRegion r1)) v1)
+%             (StValue r1 v1 <: ss) sp  fs (XVal (VLoc (length ss)))
+\begin{array}{lllr}
+        & \mss  ~|~ \msp ~|~ \mfs ~|~ \cx{\kalloc~ (\trgn{p})~ v_1}
+\lto    & \hspace{-1em}~ \sbvalue{p}{v_1},~ \mss
+                ~|~ \msp ~|~ \mfs ~|~ \cx{\vloc{l}}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where}
+                & l & = \trm{length}~ \mss
+          }
+\end{array}
+& \trm{(SfStoreAlloc)}
+\\[3ex]
+
+
+% -------------------------------------
+% | SfStoreRead
+%   :  forall ss sp fs l v r
+%   ,  get l ss = Some (StValue r v)
+%   -> STEPF ss                     sp  fs (XRead (TCap (TyCapRegion r))  (VLoc l)) 
+%            ss                     sp  fs (XVal v)
+\hspace{-11ex}
+\begin{array}{lllr}
+        & \mss    ~|~ \msp ~|~ \mfs ~|~ \cx{\kread~ (\trgn{p})~ (\vloc{l})}
+\lto    & \hspace{-1em}~
+          \mss    ~|~ \msp ~|~ \mfs ~|~ \cx{v}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where}
+                & \sbvalue{p}{v}~~ & = \trm{get}~ l~ \mss
+          }
+\end{array}
+& \trm{(SfStoreRead)}
+\\[3ex]
+
+
+% -------------------------------------
+% | SfStoreWrite
+%   :  forall ss sp fs l r v1 v2 
+%   ,  get l ss = Some (StValue r v1)
+%   -> STEPF  ss sp fs                 (XWrite (TCap (TyCapRegion r)) (VLoc l) v2)
+%             (update l (StValue r v2) ss) sp fs (XVal (VConst CUnit)).
+\hspace{-3ex}
+\begin{array}{lllr}
+        & \mss    ~|~ \msp ~|~ \mfs ~|~ \cx{\kwrite~ (\trgn{p})~ (\vloc{l})~ v_2}
+\lto    & \hspace{-1em}~
+          \mss'   ~|~ \msp ~|~ \mfs ~|~ \cx{\tt{unit}}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where}     
+                & \sbvalue{p}{v_1}  & = \trm{get}~ l~ \mss~ \\
+                & \mss'             & = \trm{update}~ l~ (\sbvalue{p}{v_2})~ \mss
+          }
+\\
+\end{array}
+& \trm{(SfStoreWrite)}
+\\[3ex]
+
+\end{array}
+$$
+        
+} % boxfig
+\medskip
+\caption{Small Step Evaluation}
+\label{f:Step}
+\end{figure}
+

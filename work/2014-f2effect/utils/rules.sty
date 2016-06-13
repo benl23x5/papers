@@ -1,0 +1,49 @@
+
+% -- Rules --------------------------------------------------------------------
+\newcommand{\boxfig}[1]{
+        \fbox{
+        \begin{minipage}{12cm}
+        #1
+        \end{minipage}
+        }
+}
+
+
+% -- An axiom
+\newcommand{\ruleA}[1]{
+        #1
+}
+
+
+% -- An axiom with a local tag.
+\newcommand{\ruleAL}[2]{
+        #2
+        \ \textrm{\ (\tt{#1})}
+}
+
+
+% -- A type rule.
+\newcommand{\ruleI}[2]
+{
+        \frac   {\displaystyle #1}
+                {\displaystyle #2} \ 
+}
+
+
+% -- A type rule with a local tag
+\newcommand{\ruleIL}[3]{
+        \frac   {\displaystyle #2}
+                {\displaystyle #3} \ 
+                (\trm{#1})
+}
+
+
+
+\newcommand\mcarray[4]
+{       \multicolumn{#1}{#2}{
+        \begin{array}{#3}
+                #4
+        \end{array}
+        } % multicolumn
+}
+

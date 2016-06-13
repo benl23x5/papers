@@ -1,0 +1,35 @@
+DIGEST 9a05dac49ad208e6d7e7b4c5bce3df92
+FIron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps
+R16:68 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> <> lib
+prf 128:144 <> kind_stprops_snoc
+R199:203 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R220:220 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> k var
+R218:218 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> t var
+R210:213 Iron.Data.List.Base <> ::x_'<:'_x not
+R209:209 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> p var
+R214:215 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> sp var
+R205:206 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> ke var
+R172:176 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R193:193 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> k var
+R191:191 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> t var
+R181:182 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> sp var
+R178:179 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> ke var
+R350:355 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiCon2 constr
+R350:355 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiCon2 constr
+R426:442 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> kind_stprops_snoc thm
+prf 453:469 <> kind_stprops_cons
+R518:522 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R539:539 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> k var
+R537:537 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> t var
+R530:533 Iron.Data.List.Base <> ::x_':>'_x not
+R534:534 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> p var
+R528:529 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> sp var
+R524:525 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> ke var
+R498:502 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R512:512 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> k var
+R510:510 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> t var
+R507:508 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> sp var
+R504:505 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> ke var
+R671:676 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiCon2 constr
+R671:676 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiCon2 constr
+R726:742 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> kind_stprops_cons thm

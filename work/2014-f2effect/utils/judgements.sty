@@ -1,0 +1,160 @@
+
+% -- Kinding ------------------------------------------------------------------
+% Kinds of Types
+\newcommand\KindT[4]    
+{               #1 
+        ~|~     #2 
+        ~\vdash_{t} \ct{#3}
+        ~::~    \ck{#4}
+}
+
+
+% -- Typing -------------------------------------------------------------------
+% Types of Values
+\newcommand\TypeV[6]    
+{               #1 
+        ~|~     #2 
+        ~|~     #3 
+        ~|~     #4 
+        ~\vdash_{v} \cx{#5}
+        ~::~    \ct{#6}
+}
+
+
+% Types of Expressions
+\newcommand\TypeX[7]    
+{               #1    
+        ~|~     #2 
+        ~|~     #3 
+        ~|~     #4 
+        ~\vdash_{x} \cx{#5}
+        ~::~    \ct{#6}
+        ~;~     \ct{#7}
+}
+
+
+% Expression on a Frame Stack.
+\newcommand\TypeC[8]
+{
+                #1
+        ~|~     #2
+        ~|~     #3
+        ~|~     #4
+        ~\vdash_{c}~ \cx{#5 / #6}
+        ~::~    \ct{#7}
+        ~;~     \ct{#8}
+}
+
+
+% Type of Frame Stack
+\newcommand\TypeF[8]
+{
+                #1
+        ~|~     #2
+        ~|~     #3
+        ~|~     #4
+        ~\vdash_{f}~ \cx{#5}
+        ~::~    \ct{#6} \multimap \ct{#7}
+        ~;~     \ct{#8}
+}
+
+
+% -- Equivalence --------------------------------------------------------------
+% Equivalence of types
+\newcommand\EquivT[5]
+{
+                #1
+        ~|~     #2
+        \vdash  \ct{#3}
+        \equiv  \ct{#4}
+        ~::~    \ck{#5}
+}
+
+
+% Subsumption of types.
+\newcommand\SubsT[5]
+{
+                        #1
+        ~|~             #2
+        \vdash          \ct{#3}
+        \sqsupseteq     \ct{#4}
+        ~::~            \ck{#5}
+}
+
+
+% SubsVisibleT  nil sp' sp  e  e' Subsumes visible effects.
+\newcommand\SubsVisibleT[5]
+{                       #1 
+        ~|~             #2 
+        ~\vdash_{vis}~  \ct{#4}
+        \sqsupseteq     \ct{#5}
+        \dagger         #3
+}
+
+
+% -- Step ---------------------------------------------------------------------
+% Pure Single Step Evaluation
+\newcommand\StepP[2]    
+{       #1 \longrightarrow #2   }
+
+
+% Single Step with the frame stack.
+\newcommand\StepF[8]
+{                       #1 ~|~ #2 ~|~ #3 ~|~ \cx{#4}
+        \longrightarrow #5 ~|~ #6 ~|~ #7 ~|~ \cx{#8}
+}
+
+% Well formed store and frame stack
+\newcommand\WfFS[4]
+{       #1 ~|~ #2 ~\vdash #3 ~;~ #4 ~ {\mathbf{wf}}
+}
+
+
+% -- TypeB --------------------------------------------------------------------
+% Store binding is well typed.
+\newcommand\TypeB[6]
+{       #1 ~|~ #2 ~|~ #3 ~|~ #4 \vdash_{b}~ \cx{#5} ~::~ \ct{#6}
+}
+
+
+% -- Store{T,P,M} -------------------------------------------------------------
+% Store is well typed.
+\newcommand\StoreT[3]
+{       #1 ~|~ #2 ~\vdash_{s} \cx{#3}
+}
+
+
+% Properties cover frame stack.
+\newcommand\StoreP[2]
+{       #1 \vdash_{p} \cx{#2} ~~ {\mathbf{covered}}
+}
+
+
+% Store model
+\newcommand\StoreM[2]
+{       #1 \vdash_{m} \cx{#2} ~~ {\mathbf{models}}
+}
+
+
+% -- Liveness -----------------------------------------------------------------
+% Region handles in effect are live.
+\newcommand\LiveE[2]
+{       #1 \vdash_{e} \cx{#2} ~~ \mathbf{live}
+}
+
+% Bindings in store are live.
+\newcommand\LiveS[2]
+{       #1 \vdash_{s} \cx{#2} ~~ \mathbf{live}
+}
+
+
+% Binding is live with respect to a frame.
+\newcommand\LiveBP[2]
+{       #1 \vdash_{bp} \cx{#2} ~~ \mathbf{live}
+}
+
+% Binding is live with respect to a frame.
+\newcommand\LiveBF[2]
+{       #1 \vdash_{bf} #2 ~~ \mathbf{live}
+}
+

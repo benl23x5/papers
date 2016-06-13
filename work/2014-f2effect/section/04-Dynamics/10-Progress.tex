@@ -1,0 +1,159 @@
+%!TEX root = ../../Main.tex
+
+\clearpage{}
+% -----------------------------------------------------------------------------
+% Lemma progress
+%  :  forall se ss sp fs x1 t1 e1
+%  ,   WfFS   se sp ss fs
+%  ->  LiveS  ss fs -> LiveE fs e1
+%  ->  TYPEC  nil nil se sp fs x1 t1 e1
+%  ->  done fs x1
+%   \/ (exists ss' sp' fs' x1', STEPF ss sp fs x1 ss' sp' fs' x1').
+
+\begin{theorem}[Progress]
+\label{t:Progress}
+\end{theorem}
+\begin{tabbing}
+M \= MMM \= MMMMMMM \= MMM \= MMMMM \kill
+\> \pIf    \> $\WfFS{\mse}{\msp}{\mss}{\mfs}
+                ~~~\pand~~~ \LiveS{\mss}{\mfs} 
+                ~~~\pand~~~ \LiveE{\mfs}{e}$                             \\
+\> ~\pand  \> $\TypeC{~\nil}{\nil}{\mse}{\msp}{\mfs}{x}{t}{e}$            \\
+\> \pthen  \> $\trm{done}~ \mfs~ x$                                      \\
+\> ~ \por  \> $\trm{exists}~ \mss'~ \msp'~ \mfs'~ x'.~~ 
+                \StepF{\mss}{\msp}{\mfs}{x}{\mss'}{\msp'}{\mfs'}{x'}$
+\\[1ex]
+\> where   \> done $\mfs$ $x$ $\eqdef$ ($\mfs ~=~ \nil) \wedge (\pexists~ v.~ x = v)$
+\end{tabbing}
+
+\noindent
+A well typed configuration is either done (has finished evaluating) or can transition to a new state. In the above statement the clause $(\trm{exists}~ v.~ x = v)$ means ``$x$ is a value'', where the forms of values are defined in Fig.~\ref{s:Language}.
+
+\medskip\noindent
+\textbf{Proof} by induction over the form of $x$. The interesting cases are when $x$ performs a read or write to the store, as we must show that the corresponding binding has been allocated but not yet deallocated. The proofs of these cases make critical use of liveness information via Lemma.~\ref{l:liveS_liveE_value}. We sketch the case for @read@ below, with the case for @write@ being very similar. For full details see the Coq script.
+
+\medskip
+\noindent
+\textbf{Case}~ $x = \kread~ t_1~ v_2$
+\medskip
+
+$
+\begin{array}{cc}
+\ruleI
+{       
+        (5)~~ 
+        \KindT    {\nil}{\msp}{t_1}{\kcRegion}
+\qq
+        (6)~~ 
+        \TypeV    {\nil}{\nil}{\mse}{\msp}
+                  {v_2}
+                  {\tref{t_1}{t_2}}
+}
+{
+        (4)~~ \TypeC  {\nil}{\nil}{\mse}{\msp}{\mfs}
+                {\kread~ t_1~ v_2}
+                {t_3}
+                {e_1}
+        ~~~ (\trm{Assume})
+}
+& 
+\end{array}
+$
+
+\begin{tabbing}
+MMMM    \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMM         \kill
+(1..3)  \>       $(\WfFS{\mse}{\msp}{\mss}{\mfs})$
+           \quad $(\LiveS{\mss}{\mfs})$
+           \quad $(\LiveE{\mfs}{e_1})$
+        \> (Assume)
+\\ 
+(5, 6)  \> ...
+        \> (Invert 4)
+\\
+(7)     \> $t_1 = \trgn{p_1}$
+        \> (Lemma \ref{l:kind_region},~ 5)
+\\
+(8)     \> $v_2 = \vloc{l}$
+        \> (Forms of Values 6)
+\\ 
+(9)     \> $\TypeV{\nil}{\nil}{\mse}{\msp}
+                  {\vloc{l}}{\tref{t_1}{t_2}}$
+        \> (Substitute 6 8)
+\\
+(10)     \> $\tref{t_1}{t_2} = \mget~ l~ \mse$
+        \> (Invert/TyLoc 9)
+\\      
+(11)    \> $b ~~~~~~~~~~~~ = \mget~ l~ \mss$
+        \> (StoreM 10 1)
+\\[1ex]
+
+% ----------
+(12)    \> Case $b = (\sbvalue{p_3}{v_3})$
+\\
+~ (13)  \> ~~ $\TypeB{\nil}{\nil}
+                  {\mse}{\msp}
+                  {\sbvalue{p_3}{v_3}}
+                  {\tref{(\trgn{p_1})}{t_2}}$
+        \> (StoreT 12 10 1)
+\\
+~ (14)  \> ~~ $p_3 = p_1$
+        \> (Invert/TbValue 13)
+\\      
+~ (15)  \> ~~  $\StepF{\mss}{\msp}{\mfs}{\kread~ (\trgn{p_1})~ (\vloc{l})}
+                  {\mss}{\msp}{\mfs}{v_3}$
+        \> (SfStoreRead 11 12 14)
+\\[1ex]
+
+% ----------
+(16)    \> Case $b = (\sbdead{p_3})$
+\\
+~ (17)  \> ~~ $\TypeB   {\nil}{\nil}
+                        {\mse}{\msp}
+                        {\sbdead{p_3}}
+                        {\tref{(\trgn{p_1})}{t_2}}$
+        \> (StoreT 16 10 1)
+\\
+~ (18)  \> ~~ $p_3 = p_1$
+        \> (Invert/TbDead 13)
+\\
+~ (19)  \> ~~$\TypeF    {\nil}{\nil}{\mse}{\msp}
+                        {\mfs}{t_2}{t_3}{e_2}$
+        \> (Invert/TcExp 4)
+\\
+~ (20)  \> ~~$\TypeX    {\nil}{\nil}{\mse}{\msp}
+                        {\kread~ (\trgn{p_1})~ l} {t_2} {e_3}$
+        \> ~~~ ...
+\\
+~ (21)  \> ~~$\EquivT   {\nil}{\msp}
+                        {e_2 + e_3}
+                        {e_1}
+                        {\kcEffect}$
+        \> ~~~ ...
+\\
+~ (22)  \> ~~ $e_3 = \tcRead~ (\trgn{p_1})$
+        \> (Invert/TxRead 20)
+\\
+~ (23)  \> ~~ $\SubsT   {\nil}{\msp}{e_1}
+                        {\tcRead~ (\trgn{p_1})}
+                        {\kcEffect}$
+        \> (Prop of $\equiv$ 21 22)
+\\
+~ (24)  \> ~~ $\LiveE   {\mfs}{\tcRead~ (\trgn{p_1})}$
+        \> (Prop of LiveE 3 23)
+\\
+~ (25)  \> ~~ $\pexists~ v,~ b = (\sbvalue{p_1}{v})$
+        \> \hspace{-2em}(Lemma ~\ref{l:liveS_liveE_value},~  2 24 11)
+\\
+~ (26)  \> Contradiction
+        \> \hspace{-2em}(16 25)
+\end{tabbing}
+
+In (7) type $t_1$ is a region handle because it is closed (via 5), and the only closed types of region kind are region handles (Lemma \ref{l:kind_region}). Similarly, in (8) value $v_2$ is a location because it is closed (6), and the only closed values of type $\tref{t_1}{t_2}$ are locations.
+
+In (11) the length of the store $\mss$ is the same as the length of the store environment $\mse$ due to the well formedness condition on stores (1). This means we can get the binding $b$ associated with location $l$, but we do not yet know whether it is dead (deallocated) or still live (a value binding).
+
+In the case where store binding $b$ is live (12), we know it is in region $p_1$ as indicated by its type ($\tref{(\trgn{p_1})}{t_1}$), because the store is well typed relative to the store typing (1). Region $p_1$ matches the region handle ($\trgn{p_1}$) in the expression, so the whole configuration can reduce via (SfStoreRead) from Fig.~\ref{f:Step}.
+
+In the case where the store binding $b$ is dead (16) we invert the typing judgment (4) to reveal the effect of the overall configuration $e_1$. This effect includes the effect of just the $\kread$ expression currently being reduced ($\tcRead~ (\trgn{p_1})$) (22), as well as the effect of the rest of the computation $e_2$. Based on the read effect, the liveness statement (3) indicates there must be a corresponding ($\fpriv{m}{p_1}$) frame on the frame stack $\mfs$, for some mode $m$. Using Lemma~\ref{l:liveS_liveE_value} and (2) this implies that all bindings in region $p_1$ must be live. This contradicts the original statement that $b$ was dead (16), so this case cannot happen.
+\qqed
+

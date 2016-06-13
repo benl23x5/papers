@@ -1,0 +1,61 @@
+DIGEST 04033067f05e1ec490d29d115db3ef3d
+FIron.Data.List.Extends
+R16:34 Iron.Data.List.Base <> <> lib
+def 50:56 <> extends
+R73:76 Coq.Init.Datatypes <> list ind
+R78:78 Iron.Data.List.Extends <> A var
+R86:89 Coq.Init.Datatypes <> list ind
+R91:91 Iron.Data.List.Extends <> A var
+R98:104 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R107:108 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R111:113 Coq.Init.Logic <> :type_scope:x_'='_x not
+R109:110 Iron.Data.List.Extends <> xs var
+R116:119 Iron.Data.List.Base <> ::x_'><'_x not
+R120:121 Iron.Data.List.Extends <> ys var
+R114:115 Iron.Data.List.Extends <> zs var
+prf 132:143 <> extends_refl
+R170:173 Coq.Init.Datatypes <> list ind
+R175:175 Iron.Data.List.Extends <> A var
+R181:187 Iron.Data.List.Extends <> extends def
+R192:193 Iron.Data.List.Extends <> se var
+R189:190 Iron.Data.List.Extends <> se var
+R235:241 Iron.Data.List.Extends <> extends def
+R253:255 Coq.Init.Datatypes <> nil constr
+R253:255 Coq.Init.Datatypes <> nil constr
+R277:283 Iron.Data.List.Extends <> extends def
+R295:297 Coq.Init.Datatypes <> nil constr
+R295:297 Coq.Init.Datatypes <> nil constr
+R328:339 Iron.Data.List.Extends <> extends_refl thm
+prf 350:362 <> extends_trans
+R391:394 Coq.Init.Datatypes <> list ind
+R396:396 Iron.Data.List.Extends <> A var
+R443:449 Iron.Data.List.Extends <> extends def
+R455:457 Iron.Data.List.Extends <> xx0 var
+R451:453 Iron.Data.List.Extends <> xx2 var
+R423:429 Iron.Data.List.Extends <> extends def
+R435:437 Iron.Data.List.Extends <> xx0 var
+R431:433 Iron.Data.List.Extends <> xx1 var
+R403:409 Iron.Data.List.Extends <> extends def
+R415:417 Iron.Data.List.Extends <> xx1 var
+R411:413 Iron.Data.List.Extends <> xx2 var
+R484:490 Iron.Data.List.Extends <> extends def
+R506:512 Iron.Data.List.Extends <> extends def
+R574:580 Iron.Data.List.Extends <> extends def
+R613:616 Iron.Data.List.Base <> ::x_'><'_x not
+R613:616 Iron.Data.List.Base <> ::x_'><'_x not
+R632:640 Coq.Lists.List <> app_assoc thm
+R632:640 Coq.Lists.List <> app_assoc thm
+prf 662:673 <> extends_snoc
+R703:706 Coq.Init.Datatypes <> list ind
+R708:708 Iron.Data.List.Extends <> A var
+R714:720 Iron.Data.List.Extends <> extends def
+R732:733 Iron.Data.List.Extends <> xx var
+R724:727 Iron.Data.List.Base <> ::x_'<:'_x not
+R723:723 Iron.Data.List.Extends <> x var
+R728:729 Iron.Data.List.Extends <> xx var
+R759:765 Iron.Data.List.Extends <> extends def
+R778:781 Coq.Init.Datatypes <> :list_scope:x_'::'_x not
+R782:784 Coq.Init.Datatypes <> nil constr
+R778:781 Coq.Init.Datatypes <> :list_scope:x_'::'_x not
+R782:784 Coq.Init.Datatypes <> nil constr
+R865:876 Iron.Data.List.Extends <> extends_snoc thm

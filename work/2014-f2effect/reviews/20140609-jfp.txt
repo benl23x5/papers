@@ -1,0 +1,489 @@
+From: bcpierce@cis.upenn.edu
+Subject: JFP-2013-0041 - Decision on Manuscript
+Date: 9 June 2014 3:57:39  AEST
+To: benl@ouroborus.net
+Cc: MatthiasFelleisen <matthias@ccs.neu.edu>, JeremyGibbons <jeremy.gibbons@cs.ox.ac.uk>, jfp-ed@cambridge.org, bcpierce@cis.upenn.edu
+
+Dear Ben:
+
+Your manuscript ID JFP-2013-0041 entitled "Mechanized soundness for a type and effect system with region deallocation," which you submitted to the Journal of Functional Programming, has been reviewed.  The comments of the referees are included at the bottom of this letter.
+
+As you'll see, the top-level recommendations of the reviewers range from "accept" to "reject and resubmit" -- seemingly a very wide range, until you look at the actual comments, which are fairly consistent: They reviewers seem to basically like what is there (modulo a number of suggestions for simplification, polishing, and minor generalization), but feel that (a) the technical contribution is perhaps a little thin, in the sense that paper proofs of similar properties for similar systems are well known and the formalization itself does not seem to involve significant new techniques, and (b) the motivation for studying this particular system (as opposed to a more modern and flexible one) is not completely convincing.  
+
+I think the best way to proceed is for you to take a look at the reviews, paying particular attention to these points, and form your own opinion as to the best way to address the reviewers' concerns -- in particular, how to increase the technical novelty and pragmatic motivation for the system you're formalizing with reasonable effort.  Before actually undertaking the revisions, though, please drop me an email describing your plans so that I and the reviewers can give you an early reading on whether the changes you have in mind will be satisfactory.
+
+When the time comes to revise your manuscript, log into http://mc.manuscriptcentral.com/jfp_submit and enter your Author Center, where you will find your manuscript title listed under "Manuscripts with Decisions."  Under "Actions," click on "Create a Revision."  Your manuscript number has been appended to denote a revision.
+
+You will be unable to make your revisions on the originally submitted version of the manuscript.  Instead, please upload your revised manuscript through your Author Center.
+
+When submitting your revised manuscript, you will be able to respond to the comments made by the referees in the space provided.  You can use this space to document any changes you make to the original manuscript.  In order to expedite the processing of the revised manuscript, please be as specific as possible in your response to the referees.
+
+IMPORTANT:  Your original files are available to you when you upload your revised manuscript.  Please delete any redundant files before completing the submission.
+
+Because we are trying to facilitate timely publication of manuscripts submitted to the Journal of Functional Programming, your revised manuscript should be uploaded as soon as possible.  If it is not possible for you to submit your revision in a reasonable amount of time, say two months, we may have to consider your paper as a new submission. Please let me know if this is not feasible.
+
+Once again, thank you for submitting your manuscript to the Journal of Functional Programming and I look forward to receiving your revision.
+
+Yours,
+
+    Benjamin
+
+
+Dr. Benjamin Pierce
+Journal of Functional Programming
+bcpierce@cis.upenn.edu
+
+Referees' Comments to Author:
+Referee: 1
+
+Comments to the Author
+SUMMARY
+
+This paper presents a polymorphic lambda-calculus equipped with references and
+a region-based memory management discipline, in the style of Tofte and Talpin.
+Safety is guaranteed by a type-and-effect discipline. Regions have lexical
+scope, that is, they are organized in a stack. The system offers a standard
+typing rule for region allocation & deallocation (with "effect masking"). It
+also offers a somewhat lesser-known rule, known as "region extension", where
+the newer region is not de-allocated, but instead merged into an older region.
+
+The paper contains a formal definition of the system and a proof of type
+soundness, based on preservation and progress lemmas. The definitions and
+proofs have been mechanically checked using Coq.
+
+EVALUATION
+
+In favor of the paper, I found it rather easy to read, and I found the
+definitions and statements reasonably natural and unsurprising. The static
+semantics (figure 4) and the dynamic semantics (figure 6) are "what you would
+expect", which I think is good. Some of the later figures (9, 10, 13) encode
+internal invariants which certainly are more difficult to come up with, but
+overall, the type system seems quite natural. Together with the Coq scripts,
+this makes this paper an excellent reference for people interested in studying
+the meta-theory of type systems based on a stack of regions.
+
+That said, a few aspects of the paper I found somewhat disappointing.
+
+For one thing, the motivation for this work, or the context in which this work
+is taking place, are not really described. The author suggests that perhaps
+this type system could be used (as a surface language? as an intermediate
+language?) in a certified compiler for a functional language. Is this just a
+suggestion, or is the construction of such a compiler actually being
+considered or undertaken? The reason why I have some doubts is that the system
+appears quite limited in expressiveness -- which is my next point.
+
+It is well-known that purely stack-based region disciplines are too coarse.
+They tend to force regions to remain live longer than necessary, effectively
+causing memory leaks. Researchers have discussed ways of relaxing this
+restriction quite early (e.g. Aiken et al., PLDI 1995). Attempts to use
+regions in real-world programming languages, such as Cyclone, have proposed
+many subtle mechanisms that help improve expressiveness. Also, systems based
+on capabilities (linear or affine tokens, which represent the ownership of a
+region) have appeared. Some of these systems have quite simple and beautiful
+meta-theory (e.g. Ahmed et al., "L^3: a linear language with locations",
+2007). I am sure the author is aware of these works, but my question is, why
+not adopt one of these flexible type disciplines? They subsume the
+stack-of-regions approach; they are not necessarily more difficult to prove
+correct; they are much more expressive, and potentially more amenable to
+unanticipated extensions. Here, the system is in some ways ad hoc: for
+instance, a notion of "unique ownership" of regions seems to be implicit in
+the typing rules TfConsPriv and TfConsExt of figure 10, but it is restricted
+to the idea that "regions are uniquely owned by the stack", whereas in more
+modern calculi, the notion of unique ownership is much more explicit and plays
+a much more central role. The typing rule TxPrivate, although standard, also
+seems somewhat limited: it relies on the absence of the region variable "r" in
+the type "t" to ensure that "r" will not be accessed after it has been
+de-allocated; but it seems to me that this wouldn't work any more if the
+system was extended with existential quantification over regions, for
+instance.
+
+A (minor) detail that troubles me is that the author interprets \Lambda as
+suspending evaluation, which in my opinion amounts to imposing a strong form
+of the value restriction: it is essentially equivalent to requiring that the
+body of every \Lambda be a \lambda. Yet, the author does not explicitly
+acknowledge this (page 13). I would suggest at the very least clarifying the
+situation. More ambitiously, one could view \Lambda as *not* suspending
+evaluation, and (I believe) one could allow the body to be any expression
+that does not have an Alloc effect. (Am I correct?) *That* would be a version
+of the system without the value restriction.
+
+I should also say that the whole of section 1.6 seemed somewhat unclear to
+me. It wasn't really clear to me what the "problem" was, and the sentences of
+the form "we could perhaps [fix the problem in this or that unlikely manner]"
+were not helpful at all. As far as I am concerned, presenting the type system
+as it stands, directly, would be preferable.
+
+In summary, I would suggest accepting the paper for publication, on the
+grounds that it is a solid, and one might even say tasteful, piece of work.
+It is however somewhat unexciting, as the stack-of-regions discipline is a
+20-year old idea, and there have many interesting developments since. It is
+not clear that this discipline would have sufficient expressiveness for use
+in the certified compiler project alluded to by the author in the conclusion.
+As a reader, one would like to know more about this project.
+
+MISCELLANEOUS REMARKS
+
+p.3, "To ensure that further evaluation [...] the bound region variable r is
+not free in the type of body." It seems that, if the type system were extended
+with certain features, then this requirement would no longer be a sufficient
+condition to ensure safety. For instance, what if existential quantification
+over regions was added? It would then be unsafe to return a function of type
+"exists r, Nat -(Write r)-> Nat" out of a "private" construct, even though the
+type of this function is closed. Would the author care to comment on this
+issue?
+
+p.6, using "x" to denote an expression is non-standard and somewhat
+mischievous. The author must be well aware that it usually denotes a variable.
+
+p.6, "Now, although [...] we must deal with subtle issues [...]". I believe
+that the paragraphs that follow are slightly misleading. The reader may be
+led at first to believe that this is a hygiene (or name capture) issue, and
+that "alpha-converting p" will fix the problem. Yet, (as the author points
+out,) the *private* construct is not a binder, and the identifier p is not
+a variable, so the name p in "*private* p" cannot be renamed; it is a fixed
+name. The author presents a couple of "problematic" terms:
+
+ *private* p in *private* p in ...
+
+ (\Lambda r.*private* p in ...) (rgn p)
+
+In what way are they "problematic", and what is the answer to these
+"problems"? The answer is not that we need a special notion of renaming, or a
+special notion of capture-avoiding substitution, or something like that. The
+answer is simply that there is no "problem" and that these terms must somehow
+be considered ill-typed. (That is, if my understanding is correct!) Perhaps
+this could be clarified. It would be useful to point out, as soon as possible,
+that *private* p does not bind p. In fact, ideally "*private* p in e" should
+be written "e then dealloc p", which would more clearly suggest that this is
+not a binding construct.
+
+p.7, "In this work they give the following typing rule": is that (useregion)
+on page 208 of Calcagno et al.'s paper? Please provide a more precise pointer.
+
+p.7, "Now, [...] to add [...] polymorphism [...] we must deal with the capture
+problem." At this point, I am not sure what the "capture problem" is, or why
+there is a connection between polymorphism and this problem. By the way, it
+occurs to me that when one discusses polymorphism in the presence of mutable
+state, one should also discuss how one plans to control their interaction.
+Adopting the value restriction is the simplest approach. It means that
+evaluation never takes place under capital-Lambda. Here, since *private* is a
+construct that appears only during evaluation, this means that *private* is
+never nested under capital-Lambda; hence the term at the bottom of page 6 is
+artificial and should never appear (it should be ill-typed).  Also, this means
+that the types and effects that occur in the typing rule TyPrivate are closed
+(they do not have any free type variables). Doesn't this simplify the
+"problem" (whatever the problem is!) in some way?
+
+p.8, "The counter-example above is really a problem with [...]". It seems to
+me that the whole thing is a problem of setting up the syntax and the typing
+rules in such a way, that, together, they express the invariant that the
+author has in mind. Anyway, as a reader, I do not appreciate the value of this
+whole discussion; why not just present its solution directly?
+
+p.8, "there is never a need to substitute types into it". This seems
+consistent with my intuition that *private* should not appear under
+capital-Lambda, hence one should never have to substitute types into it.
+
+p.10, "We index environments from the right so that they appear as stacks that
+grow to the left." Do you mean "that grow to the right"? In the typing rules,
+new bindings seem to be added on the right-hand end of environments. (And that
+is standard.)
+
+p.10, "the store properties records the identifiers of regions that have been
+created so far". This is fine, but as you note on p.18, one could just as well
+replace the store properties (a set of identifiers) but just one integer
+counter, namely the number of the next available region identifier. Is there
+any reason not to perform this simplification?
+
+p.12, "Rule (KiApp) prevents [...]". Couldn't one remove the restriction in
+(KiApp) and instead require the primitive type constructors to have a kind
+other than Region as their codomain?
+
+fig. 2, (KiCon1) and (KiCon2) seem redundant with (KiApp), since both concern
+type applications. Couldn't one just remove (KiApp)? After all, in System F,
+type constructors are usually fully applied. Or if one wishes to go the other
+route, keep (KiApp), but remove (KiCon1) and (KiCon2).
+
+I would suggest grouping the components "se" and "sp" together in the typing
+judgement. Together, they form a description of the "machine state" (they
+describe which regions and which memory locations have been allocated,
+together with certain invariants such as the type of every location). All
+typing judgements are stable under an evolution of this "machine state"
+according to a predetermined relation (allocating new regions, allocating new
+regions). In this view, Lemmas 3.10 and 3.11 would become just one lemma. In a
+sense, this would be just an aesthetic change; yet, it would also shed a
+slightly more abstract light on the system, and help emphasize its similarity
+with certain abstract frameworks in the literature: I am thinking of the Views
+framework by Dinsdale-Young et al. (POPL 2013) and of the Mezzo kernel, as
+presented by Balabonski et al. (FLOPS 2014).
+
+fig. 4, rule TvLAM, I am slightly surprised to see that the store typing "se"
+must be lifted in the premise. I would expect se to contain closed types only,
+so that se is equal to its lifted version anyway. I suppose this appears
+elsewhere (fig. 8), so it is only a matter of preference whether "se" or "se
+lifted" is used in TvLAM.
+
+According to TvLAM, a capital-Lambda-abstraction is a value, even if its body
+is an expression. Thus, you have a non-type-erasure interpretation of
+capital-Lambda: \Lambda suspends execution. Why is that? The type erasure
+interpretation of \Lambda is more expressive, as one can still write
+\Lambda\alpha.\lambda().x when one wishes to suspend evaluation, and one
+potentially has access to \Lambda\alpha.x, which does not suspend evaluation
+of the expression x, whereas your interpretation cannot express this.
+
+As a related note, I believe that the paragraph "We require the body of a type
+abstraction to be pure" (p. 13) is misleading in several ways. By deciding
+that \Lambda suspends evaluation, you are effectively adopting a strong form
+of the value restriction: in type-erasure terms, you are restricting the body
+of a capital-\Lambda to be a little-\lambda, whereas the value restriction
+usually allows the body of a capital-\Lambda to be any value (e.g., an empty
+list constructor). Furthermore, the issue of "requesting the body of a type
+abstraction to be pure" is an orthogonal problem altogether; you could allow
+the body to have an effect, but that effect would have to be reflected in the
+type, and your syntax does not allow a \forall type to carry an effect
+annotation (it could). The bottom line, in my opinion, seems to be: 1- you are
+effectively enforcing a strong value restriction, and you should say so; 2-
+adopting a type-erasure interpretation of \Lambda would in my opinion be more
+natural, more expressive, and would clarify some of these aspects.
+
+p.15, in (TxPrivate), is the premise "t' = lower(t)" equivalent to
+"lift(t') = t"?
+The latter would seem more natural to me. Because lifting is a total function,
+whereas lowering is a partial function (as emphasized by the author), it is
+more common to reason purely in terms of lifting.
+
+Why is Lemma 3.5 important? In a system with subtyping or sub-effecting, it
+would be false. One would like this property not to be necessary. By the way,
+why doesn't the system have sub-effecting? Wouldn't that make it more
+expressive?
+
+fig. 10, it is slightly surprising that TfConsExt needs stronger premises than
+TfConsPriv. My intuition is that "private" and "extend" are almost the same
+construct, except one de-allocates the region at the end, while the other
+merges it into another region. So, the invariant that holds while the body is
+evaluated should be the same. If the rule TfConsPriv was strenghtened by
+replacing the NoPrivFs premise with FreshFs(Supp) premises, I assume the proof
+would still go through?
+
+p.33, "To achieve this, the CL requires programs to be written in CPS". It is
+not clear to me that CPS is *required*. Walker et al. choose CPS style because
+it is natural for a low-level language (such as a typed assembly language),
+but one can also define a high-level, direct-style lambda-calculus and equip
+it with affine capabilities (see Ahmed et al.'s L^3, or Tov and Pucella's
+Alms, or Balabonski et al.'s Mezzo) which allow non-lexically-scoped
+allocation and deallocation.
+
+p.33, which "well known program transformations do you have in mind"?
+
+TYPOS
+
+p.3, "and so on a place-holder" -> "and so on as a place-holder"?
+
+p.23, "the effect e being flattened" -> "the effect e is being flattened"?
+
+p.28, "the effect if the initial state" -> "the effect of/in the initial state"?
+
+p.36, the title of Papakyrakiou's paper is missing a \lambda.
+
+p.34, "while it destructing it"
+
+
+
+Referee: 2
+
+Comments to the Author
+This paper describes a formalisation of a type-and-effect system for
+region-based memory-management for a system-F-like language extended
+with mutable references. The paper presents a formalisation of a
+static type-and-effect system for the language, a dynamic semantics
+for the language, and a proof of type safety for the language. The
+novelty of the paper is that the approach taken in the paper allows
+type safety to be proven using standard small-step operational
+semantics techniques even in the presence of mutable references and
+polymorphism.
+
+Overall, the paper is well-written, with only a few typographical
+errors. However, at least one important issue needs to be addressed
+before the paper can be published. In its current form, I believe the
+type-and-effect system is incomplete in a significant sense: Due to
+serial limitations in the type-and-effect system, many trivial
+programs cannot be represented and typed in the type-and-effect
+system. In particular, the type-and-effect system does not have a
+sub-effecting rule and it does not support subtyping (with
+sub-effecting on arrows), one of which is a requirement for giving a
+type to a conditional expression with branches consisting of functions
+with different effects. An alternative, which was used in the original
+region-and-effect type-system by Tofte and Talpin, is to associate
+each arrow effect with a particular effect variables, which, together
+with a special-engineered substitution-operations would allow for the
+unification of arbitrary effect- and region-decorated types, as long
+as the underlying non-decorated types are identical. It is unclear to
+the reader whether such a drastic change to the type-and-effect system
+will require essential changes to the formalisms and to the proof of
+soundness for the language. The paper should address this issue and
+also compare a solution based on the substitution approach to unifying
+effect types to using a subtyping approach.
+
+The paper distinguishes between read effects and write effects (writes
+to a mutable reference). Adding this distinction to the
+type-and-effect system, which complicates proofs and adds complexity,
+seems dual to the goal of proving type-safety for a region-based
+language with support for mutable references and polymorphism. I would
+suggest that the complications of the added generality is moved to a
+separate section.
+
+Details:
+
+Page 4: Has the "region extension" technique been investigated in
+isolation somewhere? Is it a contribution? If not, please add a
+reference, and perhaps think about excluding it from the general
+presentation (see above).
+
+Page 5: "...construct not mention..." -> rephrase
+
+Page 6: Syntactically, the vertical bar (|) seems to bind weaker than
+turn-stile (|-) - using semicolon instead, could perhaps improve the
+readability of lemmas...
+
+Page 8: The solution to the renaming you're mentioning seems like the
+obvious solution and doesn't seem like a "kludge" to me; as you say,
+in an implementation, this sort of alpha-renaming would of course not
+be done for real.
+
+Page 9, Fig 1: The language supports booleans, but no conditional
+expressions. Please consider adding conditional expressions, as such
+an addition would shed light on many aspects of the effect system.
+
+Page 10: "values are the expressions that cannot be reduced
+further..." -> is "tt + 5" a value or a stuck expression?
+
+Page 10: "that location is in" -> "that the location is in"
+
+Page 12: "when adding allocating a" -> rephrase
+
+Page 12: "and end of an" -> "and the end of an"
+
+Page 14: Define maskOnVarT formally, or maybe refer to an appendix
+with the proper definition and worked out properties.
+
+Page 17: "we write it with in prefix" -> rephrase
+
+Page 18: "takes the maximum of all existing region identifiers and
+adds one to it" -> all existing as in ever created? Please clarify.
+
+Page 21: There are many relations and objects to keep track of. It
+would perhaps be beneficial to the reader if the objects could somehow
+(syntactically or conceptually) be separated into those that are part
+of the static semantics and those that are objects related to the
+dynamic semantics.
+
+Page 23: "will only accesses" -> "will only access"
+
+Page 23: "preserved under during" -> "preserved during"
+
+Page 23, Lemma 4.6: rephrase intro-text
+
+Page 23: Please define regionOfStBind and handleOfEffect before use.
+
+Page 23: "the rule (LiveE) rule" -> rephrase
+
+Page 25, Fig 9: Should "p_1 with v |-_{bp} p_2 live" be "p with v
+       |-_{bp} p live" ?
+
+Page 25 (and elsewhere): Use roman font for the turn-style subscript
+text to avoid confusion with objects (effects, e.g.).
+
+Page 29: "when apply rule" -> "when applying rule"
+
+Page 30: "from to show" -> rephrase
+
+Page 32, Theorem 4.2: Define "done fs x"
+
+Page 32: "over the form of x" -> "over the structure of x"
+
+Page 34: "while it destructing it" -> rephrase
+
+Page 34: "not as memory management discipline" -> "not as a memory
+management discipline"
+
+
+Referee: 3
+
+Comments to the Author
+Title: Mechanized soundness for a type and effect system with region deallocation
+Author: Ben Lippmeier
+
+The paper considers an effect system a la Talpin and Jouvelot, that is, call-by-value lambda calculus with references and with type and region polymorphism. It gives a syntactic type soundness proof for the system, which is completely mechanized using the Coq proof assistant. The paper's approach is inspired by an earlier proof for a system with monomorphic types, which is not straightforwardly extensible to a type-polymorphic system.
+
+The paper and the proof are carefully structured and the author worked hard to make a mechanized proof accessible in writing. The problems solved by the system are well presented (except my disagreement with region extension) and the paper is generally well written and accessible. Related work is also surveyed extensively.
+However, the formalization contains some unfortunate decisions and in particular the fix to extend the previous monomorphic formalization makes the system unnecessarily complex. In particular, instead of considering a small-step semantics the author proposes a more complicated abstract machine semantics - this should not be necessary as Danvy has shown.
+
+Given that the formalization is not particularly elegant and that there are already a number of (hand-written) proofs in the published literature and at least one of them (CL) covers a language with features very close to the author's System-Fre, it is hard for me to get excited about the paper. The author mentions the consideration of region extension as a contribution, but technically this is a minor extension which does not create new problem (nice to see, but unsurprising). This leaves the construction of the Coq formalization and proof as the main contribution.
+
+This paper falls in the category "not embarrassing to accept" after a revision that addresses the points raised below, but leaving the abstract-machine style semantics as it is. But the archival value is not high as the proof is likely to be superseded.
+
+
+DETAILED EVALUATION:
+
+One difference to published systems is the consideration of region extension (section 1.4), which creates a new region, works with it, and then hides the resulting effect and merge the new region into an existing one. The main motivation of the author is that "Region extension allows store objects to be destructively initialized without revealing the associated write effects to the calling context". I fail to be convinced that this is a desirable property.
+A programmer would more concerned that such a program part is able to willy-nilly change objects in an existing region. However, this encapsulation may also be achieved using region polymorphism:
+Replace
+extend r1 with r2 in x
+by
+(\Lamba r2:Region . x) r1
+Of course, all the effects of x appear as effects of r1, but thanks to parametricity x cannot access or modify r1 objects unless they are passed explicitly (this is also possible with extend).
+
+In Section 1.6, the author explains that the operational semantics is going to manipulate types. As previous work, for instance by Walker and others, has shown, it is possible to use actual values as region pointers. Type passing makes the impression that somehow types are needed at run time, which they are not. 
+
+In my opinion, the discussion of *private* is quite overblown. First, as also noted by the author, the offending expression is not reachable from any useful initial state of the system. Second, the proposed fix should clearly be that the offending expression is not well typed and then you would want the cheapest way of doing so.
+On page 7, the author mentions that "region identifier ... are treated as constructors ... rather than variables" meaning that they are not subject to alpha renaming. As Harper explains in his book, this is the correct view: they stand for store addresses that are a-priori fixed and cannot be renamed.
+
+In Figure 1 (page 9), I find it highly disturbing that variables are categorized as values with the explanation (page 10) "Values are expressions that cannot be reduced further". This is wrong and leads to underclassification later in the paper: whenever a lemma states "exists v such that ..." then v might be a variable.
+Reynolds called this kind of expression "trivial expressions" because their evaluation has no effect.
+Values are also trivial expressions, but they are further pinning down the possible outcomes of a computation.
+
+I am also not sure whether it is a good idea to have big lambda as a value in a call-by-value calculus. For example, the capability calculus CL has just one abstraction which includes types and at least one value. This construction avoids intermediate values that are not observable in a call-by-value evaluation.
+
+Again, I'd like to see a compelling reason for having types in run-time expressions.
+
+Furthermore, it should be mentioned that this syntactic structure is A-normal form.
+
+In Figure 2 (page 11), I don't understand the need for the specialized kinding rules KiCon1 and KiCon2 in particular given the ternary constructor (->) which is classified as a TyCon0. I'd also recommend dropping the restriction in the KiApp rule and enforce the invariant needed for the canonical forms lemma by restricting the available kind constructors. 
+
+Page 12: "We have not thought of a situation ..." that sounds weird and is a very weak, subjective statement.
+
+I do not understand the proof engineering argument about KiCon0-KiCon2. You do get extra kinding rules, namely KiCon1 and KiCon2...
+
+A general comment on the way that the lemmas are presented:
+The statement of the lemma should be between "Lemma" and the \Box. But nothing else. The comments that are typeset inside almost every lemma and theorem have to go after the \Box.
+
+In Lemma 3.1, don't we need p \in sp?
+In Lemma 3.3, don't we need p \notin sp?
+If not, why not?
+
+Also, considering Figure 6 / page 9 rule (SfPrivatePush), it is strange that this push operation in the dynamic semantics is not reflected in the static semantics. 
+
+In Figure 8, I was puzzled first by the |-b judgment. In particular, it does not make sense that the store bindung has a reference type:
+p with v :: Ref (rgn p) t
+I see that this fits correctly with the neds of the (StoreT) rule, but I find the use of :: (which I read as "has type") irritating because elsewhere in the system an index into the store (i.e., an address) has the same type.
+I suggest to another symbol instead of ::.
+
+In Lemma 4.6, page 23, you find an example for the underclassification  that I mentioned above.
+The last line says "exists v. b = p with v" where v is certainly not a variable.
+BTW I was not able to locate an explanation for the notation "v". The grammar says "val".
+
+Lemma 4.8: The typesetting of "priv m p" and "rgn p" is incorrect. Same in Lemma 4.9 with "priv d p"and "(NoPrivFs p fs)". 
+
+Section 4.4, page 25. Is the use of the lolli symbol -o justified? It is customarily used for linear function space and you should argue that this is also a linear function space.
+
+Section 4.5: it seems to me that some of the difficulties in dealing with effects (i.e., that they grow and shrink) and the complexity arising in managing that is also due to the formulation as an abstract machine, where the current focus of the computation is exposed. It should not be an issue in a proper small-step semantics.
+
+Page 34: Morisett -> Morrisett
+
+References, page 35.
+It is disappointing that very many references are incomplete. Almost all conference papers are cited without page numbers; the LNCS volumes without mentioning the publisher, LNCS, and the volume number; also the conference locations are missing.
+* SIGPLAN Notices is not correct for Fahndrich and DeLine (which should be F{\"a}hndrich btw): it is a PLDI paper. 
+* Chung Chieh Shan 's name is permuted
+* Pena should be P\~{e}na
+* Andr{\'e} Santos
+There is also an early published paper by Gifford and/or Lucassen at LFP 1986, not just the techreport.

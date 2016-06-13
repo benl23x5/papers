@@ -1,0 +1,32 @@
+DIGEST 5007da8bf72536b7c47104cff1d9b2f4
+FIron.Language.SystemF2Effect.Store.StoreM
+R16:54 Iron.Language.SystemF2Effect.Step.Frame <> <> lib
+R72:110 Iron.Language.SystemF2Effect.Store.Bind <> <> lib
+def 340:345 <> StoreM
+R352:356 Iron.Language.SystemF2Effect.Value.Relation.TyJudge <> stenv def
+R364:368 Iron.Language.SystemF2Effect.Store.Bind <> store def
+R384:386 Coq.Init.Logic <> :type_scope:x_'='_x not
+R375:380 Coq.Init.Datatypes <> length def
+R382:383 Iron.Language.SystemF2Effect.Store.StoreM <> se var
+R387:392 Coq.Init.Datatypes <> length def
+R394:395 Iron.Language.SystemF2Effect.Store.StoreM <> ss var
+R410:415 Iron.Language.SystemF2Effect.Store.StoreM <> StoreM def
+prf 485:495 <> storeM_snoc
+R541:546 Iron.Language.SystemF2Effect.Store.StoreM <> StoreM def
+R562:565 Iron.Data.List.Base <> ::x_'<:'_x not
+R559:561 Iron.Language.SystemF2Effect.Store.StoreM <> stv var
+R566:567 Iron.Language.SystemF2Effect.Store.StoreM <> ss var
+R550:553 Iron.Data.List.Base <> ::x_'<:'_x not
+R549:549 Iron.Language.SystemF2Effect.Store.StoreM <> t var
+R554:555 Iron.Language.SystemF2Effect.Store.StoreM <> se var
+R524:529 Iron.Language.SystemF2Effect.Store.StoreM <> StoreM def
+R534:535 Iron.Language.SystemF2Effect.Store.StoreM <> ss var
+R531:532 Iron.Language.SystemF2Effect.Store.StoreM <> se var
+R595:600 Iron.Language.SystemF2Effect.Store.StoreM <> StoreM def
+R619:621 Coq.Init.Logic <> :type_scope:x_'='_x not
+R610:615 Coq.Init.Datatypes <> length def
+R622:627 Coq.Init.Datatypes <> length def
+R619:621 Coq.Init.Logic <> :type_scope:x_'='_x not
+R610:615 Coq.Init.Datatypes <> length def
+R622:627 Coq.Init.Datatypes <> length def
+R660:670 Iron.Language.SystemF2Effect.Store.StoreM <> storeM_snoc thm

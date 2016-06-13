@@ -1,0 +1,131 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+$$
+\begin{array}{cc}
+
+% -----------------------------------------------
+% Inductive SubsT : kienv -> stprops -> ty -> ty -> ki -> Prop :=
+\fbox{$\SubsT{\mkienv}{\mstprops}{\mtype}{\mtype}{\mkind}$}
+& \trm{(SubsT)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbEquiv
+%   :  forall  ke sp t1 t2 k
+%   ,  EquivT  ke sp t1 t2 k
+%   -> SubsT   ke sp t1 t2 k
+\ruleI
+{       \EquivT{\mke}{\msp}{t_1}{t_2}{k}
+}
+{       \SubsT {\mke}{\msp}{t_1}{t_2}{k}
+}
+& \trm{(SbEquiv)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbTrans
+%   :  forall  ke sp t1 t2 t3 k
+%   ,  SubsT   ke sp t1 t2 k -> SubsT  ke sp t2 t3 k
+%   -> SubsT   ke sp t1 t3 k
+\ruleI
+{       \SubsT  {\mke}{\msp}{t_1}{t_2}{k}
+\qq     \SubsT  {\mke}{\msp}{t_2}{t_3}{k}
+}
+{       \SubsT  {\mke}{\msp}{t_1}{t_3}{k}
+}
+& \trm{(SbTrans)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbBot
+%   :  forall  ke sp t k
+%   ,  sumkind k
+%   -> KindT   ke sp t k
+%   -> SubsT   ke sp t (TBot k) k
+\ruleI
+{       \KindT  {\mke}{\msp}{t}{\kcEffect}
+}
+{       \SubsT  {\mke}{\msp}{t}{\bot}{\kcEffect}
+}
+& \trm{(SbBot)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbSumAbove
+%   :  forall  ke sp t1 t2 t3 k
+%   ,  sumkind k
+%   -> SubsT   ke sp t1 t2 k -> SubsT  ke sp t1 t3 k
+%   -> SubsT   ke sp t1 (TSum t2 t3) k
+\ruleI
+{       \SubsT  {\mke}{\msp}{t_1}{t_2}{\kcEffect}
+\qq     \SubsT  {\mke}{\msp}{t_1}{t_3}{\kcEffect}
+}
+{       \SubsT  {\mke}{\msp}
+                {t_1}
+                {t_2 + t_3}
+                {\kcEffect}
+}
+& \trm{(SbSumAbove)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbSumBelow
+%   :  forall  ke sp t1 t2 t3 k
+%   ,  sumkind k
+%   -> KindT   ke sp t3 k
+%   -> SubsT   ke sp t1 t2 k
+%   -> SubsT   ke sp (TSum t1 t3) t2 k
+\ruleI
+{      \SubsT   {\mke}{\msp}{t_1}{t_2}{\kcEffect}
+\qq    \KindT   {\mke}{\msp}{t_3}{\kcEffect}
+}
+{       \SubsT  {\mke}{\msp}
+                {t_1 + t_3}
+                {t_2}
+                {\kcEffect}
+}
+& \trm{(SbSumBelow)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbSumAboveLeft
+%   :  forall  ke sp t1 t2 t3 k
+%   ,  SubsT   ke sp t1 (TSum t2 t3) k
+%   -> SubsT   ke sp t1 t2 k
+\ruleI
+{       \SubsT  {\mke}{\msp}{t_1}{t_2 + t_3}{\kcEffect}
+}
+{       \SubsT  {\mke}{\msp}{t_1}{t_2}{\kcEffect}
+}
+& \trm{(SbSumAboveLeft)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | SbSumAboveRight
+%   :  forall  ke sp t1 t2 t3 k
+%   ,  SubsT   ke sp t1 (TSum t2 t3) k
+%   -> SubsT   ke sp t1 t3 k.
+\ruleI
+{       \SubsT  {\mke}{\msp}{t_1}{t_2 + t_3}{\kcEffect}
+}
+{       \SubsT  {\mke}{\msp}{t_1}{t_3}{\kcEffect}
+}
+& \trm{(SbSumAboveRight)}
+\end{array}
+$$
+} % boxfig
+\smallskip
+
+\caption{Type Subsumption}
+\label{f:SubsT}
+
+\end{figure}

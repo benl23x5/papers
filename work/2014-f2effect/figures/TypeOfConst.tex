@@ -1,0 +1,24 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+\begin{tabbing}
+M \= MMMMMMMMMx \= MMMMMMMMMMMMMM \=  \kill
+\> typeOfConst @unit@   \> = $\tcUnit$
+\\[2ex]
+
+\> typeOfConst @tt@     \> = $\tcBool$    \> typeOfConst @0@ = $\tcNat$      \\
+\> typeOfConst @ff@     \> = $\tcBool$    \> typeOfConst @1@ = $\tcNat$ ~...
+\\[2ex]
+
+\> typeOfOp1   @isZero@ \> = $\tcNat \to \tcBool$       \\
+\> typeOfOp1   @succ@   \> = $\tcNat \to \tcNat$
+
+\end{tabbing}
+
+\hpad
+} % boxfig
+\smallskip
+\caption{Types of Primitive Constants and Operators}
+\label{f:TypeOfConst}
+\end{figure}

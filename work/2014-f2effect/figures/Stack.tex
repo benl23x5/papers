@@ -1,0 +1,41 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\boxfig{
+
+% -------------------------------------
+% Definition LiveEs (fs : stack) (es : list ty)
+%  := Forall (fun e1 => forall p, handleOfEffect e1 = Some p
+%                    -> In (FUse p) fs)
+%            es.
+% Definition LiveE  (fs : stack) (e : ty)
+%  := LiveEs fs (flattenT e).
+%
+$\fbox{$\LiveE{\mstack}{\mtype}$}~~ \trm{(LiveE)}$
+
+$$
+\ruleIL {LiveE}
+{
+        \begin{array}{ll}
+        \pForall~ e_1~ \pin~ (\tt{flattenT}~ e). \\
+        ~~(\pforall~ p.~      
+                \pIf~~  \tt{handleOfEffect}~ e_1 = p  ~~
+                \pthen~ (\fuse{p})~ \in~ \mfs)
+        \end{array}
+}
+{       \LiveE  {\mfs}{e}
+}
+$$
+
+\medskip
+
+% -------------------------------------
+
+
+$~$\vspace{-1em}
+} % boxfig
+
+\caption{Frame Stacks}
+\label{f:FrameStacks}
+\end{figure}

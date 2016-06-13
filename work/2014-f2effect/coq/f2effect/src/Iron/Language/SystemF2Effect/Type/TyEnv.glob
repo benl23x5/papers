@@ -1,0 +1,120 @@
+DIGEST 0b02ddd550f67fec22ee00257db5de59
+FIron.Language.SystemF2Effect.Type.TyEnv
+R16:65 Iron.Language.SystemF2Effect.Type.Operator.SubstTT <> <> lib
+R83:131 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> <> lib
+R149:194 Iron.Language.SystemF2Effect.Type.Relation.WfT <> <> lib
+def 304:308 <> tyenv
+R313:316 Coq.Init.Datatypes <> list ind
+R318:319 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R334:338 Iron.Language.SystemF2Effect.Type.TyEnv <> tyenv def
+def 400:405 <> liftTE
+R418:420 Coq.Lists.List <> map def
+R435:436 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R423:428 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT def
+R432:432 Iron.Language.SystemF2Effect.Type.TyEnv <> d var
+R451:456 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+def 522:528 <> substTE
+R540:542 Coq.Lists.List <> map def
+R558:559 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R545:551 Iron.Language.SystemF2Effect.Type.Operator.SubstTT.Base <> substTT def
+R555:555 Iron.Language.SystemF2Effect.Type.TyEnv <> t var
+R553:553 Iron.Language.SystemF2Effect.Type.TyEnv <> d var
+R574:580 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+prf 662:674 <> length_liftTE
+R705:707 Coq.Init.Logic <> :type_scope:x_'='_x not
+R696:701 Coq.Init.Datatypes <> length def
+R703:704 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R708:713 Coq.Init.Datatypes <> length def
+R716:721 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R725:726 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R723:723 Iron.Language.SystemF2Effect.Type.TyEnv <> d var
+prf 771:783 <> liftTE_liftTE
+R850:855 Coq.Init.Logic <> :type_scope:x_'='_x not
+R808:813 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R831:836 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R847:848 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R840:842 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R839:839 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R843:844 Iron.Language.SystemF2Effect.Type.TyEnv <> n' var
+R815:815 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R856:861 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R879:884 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R888:889 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R886:886 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R865:868 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R875:875 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R870:872 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R869:869 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R873:874 Iron.Language.SystemF2Effect.Type.TyEnv <> n' var
+R938:943 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R963:978 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT_liftTT_11 thm
+R963:978 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT_liftTT_11 thm
+prf 1012:1025 <> substTE_liftTE
+R1076:1078 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1050:1056 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1064:1069 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1073:1074 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R1071:1071 Iron.Language.SystemF2Effect.Type.TyEnv <> d var
+R1060:1061 Iron.Language.SystemF2Effect.Type.TyEnv <> t2 var
+R1058:1058 Iron.Language.SystemF2Effect.Type.TyEnv <> d var
+R1079:1080 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R1107:1113 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1123:1128 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+prf 1180:1193 <> liftTE_substTE
+R1254:1258 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1221:1226 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1231:1237 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1251:1252 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R1248:1249 Iron.Language.SystemF2Effect.Type.TyEnv <> t2 var
+R1241:1243 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R1240:1240 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1244:1245 Iron.Language.SystemF2Effect.Type.TyEnv <> n' var
+R1228:1228 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1259:1265 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1297:1302 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1306:1307 Iron.Language.SystemF2Effect.Type.TyEnv <> te var
+R1304:1304 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1281:1286 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT def
+R1292:1293 Iron.Language.SystemF2Effect.Type.TyEnv <> t2 var
+R1290:1290 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1273:1275 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R1269:1271 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R1272:1272 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1276:1277 Iron.Language.SystemF2Effect.Type.TyEnv <> n' var
+R1355:1361 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1371:1376 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1397:1410 Iron.Language.SystemF2Effect.Type.Operator.SubstTT.LiftTT <> liftTT_substTT thm
+R1397:1410 Iron.Language.SystemF2Effect.Type.Operator.SubstTT.LiftTT <> liftTT_substTT thm
+R1423:1428 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1450:1456 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+prf 1500:1516 <> liftTE_closedT_id
+R1571:1573 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1560:1565 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1569:1570 Iron.Language.SystemF2Effect.Type.TyEnv <> se var
+R1567:1567 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1574:1575 Iron.Language.SystemF2Effect.Type.TyEnv <> se var
+R1538:1543 Coq.Lists.List <> Forall ind
+R1553:1554 Iron.Language.SystemF2Effect.Type.TyEnv <> se var
+R1545:1551 Iron.Language.SystemF2Effect.Type.Relation.WfT <> ClosedT syndef
+R1602:1607 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE def
+R1686:1688 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1674:1679 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT def
+R1686:1688 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1674:1679 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT def
+R1719:1735 Iron.Language.SystemF2Effect.Type.TyEnv <> liftTE_closedT_id thm
+prf 1746:1763 <> substTE_closedT_id
+R1825:1827 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1810:1816 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1823:1824 Iron.Language.SystemF2Effect.Type.TyEnv <> se var
+R1820:1821 Iron.Language.SystemF2Effect.Type.TyEnv <> t2 var
+R1818:1818 Iron.Language.SystemF2Effect.Type.TyEnv <> n var
+R1828:1829 Iron.Language.SystemF2Effect.Type.TyEnv <> se var
+R1788:1793 Coq.Lists.List <> Forall ind
+R1803:1804 Iron.Language.SystemF2Effect.Type.TyEnv <> se var
+R1795:1801 Iron.Language.SystemF2Effect.Type.Relation.WfT <> ClosedT syndef
+R1856:1862 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE def
+R1944:1946 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1930:1936 Iron.Language.SystemF2Effect.Type.Operator.SubstTT.Base <> substTT def
+R1944:1946 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1930:1936 Iron.Language.SystemF2Effect.Type.Operator.SubstTT.Base <> substTT def
+R1977:1994 Iron.Language.SystemF2Effect.Type.TyEnv <> substTE_closedT_id thm

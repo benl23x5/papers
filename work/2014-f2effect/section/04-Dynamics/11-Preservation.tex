@@ -1,0 +1,45 @@
+%!TEX root = ../../Main.tex
+
+\label{s:Preservation}
+
+\smallskip
+% -----------------------------------------------------------------------------
+% Theorem preservation
+%  :  forall se sp sp' ss ss' fs fs' x x' t e
+%  ,  WfFS   se sp ss  fs
+%  -> LiveS ss fs -> LiveE  fs e
+%  -> TYPEC  nil nil se sp fs  x   t  e    
+%  -> STEPF  ss  sp  fs x  ss' sp' fs' x'   
+%  -> (exists se' e'
+%     ,  extends se' se
+%     /\ WfFS  se' sp' ss' fs'
+%     /\ LiveS ss' fs'    
+%     /\ LiveE fs' e'
+%     /\ SubsVisibleT  nil sp' sp  e  e'
+%     /\ TYPEC nil nil se' sp' fs' x' t e').
+\begin{theorem}[Preservation]
+\end{theorem}
+
+
+\begin{tabbing}
+MMM     \= MM  \= MMM   \kill
+\pIf    \> $\WfFS{\mse}{\msp}{\mss}{\mfs}
+                ~~~\pand~~~ \LiveS{\mss}{\mfs} 
+                ~~~\pand~~~ \LiveE{\mfs}{e}$                                    \\
+~\pand  \> $\TypeC{\nil}{\nil}{\mse}{\msp}{\mfs}{x}{t}{e}$                      \\
+~\pand  \> $\StepF{\mss}{\msp}{\mfs}{x}{\mss'}{\msp'}{\mfs'}{x'}$               \\
+\pthen  \> $\pexists~ \mse'~ e'.$                                               \\
+        \> ~~~ $\WfFS{\mse'}{\msp'}{\mss'}{\mfs'}
+                ~~~\pand~~~ \LiveS{\mss'}{\mfs'}
+                ~~~\pand~~~ \LiveE{\mfs'}{e'}$                                  \\
+        \> $~~ \pand~~  \SubsVisibleT{\nil}{\msp'}{\msp}{e}{e'}$                \\
+        \> $~~ \pand~~  \TypeC{\nil}{\nil}{\mse'}{\msp'}{\mfs'}{x'}{t}{e'}$
+\end{tabbing}
+
+\noindent
+When a well typed configuration transitions to a new state, then the new configuration has the same type as before, and its effect is visibly subsumed by the effect of the previous configuration.
+
+\medskip\noindent
+\textbf{Proof} by rule induction over the derivation of $(\StepF{\mss}{\msp}{\mfs}{x}{\mss'}{\msp'}{\mfs'}{x'})$. The interesting cases are for rules (SfPrivatePush)  and (SfPrivatePop) of Fig.~\ref{f:Step}, which allocate and deallocate regions respectively. The proof of the (SfPrivatePush) case uses Lemma~\ref{l:subsVisibleT_mask} to manage the region phase change that occurs when the new region handle is substituted for the corresponding region variable in the expression under evaluation. This process is described in \S\ref{s:VisibleSubsumption}. The proof of the (SfPrivatePop) case uses Lemma~\ref{l:liveS_dealloc} from to show that well formedness of the store and frame stack is preserved when leaving the body of a @private@ expression and deleting the corresponding region.
+\qqed
+

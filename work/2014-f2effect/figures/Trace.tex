@@ -1,0 +1,108 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\vspace{5em}
+
+\begin{tabbing}
+MMMM \= M \= MMMMMMMMMMMMMMMMMMMMMMMMM \= MMMM \= MMM \kill
+
+% -----
+   \>      \> $\sbvalue{0}{@tt@}$                                                                  
+\\ \> $~|$ \> $\sregion{0}$                                                                        
+\\ \> $~|$ \> $\fprivd{0}$                                                                         
+\\ \> $~|$ \> $\klet~ \tt{\_} = \tt{write}~ (\trgn{0})~ (\xloc{0})~ \tt{ff}~ \kin$             
+                                        \> $\tcWrite~(\trgn{0})$                                
+\\ \>      \> ~~ $\kprivate~ r~ \kin$                                                              
+\\ \>      \> ~~ $\klet~ x : \tcRef~ r~ \tcNat = \tt{alloc}~ r~ 5~ \kin$                           
+\\ \>      \> ~~ $\tt{write}~ r~ x~ 42$
+\\[1.5ex]
+
+
+% -----
+~~ $\stackrel{*}{\longrightarrow}$
+   \>      \> $\sbvalue{0}{\cdiff{\tt{ff}}}$                                                       
+\\ \> $~|$ \> $\sregion{0}$                                                                        
+\\ \> $~|$ \> $\fprivd{0}$                                                                           
+\\ \> $~|$ \> $\cdiff{\kprivate~ r~ \kin}$             \> $\bot$                                       
+\\ \>      \> ~~ $\cdiff{\klet~ x : \tcRef~ r~ \tcNat = \tt{alloc}~ r~ 5~ \kin}$                   
+\\ \>      \> ~~ $\cdiff{\tt{write}~ r~ x~ 42}$
+\\[1.5ex]
+
+
+% -----
+~~ $\longrightarrow$
+   \>      \> $\sbvalue{0}{@ff@}$                                                                  
+\\ \> $~|$ \> $\sregion{0},
+                ~~ \cdiff{\sregion{1}}$                                                         
+\\ \> $~|$ \> $\fprivd{0},
+                ~~~ \cdiff{\fprivd{1}}$
+\\ \> $~|$ \> $\cdiff{\klet~ x : \tcRef~ (\trgn{1})~ \tcNat = \tt{alloc}~ (\trgn{1})~ 5~ \kin}$
+                                        \> $\tcAlloc~ (\trgn{1}) + \tcWrite~ (\trgn{1})$     
+\\ \>      \> ~~ $\cdiff{\tt{write}~ (\trgn{1})~ x~ 42}$
+\\[1.5ex]
+
+
+% -----
+~~ $\longrightarrow$
+   \>      \> $\sbvalue{0}{\tt{ff}}$                                                               
+\\ \> $~|$ \> $\sregion{0},
+                ~~ \sregion{1}$                                                                 
+\\ \> $~|$ \> $\fprivd{0},
+                ~~~ \fprivd{1},
+                ~~~ \cdiff{(\flet{x}{...}{\tt{write}~ ...})}$
+\\ \> $~|$ \> $\cdiff{\tt{alloc}~ (\trgn{1})~ 5}$
+                                        \> $\tcAlloc~ (\trgn{1}) + \tcWrite~ (\trgn{1})$
+\\[1.5ex]
+
+
+% -----
+~~ $\longrightarrow$
+   \>      \> $\sbvalue{0}{\tt{ff}},
+                ~ \cdiff{\sbvalue{1}{\tt{5}}}$                                                  
+\\ \> $~|$ \> $\sregion{0},
+                ~~ \sregion{1}$                                                                 
+\\ \> $~|$ \> $\fprivd{0},
+                ~~~ \fprivd{1},
+                ~~~ (\flet{x}{...}{\tt{write}~ ...})$                                      
+\\ \> $~|$ \> $\cdiff{\xloc{1}}$ 
+                                        \> $\tcWrite~ (\trgn{1})$
+\\[1.5ex]
+
+
+% -----
+~~ $\longrightarrow$
+   \>      \> $\sbvalue{0}{\tt{ff}},~ \sbvalue{1}{\tt{5}}$                                         
+\\ \> $~|$ \> $\sregion{0},
+                ~~ \sregion{1}$                                                                 
+\\ \> $~|$ \> $\fprivd{0},
+                ~~~ \fprivd{1}$
+\\ \> $~|$ \> $\cdiff{\tt{write}~ (\trgn{1})~ (\xloc{1})~ 42}$ 
+                                        \> $\tcWrite~ (\trgn{1})$
+\\[1.5ex]
+
+
+% -----
+~~ $\longrightarrow$
+   \>      \> $\sbvalue{0}{\tt{ff}},~ \sbvalue{1}{\cdiff{\tt{42}}}$
+\\ \> $~|$ \> $\sregion{0},
+                ~~ \sregion{1}$                                                                 
+\\ \> $~|$ \> $\fprivd{0},
+                ~~~ \fprivd{1}$
+\\ \> $~|$ \> $\cdiff{\tt{unit}}$          \> $\bot$
+\\[1.5ex]
+
+
+% -----
+~~ $\longrightarrow$
+\>      \> $\sbvalue{0}{\tt{ff}},~ \sbvalue{1}{\cdiff{\bullet}}$ \\ 
+\> $~|$ \> $\sregion{0},
+                ~~ \sregion{1}$ \\
+\> $~|$ \> $\fprivd{0}$ \\
+\> $~|$ \> $\tt{unit}$                  \> $\bot$ 
+\end{tabbing}
+
+\caption{Example Trace}
+\label{f:ExampleTrace}
+
+\vspace{2em}
+\end{figure}

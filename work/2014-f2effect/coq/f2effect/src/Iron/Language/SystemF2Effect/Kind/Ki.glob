@@ -1,0 +1,19 @@
+DIGEST 44ddcd1c8bfd66107f1777d893729588
+FIron.Language.SystemF2Effect.Kind.Ki
+R16:48 Iron.Language.SystemF2Effect.Base <> <> lib
+ind 75:76 <> ki
+constr 119:123 <> KData
+constr 202:208 <> KRegion
+constr 262:268 <> KEffect
+constr 313:316 <> KFun
+R129:130 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R212:213 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R272:273 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R335:336 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R329:330 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R323:324 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R358:359 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+def 399:403 <> kienv
+R408:411 Coq.Init.Datatypes <> list ind
+R413:414 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R429:433 Iron.Language.SystemF2Effect.Kind.Ki <> kienv def

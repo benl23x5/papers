@@ -1,0 +1,47 @@
+DIGEST 800f7cc19fd7a13522d3438603f91021
+FIron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv
+R16:68 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> <> lib
+prf 128:144 <> kind_kienv_insert
+R201:205 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R246:247 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> k1 var
+R231:236 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT def
+R243:243 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> t var
+R240:241 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> ix var
+R227:228 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> sp var
+R210:215 Iron.Data.List.Insert <> insert def
+R223:224 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> ke var
+R220:221 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> k2 var
+R217:218 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> ix var
+R178:182 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R194:195 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> k1 var
+R192:192 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> t var
+R189:190 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> sp var
+R186:187 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> ke var
+R401:408 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiForall constr
+R401:408 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiForall constr
+R422:434 Iron.Data.List.Insert <> insert_rewind thm
+R422:434 Iron.Data.List.Insert <> insert_rewind thm
+R471:476 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiCon2 constr
+R471:476 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KiCon2 constr
+prf 578:594 <> kind_kienv_weaken
+R668:672 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R704:705 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> k1 var
+R690:695 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> liftTT def
+R701:701 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> t var
+R686:687 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> sp var
+R678:681 Iron.Data.List.Base <> ::x_':>'_x not
+R682:683 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> k2 var
+R676:677 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> ke var
+R625:629 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R661:662 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> k1 var
+R646:646 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> t var
+R636:637 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> sp var
+R633:634 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> ke var
+R742:744 Coq.Init.Logic <> :type_scope:x_'='_x not
+R736:739 Iron.Data.List.Base <> ::x_':>'_x not
+R745:750 Iron.Data.List.Insert <> insert def
+R742:744 Coq.Init.Logic <> :type_scope:x_'='_x not
+R736:739 Iron.Data.List.Base <> ::x_':>'_x not
+R745:750 Iron.Data.List.Insert <> insert def
+R769:785 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> kind_kienv_insert thm
+R769:785 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> kind_kienv_insert thm

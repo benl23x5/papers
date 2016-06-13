@@ -1,0 +1,9 @@
+DIGEST bf945f5087445b5b07af93c879e670f7
+FIron.Norm.List
+R16:29 Coq.Lists.List <> <> lib
+R119:124 Coq.Lists.List <> Forall ind
+R119:124 Coq.Lists.List <> Forall ind
+R182:187 Coq.Lists.List <> Forall ind
+R182:187 Coq.Lists.List <> Forall ind
+R206:218 Coq.Lists.List <> Forall_forall thm
+R148:160 Coq.Lists.List <> Forall_forall thm

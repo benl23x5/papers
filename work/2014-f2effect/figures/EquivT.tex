@@ -1,0 +1,167 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+% -----------------------------------------------
+% Inductive EquivT 
+%  : kienv -> stprops -> ty -> ty -> ki -> Prop :=
+%
+$$
+\begin{array}{cc}
+\fbox{$\EquivT{\mkienv}{\mstprops}{\mtype}{\mtype}{\mkind}$}
+& \trm{(EquivT)}
+\\[3ex]
+
+% -----------------------------------------------
+%  | EqRefl
+%    :  forall ke sp t k
+%    ,  KindT   ke sp t k
+%    -> EquivT ke sp t t k
+\ruleI
+{       \KindT  {\mke}{\msp}{t}{k}
+}
+{       \EquivT {\mke}{\msp}{t}{t}{k}
+}
+& \trm{(EqRefl)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqSym
+%   :  forall  ke sp t1 t2 k
+%   ,  KindT   ke sp t1 k
+%   -> KindT   ke sp t2 k
+%   -> EquivT  ke sp t1 t2 k
+%   -> EquivT  ke sp t2 t1 k
+%
+\ruleI
+{ \begin{array}{cc}
+  ~~~ \{ \KindT  {\mke}{\msp}{t_i}{k} \}^{i \gets 1..2}
+\\       \EquivT {\mke}{\msp}{t_1}{t_2}{k}
+\end{array}
+}
+{       \EquivT {\mke}{\msp}{t_2}{t_1}{k}
+}
+& \trm{(EqSym)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqTrans
+%   :  forall  ke sp t1 t2 t3 k
+%   ,  EquivT  ke sp t1 t2 k
+%   -> EquivT  ke sp t2 t3 k
+%   -> EquivT  ke sp t1 t3 k
+\ruleI
+{       \EquivT {\mke}{\msp}{t_1}{t_2}{k}
+\qq     \EquivT {\mke}{\msp}{t_2}{t_3}{k}
+}
+{       \EquivT {\mke}{\msp}{t_1}{t_3}{k}
+}
+& \trm{(EqTrans)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqSumCong
+%   :  forall  ke sp t1 t1' t2 t2' k
+%   ,  sumkind k
+%   -> EquivT  ke sp t1 t1' k
+%   -> EquivT  ke sp t2 t2' k
+%   -> EquivT  ke sp (TSum t1 t2) (TSum t1' t2') k
+\ruleI
+{       \EquivT {\mke}{\msp}{t_1}{t_1'}{\kcEffect}
+\qq     \EquivT {\mke}{\msp}{t_2}{t_2'}{\kcEffect}
+}
+{       \EquivT {\mke}{\msp}
+                {t_1  + t_2}
+                {t_1' + t_2'}
+                {\kcEffect}
+}
+& \trm{(EqSumCong)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqSumBot
+%   :  forall ke sp t k
+%   ,  sumkind k
+%   -> KindT   ke sp t k
+%   -> EquivT  ke sp t (TSum t (TBot k)) k
+\ruleI
+{       \KindT  {\mke}{\msp}{t}{\kcEffect}
+}
+{       \EquivT {\mke}{\msp}
+                {t}
+                {t + \bot}
+                {\kcEffect}
+}
+& \trm{(EqSumBot)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqSumIdemp
+%   :  forall  ke sp t k
+%   ,  sumkind k
+%   -> KindT   ke sp t k
+%   -> EquivT  ke sp t (TSum t t) k
+\ruleI
+{       \KindT  {\mke}{\msp}{t}{\kcEffect}
+}
+{       \EquivT {\mke}{\msp}
+                {t}
+                {t + t}
+                {\kcEffect}
+}
+& \trm{(EqSumIdemp)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqSumComm
+%   :  forall ke sp t1 t2 t3 k
+%   ,  sumkind k
+%   -> KindT   ke sp t1 k
+%   -> KindT   ke sp t2 k
+%   -> KindT   ke sp t3 k
+%   -> EquivT  ke sp (TSum t1 t2)  (TSum t2 t1) k
+\ruleI
+{       \{ \KindT  {\mke}{\msp}{t_i}{\kcEffect} \}^{i \gets 1..2}
+}
+{       \EquivT {\mke}{\msp}
+                {t_1 + t_2}
+                {t_2 + t_1}
+                {\kcEffect}
+}
+& \trm{(EqSumComm)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | EqSumAssoc
+%   :  forall ke sp t1 t2 t3 k
+%   ,  sumkind k
+%   -> KindT   ke sp t1 k
+%   -> KindT   ke sp t2 k
+%   -> KindT   ke sp t3 k
+%   -> EquivT  ke sp (TSum t1 (TSum t2 t3))
+%                    (TSum (TSum t1 t2) t3) k.
+\ruleI
+{       \{ \KindT {\mke}{\msp}{t_i}{\kcEffect} \}^{i \gets 1..3}
+}
+{       \EquivT {\mke}{\msp}
+                {t_1  + (t_2 + t_3)}
+                {(t_1 + t_2) + t_3}
+                {\kcEffect}
+}
+& \trm{(EqSumAssoc)}
+
+\end{array}
+$$
+} % boxfig
+\smallskip
+\caption{Type Equivalence}
+\label{f:EquivT}
+\end{figure}
+

@@ -1,0 +1,55 @@
+\documentclass{jfp}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{alltt}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{style/code}
+\usepackage{style/proof}
+
+\let\proof\relax
+\let\endproof\relax
+\usepackage{style/amsthm}
+\newtheorem{lemma}      {Lemma}         [section]
+\newtheorem{theorem}    {Theorem}       [section]
+
+\usepackage{utils}
+
+% -----------------------------------------------------------------------------
+\begin{document}
+
+\title  [Mechanized soundness for a type and effect system with region deallocation ]
+        {Mechanized soundness for a type and effect system with region deallocation}
+
+\author [Ben Lippmeier]
+        {  BEN LIPPMEIER \\
+           School of Computer Science and Engineering \\
+           University of New South Wales, Australia
+           \email{benl@cse.unsw.edu.au}
+        }
+
+\maketitle
+
+\makeatactive
+% -- Abstract -----------------------------------------------------------------
+\begin{abstract}
+Previous formalizations of region calculi with deallocation have been limited to a monomorphic or first-order fragment, or have not supported mutable references because they do not model the store. Extending the existing monomorphic approach with System-F style polymorphism quickly leads to trouble, because type substitution breaks a key freshness invariant on region identifiers. We present a new approach that uses frame stacks to manage region lifetimes, and to provide the required freshness invariants in a way compatible with type substitution. Our language is polymorphic, higher-order, supports mutable references, and is mechanized with the Coq proof assistant.
+\end{abstract}
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction}
+\input{section/02-Language}
+\input{section/03-Statics}
+\input{section/04-Dynamics}
+\input{section/05-Related}
+\input{section/06-Conclusion}
+
+\paragraph{Acknowledgements}
+Thanks to Peter Gammie, Fritz Henglein and Amos Robinson for helpful feedback on draft versions of this paper. This work was supported in part by the Australian Research Council under grant number LP0989507.
+
+\bibliography{Main}
+\bibliographystyle{jfp}
+
+
+\end{document}

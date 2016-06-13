@@ -1,0 +1,132 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+\begin{tabbing}
+MMM              \= MM   \= MMMMMMMMMMMMMMMMM   \= MMM \= MM \= MMMMMMMM    \kill
+\textbf{Indices} \> \>                 \> \textbf{Names} \\
+$ix$ \> $\to$   \> (debruijn index)    \> $a,~ r,~ e$ \> $\to$ \> (type variables)     \\
+$p$  \> $\to$   \> (region identifier) \> $z$         \> $\to$ \> (term variables)     \\
+$l$  \> $\to$   \> (store location)
+\\
+\\
+
+\textbf{Kinds} ($k$)\\
+$\mkind$
+        \> ::=   \> $\kcData ~~|~~ \kcRegion ~~|~~ \kcEffect$
+        \> (kind constructors)
+\\
+        \> $~|~$ \> $\mkind \kto \mkind$ 
+        \> (function kind)
+\\
+\\
+
+
+\textbf{Types} ($t,~ r,~ e$)\\
+$\mtype$  
+        \> ::=  \> $ix\bra{a}$
+        \> (debruijn index\bra{variable})
+\\
+        \> $~|~$  \> $\forall \bra{a} : \mkind.~~ \mtype$
+                        $~|~$ $\mtype~~ \mtype$
+        \> (universal quantifier, type application)
+\\
+        \> $~|~$  \> $\mtype ~+~ \mtype$
+                        $~|~$ $\bot$           
+        \> (effect join and bottom) 
+\\        
+        \> $~|~$  \> $\mtycon_n$        
+        \> (type constructor)
+\\      
+        \> $~|$   \> $\trgn{p}$
+        \> (region handle)
+\\
+\\
+
+
+\textbf{Type Constructors} ($\mtc$)\\
+$\mtycon_0$ 
+        \> ::=  \> $(\to)
+                        ~~|~~ \tcUnit
+                        ~~|~~ \tcBool
+                        ~~|~~ \tcNat$
+\\
+$\mtycon_1$ 
+        \> ::=  \> $\tcRead
+                        ~~|~~ \tcWrite
+                        ~~|~~ \tcAlloc$
+\\
+$\mtycon_2$ 
+        \> ::=  \> $\tcRef$
+\\ 
+\\
+
+
+\textbf{Values} ($v$)\\
+$\mval$ \> ::=  \> $ix\bra{z} ~~|~~ \mconst$ 
+        \> (debruijn index\bra{variable}, constant)
+\\
+        \> $~|$ \> $ \lambda \bra{z} : \mtype.~ \mexp
+               ~~|~~ \Lambda \bra{a} : \mkind.~ \mexp$
+        \> (value and type abstraction)
+\\
+        \> $~|$ \> $\vloc{l}$
+        \> (store location)
+\\
+\\
+
+
+\textbf{Expressions} ($x$)\\
+$\mexp$ \> ::=  \> $\mval
+                        ~~|~~ \mval~~ \mval
+                        ~~|~~ \mval~~ \mtype$
+        \> (value, value and type application)
+\\
+        \> $~|$ \> $\xlet{\bra{z}}{\mtype}{\mexp}{\mexp}$
+        \> (let-binding)
+\\
+        \> $~|$ \> $\mop_n~ \ov{\mval}^{\; n}$
+        \> (fully applied pure operator)
+\\
+        \> $~|$ \> $\xprivate{\bra{r}}{\mexp}$
+        \> (define a private region)
+\\
+        \> $~|$ \> $\xextend{\mtype}{\bra{r}}{\mexp}$
+        \> (extend an existing region)
+\\
+        \> $~|$ \> $\kalloc~~ \mtype~~ \mval$
+        \> (allocate a store binding)
+\\
+        \> $~|$ \> $\kread~~~~  \mtype~~ \mval$
+        \> (read a store binding)
+\\
+        \> $~|$ \> $\kwrite~~ \mtype~~ \mval~~ \mval$
+        \> (write a store binding)
+\\
+\\
+
+
+\textbf{Constants} ($c$)\\
+$const$ \> ::=  
+        \> $\tt{unit} 
+                ~|~ \tt{tt}
+                ~|~ \tt{ff}
+                ~|~ \tt{0} 
+                ~|~ \tt{1} 
+                ~|~ \tt{2}
+                ~|~ ...$
+        \> (data constants)
+\\
+\\
+
+\textbf{Pure Operators} ($o$)\\
+$\mop_1$
+        \> ::=  \> $\tt{isZero} 
+                        ~~|~~ \tt{succ}$
+        \> (pure operators)
+\end{tabbing}
+} % boxfig
+\medskip
+\caption{\SystemFre grammar.}
+\label{f:Language}
+\end{figure}

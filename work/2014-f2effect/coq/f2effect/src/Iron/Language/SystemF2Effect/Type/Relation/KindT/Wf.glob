@@ -1,0 +1,66 @@
+DIGEST 7947d1cc3307f19b5971c9096b55b360
+FIron.Language.SystemF2Effect.Type.Relation.KindT.Wf
+R16:68 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> <> lib
+prf 119:126 <> kind_wfT
+R175:177 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R191:191 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> t var
+R180:185 Coq.Init.Datatypes <> length def
+R187:188 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ke var
+R153:157 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R169:169 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> k var
+R167:167 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> t var
+R164:165 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> sp var
+R161:162 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ke var
+R319:326 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> kind_wfT thm
+prf 337:351 <> kind_wfT_Forall
+R420:425 Coq.Lists.List <> Forall ind
+R445:446 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ts var
+R428:430 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R433:438 Coq.Init.Datatypes <> length def
+R440:441 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ks var
+R379:384 Coq.Lists.List <> Forall ind
+R413:414 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ts var
+R396:400 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R410:410 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> k var
+R408:408 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> t var
+R405:406 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> sp var
+R402:403 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ks var
+R496:510 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> kind_wfT_Forall thm
+prf 521:536 <> kind_wfT_Forall2
+R555:559 Iron.Language.SystemF2Effect.Kind.Ki <> kienv def
+R567:573 Iron.Language.SystemF2Effect.Store.Prop <> stprops def
+R618:623 Coq.Lists.List <> Forall ind
+R644:645 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ts var
+R627:629 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R632:637 Coq.Init.Datatypes <> length def
+R639:640 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ke var
+R586:592 Coq.Lists.List <> Forall2 ind
+R611:612 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ks var
+R608:609 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ts var
+R595:599 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R604:605 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> sp var
+R601:602 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> ke var
+R673:691 Iron.Data.List.Forall2 <> Forall2_Forall_left thm
+R694:698 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R673:691 Iron.Data.List.Forall2 <> Forall2_Forall_left thm
+R694:698 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R733:748 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> kind_wfT_Forall2 thm
+prf 844:863 <> kind_empty_is_closed
+R911:917 Iron.Language.SystemF2Effect.Type.Relation.WfT <> ClosedT syndef
+R919:919 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> t var
+R887:891 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> KindT ind
+R904:904 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> k var
+R902:902 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> t var
+R899:900 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> sp var
+R895:897 Coq.Init.Datatypes <> nil constr
+R959:961 Coq.Init.Logic <> :type_scope:x_'='_x not
+R946:951 Coq.Init.Datatypes <> length def
+R956:958 Coq.Init.Datatypes <> nil constr
+R953:954 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R959:961 Coq.Init.Logic <> :type_scope:x_'='_x not
+R946:951 Coq.Init.Datatypes <> length def
+R956:958 Coq.Init.Datatypes <> nil constr
+R953:954 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R992:999 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> kind_wfT thm
+R992:999 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> kind_wfT thm
+R1027:1046 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> kind_empty_is_closed thm

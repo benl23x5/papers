@@ -1,0 +1,14 @@
+DIGEST 8ad18db40c0259578e9e684291e25ccf
+FIron.Tactics.Exists
+R202:208 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R210:211 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R202:208 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R210:211 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R453:459 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R461:462 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R453:459 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R461:462 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R468:474 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R476:477 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R468:474 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not
+R476:477 Coq.Init.Logic <> :type_scope:'exists'_x_'..'_x_','_x not

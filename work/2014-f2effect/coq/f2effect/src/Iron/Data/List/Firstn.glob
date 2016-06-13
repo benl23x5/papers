@@ -1,0 +1,67 @@
+DIGEST 00d4ef9b8fe0e63c965f9d6894acb75c
+FIron.Data.List.Firstn
+R16:34 Iron.Data.List.Base <> <> lib
+R52:63 Iron.Tactics <> <> lib
+prf 248:258 <> firstn_zero
+R278:281 Coq.Init.Datatypes <> list ind
+R283:283 Iron.Data.List.Firstn <> A var
+R301:303 Coq.Init.Logic <> :type_scope:x_'='_x not
+R290:295 Coq.Lists.List <> firstn def
+R299:300 Iron.Data.List.Firstn <> xx var
+R297:297 Coq.Init.Datatypes <> O constr
+R304:306 Coq.Init.Datatypes <> nil constr
+R349:359 Iron.Data.List.Firstn <> firstn_zero thm
+prf 597:611 <> get_firstn_succ
+R633:636 Coq.Init.Datatypes <> list ind
+R638:638 Iron.Data.List.Firstn <> A var
+R668:670 Coq.Init.Logic <> :type_scope:x_'='_x not
+R645:647 Iron.Data.List.Base <> get def
+R652:657 Coq.Lists.List <> firstn def
+R665:666 Iron.Data.List.Firstn <> xx var
+R660:660 Coq.Init.Datatypes <> S constr
+R662:662 Iron.Data.List.Firstn <> n var
+R649:649 Iron.Data.List.Firstn <> n var
+R671:673 Iron.Data.List.Base <> get def
+R677:678 Iron.Data.List.Firstn <> xx var
+R675:675 Iron.Data.List.Firstn <> n var
+R771:780 Iron.Data.List.Base <> get_rewind thm
+R771:780 Iron.Data.List.Base <> get_rewind thm
+R824:838 Iron.Data.List.Firstn <> get_firstn_succ thm
+prf 1050:1059 <> get_firstn
+R1084:1087 Coq.Init.Datatypes <> list ind
+R1089:1089 Iron.Data.List.Firstn <> A var
+R1096:1096 Iron.Data.List.Firstn <> A var
+R1167:1169 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1148:1150 Iron.Data.List.Base <> get def
+R1155:1160 Coq.Lists.List <> firstn def
+R1164:1165 Iron.Data.List.Firstn <> xx var
+R1162:1162 Iron.Data.List.Firstn <> m var
+R1152:1152 Iron.Data.List.Firstn <> n var
+R1170:1173 Coq.Init.Datatypes <> Some constr
+R1175:1175 Iron.Data.List.Firstn <> x var
+R1122:1135 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1114:1116 Iron.Data.List.Base <> get def
+R1120:1121 Iron.Data.List.Firstn <> xx var
+R1118:1118 Iron.Data.List.Firstn <> n var
+R1136:1139 Coq.Init.Datatypes <> Some constr
+R1141:1141 Iron.Data.List.Firstn <> x var
+R1104:1106 Coq.Init.Peano <> :nat_scope:x_'>'_x not
+R1103:1103 Iron.Data.List.Firstn <> m var
+R1107:1107 Iron.Data.List.Firstn <> n var
+R1413:1422 Iron.Data.List.Firstn <> get_firstn thm
+prf 1610:1624 <> get_firstn_more
+R1648:1651 Coq.Init.Datatypes <> list ind
+R1653:1653 Iron.Data.List.Firstn <> A var
+R1660:1660 Iron.Data.List.Firstn <> A var
+R1700:1702 Coq.Init.Peano <> :nat_scope:x_'>'_x not
+R1699:1699 Iron.Data.List.Firstn <> m var
+R1703:1703 Iron.Data.List.Firstn <> n var
+R1686:1688 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1667:1669 Iron.Data.List.Base <> get def
+R1674:1679 Coq.Lists.List <> firstn def
+R1683:1684 Iron.Data.List.Firstn <> xx var
+R1681:1681 Iron.Data.List.Firstn <> m var
+R1671:1671 Iron.Data.List.Firstn <> n var
+R1689:1692 Coq.Init.Datatypes <> Some constr
+R1694:1694 Iron.Data.List.Firstn <> x var
+R1871:1885 Iron.Data.List.Firstn <> get_firstn_more thm

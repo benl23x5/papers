@@ -1,0 +1,257 @@
+%!TEX root = ../Main.tex
+\section{Introduction}
+\label{s:Introduction}
+
+A region is a set of store locations where an object may exist at runtime. Region and effect systems \cite{Lucassen:polymorphic-effects} are used to reason about how computations that mutate objects in a shared heap may interfere. These systems encode information about \emph{separation} and \emph{aliasing}, and are related to similarly named separation logics \cite{Reynolds:separation-logic} and alias type systems \cite{Smith:alias-types}. Some region typing systems also enable region based \emph{memory management}, where a group of objects can be allocated into a single region of the store, and then deallocated in constant time when no longer needed by the program. Region-based memory management has been used as an alternative to tracing garbage collection, largely because the time to perform a deallocation cycle is small and constant, rather than being proportional to the amount of live data.
+
+The original work on region typing \cite{Lucassen:types-and-effects} suggests that regions could be used for memory management, but does not provide an operational semantics, or proof of soundness for this feature. Later work by Tofte and Talpin \shortcite{Tofte:theory} provides a proof of soundness phrased in terms of translation correctness from a pure source language, though their system does not support destructive update as per the original. As noted by Helsen and Thiemann~\shortcite{Helsen:soundness-region-calclus}, Tofte and Talpin's work proves soundness of their region calculus, and translation correctness from the pure source language in one go. This makes it non-obvious how to add destructive update back to the underlying region calculus, as it is not supported by the pure source language. This observation lead Helsen and Theimann to develop a simpler proof which factors soundness and translation correctness into separate statements, though their evaluation semantics is simplified and does not include a mutable store. In later work Calcagno \emph{et al.} \shortcite{Calcagno:soundness-results} give a syntactic soundness proof whose semantics \emph{does} include a mutable store, but the presentation lacks the polymorphism of the original region calculus. 
+
+It turns out that adding System-F style polymorphism to the language of \cite{Calcagno:soundness-results} in the obvious way would break a critical freshness invariant on region identifiers, so to prove soundness for such a system we must at least refactor the existing semantics. We describe the exact problem in \S\ref{s:ProblemPrivate}. The related language of \cite{Henglein:effect-types} instead depends on implicit alpha conversion to maintain freshness, but also does not include a store. With this in mind, we make the following contributions:
+
+\begin{itemize}
+\item   We present a mechanized semantics and soundness proof for an explicitly typed, polymorphic functional language based on call-by-value System-F with 1) a region and effect system with separate $\tcRead$, $\tcWrite$ and $\tcAlloc$ effects; 2) stack based regions in the style of Tofte and Talpin; 3) destructive update of mutable references. We refer to this language as System-F$^{re}$ (System-F with regions and effects).
+
+\item   Our semantics refactors the existing systems, using an explicit stack to remember which regions are currently live, and gives liveness conditions between the stack and store. Our use of an explicit stack avoids breaking the required freshness invariants when polymorphism is added, and is the key difference to prior work.
+
+\item   Our language also supports \emph{region extension}, which was described in the original work of \cite{Lucassen:types-and-effects} but does not appear in any of the latter formalizations. Region extension allows a function to destructively initialize mutable objects without the associated write effects being visible to the calling context. 
+\end{itemize}
+
+The Coq proof script is available as an on-line supplement to this paper. The overall aim is to define a verified compiler intermediate representation which is amenable to the same sort of optimising program transformations as the Glasgow Haskell Compiler (GHC) core language \cite{PeytonJones:transformation}, but with direct support for region based memory management and computational effects. The examples we present are explicitly typed, though we intend to define an implicitly typed surface language in future work.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Regions and Effects}
+\label{s:Tutorial}
+
+Before presenting the formal semantics we give a quick overview of how \SystemFre supports regions. The following example summarizes their basic use:
+
+\begin{tabbing}
+MMMMMM \= MM \= M \= MMMMMx \= MMMM \= MMMMM \kill
+\> $\klet~ \vtally : \tcNat \to \tcNat$                                                         \\
+\> \> = \> $\lambda~ \vstart ~:~ \tcNat.$                                                       \\
+\> \> \> $\kprivate~ r~ \kin~$                                                                  \\
+\> \>   \> $\klet~   \vacc ~:~ \tcRef~ r~ \tcNat$     
+                        \>      \> ~ $= \kalloc~ r~ \vstart~ \kin$                              \\
+\> \>   \> $\klet~   \veat ~~:~ \tcNat \stackrel{Read~ r ~+~ Write~ r}{\longrightarrow} \tcUnit$   \\
+\> \>   \> ~~~~~~~ $=~ (\lambda z : \tcNat.$ 
+            \> ~~~~~~~~~ $\klet~  \vcurrent : \tcNat = \kread~ r~ \vacc$                        \\
+\> \>   \>  \> ~~~~~~~~~ $\kin~~~ \kwrite~ r~ \vacc~ (\vcurrent + z)) ~~\kin$                   \\
+\> \>   \> ... $\veat~ 1$ ... $\veat~ 5$ ... $\veat~ 2$ ...                                     \\      
+\> \>   \> $\kin~ \kread~ r~ \vacc$                                                             \\
+\> $\kin~ \vtally~ 0$
+\end{tabbing}
+
+The $\vtally$ function takes a natural number $\vstart$, and then creates a $\kprivate$ region named~$r$, where $r$ is a type variable which is in scope in the body of the $\kprivate$ construct.
+
+The $\vtally$ function then allocates a new accumulator $\vacc$, represented by a mutable reference in region $r$. This accumulator has type $\tcRef~ r~ \tcNat$, revealing the region it lies in. The inner function $\veat$ reads the current value of the accumulator, then writes a new value consisting of the current value added to the parameter $z$.  We have written $... \veat~ 1 ... $ and so on a place-holder for some representative applications of $\veat$. The last line of $\vtally$ reads the final value of the accumulator and returns it to the caller.
+
+At runtime, a new store region will be allocated when entering the body of the $\kprivate$ construct, and then deallocated when leaving it (just before returning from $\vtally$). In the body of the $\kprivate$ construct we refer to the new region with the region variable $r$. The inner function $\veat$ is assigned the type $\tcNat \stackrel{Read~ r ~+~ Write~ r}{\longrightarrow} \tcUnit$, which includes effect ($\tcRead~ r + \tcWrite~ r$) indicating that $\veat$ reads and writes to an object in region $r$. Atomic effects terms like $\tcRead~r$ are collected in an upwards semi-lattice ordered by set inclusion, where we write $+$ for l.u.b. An unannotated arrow has effect $\bot$ (pronounced ``pure'').
+
+Importantly, the type of $\vtally$ itself does not include an effect on region~$r$, because reads and writes to objects in the private region $r$ are not visible to the calling context. This \emph{masking} of non-observable effects comes from the original work on effect systems~\cite{Lucassen:types-and-effects}, and provides a powerful abstraction mechanism: allowing us to treat functions that use local side effects as observationally pure. Monadic state threads~\cite{Launchbudy:state-threads} provide a similar encapsulation mechanism, though without distinguishing between separate read and write effects.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Region Deallocation}
+\label{s:RegionDeallocation}
+When leaving the scope of a $(\kprivate~ r~ \kin~ \vbody)$ construct, all objects in region $r$ are deallocated. To ensure that further evaluation does not attempt to access the deallocated objects, the type system requires that the bound region variable $r$ is not free in the type of $\vbody$. For example, consider the following erroneous function:
+
+\begin{tabbing}
+MMMM \= M \= M \= MMMMMMM \kill
+\> $\vbroken : \tcNat \to \tcNat \stackrel{Read~ r}{\to} \tcNat$                \\
+\> \> =    \>   $\lambda y : \tcNat.~ \kprivate~ r~ \kin$                           \\
+\> \>      \>   ~ $\klet~ \vref : \tcRef~ r~ \tcNat = \kalloc~ r~ y~$           \\
+\> \>      \>   ~ $\kin~~ (\lambda z : \tcNat.~ (\kread~ r~ \vref) + z)$
+\end{tabbing}
+
+When $\vbroken$ is applied to its first argument it creates a private region $r$ and then allocates a new mutable reference $\vref$ into this region. The result of applying $\vbroken$ to this first argument is a functional value that takes a second argument (for $z$) and reads the original reference $\vref$. This behavior is invalid, because the storage for $\vref$ will be deallocated when leaving the scope of the original $\kprivate$ construct. If the caller of $\vbroken$ tries to apply the inner function then the call to $\kread$ will fail.
+
+In \SystemFre and related systems, effect typing is used to expose which store objects a functional value may access when applied. In the above example, the inner function has type $\tcNat \stackrel{Read~ r}{\lto} \tcNat$, which violates the requirement that $r$ not be free in the type of the body of the outer $\kprivate$ construct. Indeed, the overall type for $\vbroken$ was already suspect, because the private region variable $r$ is not in scope. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Region and Effect Polymorphism}
+\label{s:RegionPolymorphism}
+Region and effect polymorphism are necessary tools for a practical language. For example, suppose we want a function that reads two references to $\tcNat$ values and returns their sum in another reference. In \SystemFre we would write this as follows, using $\Lambda$ for type abstraction, and overloading $(+)$ as the addition operator on plain values of type $\tcNat$. 
+
+\begin{tabbing}
+M \= Mx \= MMMM \kill
+\> $\vadd :~ 
+        \forall r_1~ r_2~ r_3: \kcRegion
+        .~  \tcRef~ r_1~ \tcNat 
+        \to \tcRef~ r_2~ \tcNat
+        \tltoe{Read~ r_1 + Read~ r_2 + Alloc~ r_3}
+            \tcRef~ r_3~ \tcNat$ \\
+\> \> = $\Lambda r_1~ r_2~ r_3 : \kcRegion
+        .~  \lambda (y : \tcRef~ r_1~ \tcNat)
+        .~  \lambda (z : \tcRef~ r_2~ \tcNat).$         \\
+\> \> ~~ $\klet~ y' : \tcNat~ = \kread~ r_1~ y~ \kin$             \\
+\> \> ~~ $\klet~ z' : \tcNat~ = \kread~ r_2~ z~ \kin$             \\
+\> \> ~~ $\kalloc~ r_3~ (y' + z')$
+\end{tabbing}
+
+If \SystemFre was used as as the core language of a compiler, then we could view $\tcNat$ as the type of primitive unboxed natural numbers, and type $\tcRef~ r_1~ \tcNat$ as the type of boxed natural numbers. The $\vadd$ function above then performs boxed addition, which must be region polymorphic so that we can add boxed naturals from any region. In the type of $\vadd$ we use $\kcRegion$ as the kind of region variables. Region variables are type variables with this special kind. As an example of effect polymorphism, the following function takes a functional parameter and applies it to the provided argument twice:
+
+\begin{tabbing}
+MMM \= Mx \= MMMM \kill
+\> $\vtwice :~
+           \forall a~ : \kcData.~ \forall e : \kcEffect.~ (a \ttoe{e} a) \to a \ttoe{e} a$ \\
+\> \> ~ = $\Lambda a : \kcData
+        .~~ \Lambda e : \kcEffect
+        .~ \lambda f : a \ttoe{e} a
+        .~ \lambda z : a.~ f~ (f~ z)$
+\end{tabbing}
+
+In the type of $\vtwice$, we use $\kcData$ as the kind of data types, which is similar to the kind~$*$~(star) used in Haskell. All representable values have types with kind $\kcData$. We use $\kcEffect$ as the kind of effect types. Note that in the signature for $\vtwice$, the fact that this function applies its functional argument is revealed in by the $e$ annotation on the right-most function arrow.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Region Extension}
+\label{s:RegionExtension}
+Region extension allows store objects to be destructively initialized without revealing the associated write effects to the calling context. For example, the following function ties a recursive knot through the store, producing a reference to a function that always diverges when applied.
+
+\begin{tabbing}
+x \= x \= MMMMM \= MMMMMMMMMMMx \= MMMMMMMMMM\kill
+\> $\vtie :~ 
+        \forall r_1 : \kcRegion
+        .~ \tcUnit \tltoe{\tcAlloc~ r_1} \tcRef~ r_1~ (\tcNat \tltoe{\tcRead~ r_1} \tcNat)$ \\
+\> \> = $\Lambda r_1 : \kcRegion
+        .~ \lambda \_ : \tcUnit.$               
+
+\\ \> \> ~~ $\kextend~ r_1~ \kwith~ r_2~ \kin$     
+
+\\ \> \> ~~ $\klet~ \vzero$     \> $:~ \tcRef~ r_2~ \tcNat$
+                \> $=~ \kalloc~ r_2~ @0@~ \kin$
+
+\\ \> \> ~~ $\klet~ \vfoo$      \> $:~ \tcNat \tltoe{\tcRead~ r_2} \tcNat$
+                \> $=~ (\lambda \_ : \tcNat.~ \kread~ r_2~ \vzero)~ \kin$
+
+\\ \> \> ~~ $\klet~ \vref$      \> $:~ \tcRef~ r_2~ (\tcNat \tltoe{\tcRead~ r_2} \tcNat$)
+                \> $=~ \kalloc~ r_2~ \vfoo~ \kin$
+
+\\ \> \> ~~ $\klet~ \vloop$     \> $:~ \tcNat \tltoe{\tcRead~ r_2} \tcNat$
+                \> $=~ (\lambda x : \tcNat.~
+                       \klet~ f : \tcNat \tltoe{\tcRead~ r_2} \tcNat = \kread~ r_2~ \vref$
+\\ \> \> \> \> ~~~~~~~~~~~~~~~~~~~~~ $\kin~~~ f~ x)~ \kin$
+
+\\ \> \> ~~ $\klet~ \_$         \> $:~ \tcUnit$             
+                \> $=~ \kwrite~ r_2~ \vref~ \vloop$ 
+\\ \> \> ~~ $\kin~~~ \vref$
+\end{tabbing}
+
+The construct ($\kextend~ r_1~ \kwith~ r_2~ \kin~ \vbody$) creates a new region $r_2$ which is private to $\vbody$, evaluates $\vbody$, and then merges all objects that were allocated in $r_2$ into $r_1$. The introduced variable $r_2$ is only in scope in $\vbody$. In a concrete implementation, the merging process would be carried out in constant time, by modifying runtime region descriptors or other store meta-data, and not by copying the objects themselves.
+
+Using a separate region variable $r_2$ allows us to assign an effect to the $\kextend$ expression that properly reflects the overall modification to the store. In particular, although the body of our example performs reads and writes on region $r_2$, because region $r_2$ is local to the enclosing function, these effects are not visible to the calling context and can be masked. As far as the calling context is concerned, once $\vtie$ has returned, all that has happened is that a new $\vref$ object has been allocated into region~$r_1$. The overall effect of the $\kextend$ expression is thus $\tcAlloc~r_1$, which is also the effect of the enclosing function.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Dangling references}
+\label{s:DanglingReferences}
+As with the languages described by Lucassen \shortcite{Lucassen:types-and-effects} and Tofte \& Talpin \shortcite{Tofte:theory}, \SystemFre allows the expression under evaluation to refer to objects in regions that have been deallocated, provided those objects are never accessed. Consider the following example:
+
+\begin{tabbing}
+MMM \= M \= M \= MMMM \= \kill
+\> $\vdangle :~ \tcNat \to \tcNat \to \tcNat$                   
+\\ \> \> ~ = $\lambda y : \tcNat.~ \kprivate~ r_1~ \kin$             
+\\ \> \> \> ~~ $\klet~ \vgoodbye : \tcRef~ r_1~ \tcNat 
+                = \kalloc~ r_1~ y$                              
+\\ \> \> \> ~~ $\kin~~ (\lambda z : \tcNat.~
+                \kprivate~ r_2~ \kin$                               
+\\ \> \> \> \> $\klet~ \vdref : \tcRef~ r_2~ (\tcRef~ r_1~ \tcNat)
+                = \kalloc~ r_2~ \vgoodbye~~ \kin~  z)$             
+\end{tabbing}
+
+When $\vdangle$ is applied to its first argument, it creates a private region named $r_1$ and allocates a reference $\vgoodbye$ into this region. It then returns an inner function that allocates a new reference $\vdref$ into a separate private region each time it is called. However, when the inner function is returned outside the scope of the enclosing $\kprivate~ r_1$ construct, region $r_1$ will be deallocated, and $\vgoodbye$ along with it. This means that every time the inner function is subsequently called, it will allocate a new $\vdref$ object that refers to the missing $\vgoodbye$. We say that the inner function holds a \emph{dangling reference} to $\vgoodbye$.
+
+Importantly, the $\vdangle$ function above is accepted as valid because the original $\vgoodbye$ object is never accessed after it has been deallocated. In terms of a concrete implementation, it is acceptable for the inner function to hold a pointer to $\vgoodbye$ after the object itself has been deallocated, provided this pointer is never dereferenced (followed). This restriction is enforced by the type system. If the inner function erroneously accessed the $\vgoodbye$ object then it would have a $\tcRead~ r$ or $\tcWrite~ r$ effect. This would violate the restriction that the type of the body of the $\kprivate~ r_1$ construct not mention $r_1$, as per the $\vbroken$ example from \S\ref{s:RegionDeallocation}. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{The problem with polymorphism and private regions}
+\label{s:ProblemPrivate}
+The operational semantics for a language with region based memory management typically introduces a phase distinction that separates source level region \emph{variables} from run-time region \emph{identifiers}. Region variables are written by the user in their program, while region identifiers identify chunks of memory at runtime, and are allocated by the system during evaluation. In our notation we write source level region variables as $r$ and runtime region identifiers as $p$. Using the phase distinction, a candidate evaluation rule for @private@ expressions would be something like the following, though we will improve on this in a moment.
+$$
+\mss ~|~ \xprivate{r}{x} \longrightarrow \mss ~|~ x[(\trgn{p})/r],~~ p~ \trm{fresh}~~~~ (\trm{PrivPlain})
+$$
+
+This rule takes a \emph{state} consisting of a store $ss$, and an expression ($@private@~ r~ @in@~ x$) , and produces a new store and expression --- using $x$ as a meta-variable for whole e($x$)pressions. In the above rule we allocate a fresh region identifier $p$, wrap it into a type by writing $\trgn{p}$, then substitute this type into the body of the @private@ expression. We refer to a type like $\trgn{p}$ as a \emph{region handle} to distinguish it from the plain region identifier $p$. In terms of a concrete implementation, we imagine $p$ as being the numeric index of a region relative to the number of regions allocated so far, and $\trgn{p}$ as being a pointer to some runtime data structure that specifies where it lies in memory.
+
+Although rule (PrivPlain) describes allocation well enough, it says nothing about \emph{deallocation}. In the language described by Lucassen~\shortcite{Lucassen:types-and-effects}, regions are allocated and deallocated in a stack-like order, following the nesting structure of @private@ constructs in the source program, but we have not retained enough information to do this.
+
+The language of Lucassen \shortcite{Lucassen:types-and-effects} tracks the order in which regions are allocated by wrapping the result in an \emph{auxiliary expression} that holds the new region identifier:
+$$
+\mss ~|~ \msp ~|~ \xprivate{r}{x} \longrightarrow \mss ~|~ p,~ \msp ~|~ @*private*@ ~p~ @in@~ x[(\trgn{p})/r],
+~~ p \notin \msp
+~~~~~ (\trm{PrivAux})
+$$
+
+This rule takes a state consisting of a store $\mss$, store properties $\msp$ and expression, and produces a new store, store properties and expression. The store properties is a set which records the region identifiers that have been used so far, and the side condition $p \notin \msp$ ensures the new identifier $p$ is fresh relative to this set. The auxiliary @*private*@ expression creates a context for its body to evaluate in. The intention is for the body expression to reduce to a value $v$, and then for store objects in region $p$ to be deallocated using a rule like the following:
+$$
+\mss ~|~ \msp ~|~ @*private*@ ~p~ @in@~ v \longrightarrow \trm{deallocRegion}~p~ \mss ~|~ \msp ~|~ v
+~~~~~ (\trm{PrivDealloc})
+$$
+
+Now, although the (PrivAux) and (PrivDealloc) rules above provide a moral understanding of how allocation and deallocation should work, to complete a formal proof of soundness we must deal with subtle issues of name collision and capture. The following example demonstrates name collision:
+$$
+@*private*@~ p~ @in@~ (@let@~ x~ = (@*private*@~p~ @in@~ 5) ~~@in@~~ <...~\trm{read from object in region}~ p~...>
+$$
+
+Reduction of the above expression will fail because evaluation of the @let@ binding will deallocate all objects that might be read in the @let@ body. To avoid this problem we must ensure that every region identifier mentioned by a @*private*@ expression is distinct. 
+
+The following example demonstrates a related issue, which looks like the familiar variable capture problem from pure lambda calculus. Suppose we have the following type application:
+$$
+(\Lambda r : \kcRegion.~ @*private*@~ p~ @in@ ~f ~r ~z)~ (\trgn{p})
+$$
+
+Reducing this application with the usual System-F style evaluation rule requires we perform the substitution $(@*private*@~ p~ @in@ ~f ~r~ z)[(\trgn{p})/r]$. Note that in Lucassen's language \shortcite{Lucassen:types-and-effects} this is not quite a ``variable capture'' problem, because region identifiers like $p$ are treated as constructors (or atoms) rather than variables. The @*private*@ expression \emph{holds} the region identifier $p$ but does not bind it. In the larger semantics, such an identifier may appear in the description of the run-time store, so it cannot be treated as a variable name local to a single @*private*@ expression. The informal commentary in \cite{Lucassen:types-and-effects} and the later work \cite{Lucassen:polymorphic-effects} makes it clear that above substitution is invalid, though it does not give a complete soundness proof for their language.
+
+Calcagno \emph{et al.} \shortcite{Calcagno:soundness-results} give a complete syntactic soundness proof for a monomorphic version of the region calculus (where they write @region@ for @*private*@). In this work they give the following typing rule:
+$$
+\ruleIL {TyPrivate}
+        {    \mte ~|~ \mse \vdash x ~::~ t ~;~ e
+         \qq p \notin \trm{fr}(\mte,~ e)}
+        {\mte ~|~ \mse \vdash @*private*@~ p~ @in@~ x ~::~ t ~;~ \trm{mask}~ p~ e}
+$$
+
+The judgment $\mte ~|~ \mse \vdash x ~::~ t ~;~ e$ reads: ``under type environment~$\mte$ and store environment~$\mse$, expression $x$ has type $t$ and effect $e$''. The type environment maps value variables to their types, and the store environment maps store locations to their types. In the consequent, the meta-expression $(\trm{mask}~ r~ e)$ masks out (erases) the atomic effects in $e$ that mention region identifier $p$. The premise $p \notin \trm{fr}(\mte,~ e)$ ensures that~$p$ is not one of the free region identifiers mentioned in the type environment or effect of the body expression~$x$. Now, although the above rule works for a monomorphic language, to add System-F style polymorphism and produce a syntactic soundness proof we must deal with the capture problem. During the proof, to show Preservation for type applications we require a type substitution lemma like the following, where $\mke$ is the kind environment that maps type variables to their kinds.
+\begin{tabbing}
+MM \= MMM \= MMMMMMMMM \= MMMMMMMMMMMMM \kill
+\> If           \> $\mke,~ a : k_2 ~|~ \mte ~|~ \mse ~\vdash~ x_1 ~::~ t_1 ~;~ e_1$      \\
+\>  ~and        \> $\mke ~\vdash~ t_2 :: k_2$                                   \\
+\> then         \> $\mke ~|~ \mte[t_2/a] ~|~ \mse
+                                ~\vdash x_1[t_2/a] 
+                                ~::~ t_1[t_2/a] ~;~ e_2[t_2/a]$
+\end{tabbing}
+
+Sadly, this lemma is not true for the obvious extension of (TyPrivate), where we simply add a kind environment to the two typing judgments. A counter-example is just the invalid substitution ($@*private*@~ p~ @in@ ~f ~r~ z)[(\trgn{p})/r]$ we mentioned before, with appropriate types for $f$ and $z$. 
+
+\begin{tabbing}
+MM \= MMx \= MMx \= MMMMMMMMMMMMM \kill
+\> If           \> \hspace{-1.3em}$r : \kcRegion 
+                        ~|~ f : \forall (r' : \kcRegion).~ \tcRef~ r'~ \tcNat \to \tcUnit,~~
+                            z : \tcRef~ r~ \tcNat ~|~ \nil$ \\
+\>              \>      \> $~\vdash~ @*private*@~ p~ @in@~ f~ r~ z ~::~ \tcUnit ~;~ \bot$      
+\\[0.5ex]
+\>  ~and        \> $~~~~~~~~\nil ~\vdash~ \trgn{p} :: \kcRegion$                                   
+\\[0.5ex]
+\> then         \> $~~~~~~~~\nil
+                        ~|~ f : \forall (r' : \kcRegion).~ \tcRef~ r'~ \tcNat \to \tcUnit,~~
+                            z : \tcRef~ (\trgn{p})~ \tcNat ~|~ \nil$ \\
+\>              \>      \> $~\vdash~ @*private*@~ p~ @in@~ f~ (\trgn{p})~ z~ ~::~ \tcUnit ~;~ \bot$
+\end{tabbing}
+
+The consequent in the above statement does not type check under the extended (TyPrivate) rule because the region identifier $p$ appears in the type environment.
+
+How do we fix this? If a @*private*@ expression actually did bind the region identifier~$p$ then we could perhaps perform an alpha-conversion to avoid capture. However, as we mentioned earlier, @*private*@ is not a binding construct, and the region identifier $p$ may also appear in the runtime description of the store. Instead, we could perhaps add a global renaming process that rewrote the machine state to avoid conflicting region identifiers --- but this is a kludge. As we describe next, the above substitution, and hypothetical renaming process, would never be performed during the evaluation of a well-typed program.
+
+Assume the initial state of the machine consists of a closed source expression in an empty store. The source expression will not contain any @*private*@ expressions because no regions have yet been created. Now, the only evaluation rule that introduces @*private*@ expressions would be one like (PrivAux) which we repeat here:
+$$
+\mss ~|~ \msp ~|~ \xprivate{r}{x} \longrightarrow \mss ~|~ p,~ \msp ~|~ @*private*@ ~p~ @in@~ x[(\trgn{p})/r],
+~~ p \notin \msp
+~~~~~ (\trm{PrivAux})
+$$
+
+When a @*private*@ expression is introduced into the program the fresh region identifier~$p$ is allocated and then the region handle containing it is substituted into the body. As the \emph{context} of the @private@ expression thus has no knowledge of $p$, it cannot also contain the type argument $(\trgn{p})$ that gave rise to the offending substitution. The counter-example above is really a problem with the formalization of the semantics, rather than a problem with the underlying language. However, such an informal apology about contexts does not count as a formal proof.
+
+As discussed in the rest of this paper, to avoid capture we give up on auxiliary @*private*@ expressions. We instead extend the machine state with a frame stack, which makes the context of the expression under evaluation explicit. We also use the stack to manage the lifetime of regions. The context information previously expressed by @*private*@ is thus held in a different part of the machine state, and there is never a need to to substitute types into it. Instead of the freshness criteria that appeared in (TyPrivate) we use liveness conditions between the stack and store, as we will see in the next section.
+
+

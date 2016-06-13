@@ -1,0 +1,140 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\boxfig{
+$$
+\begin{array}{cc}
+% ---------------------------------------------------------
+% Definition WfFS (se : stenv) (sp : stprops) (ss : store) (fs : stack) 
+%  := Forall ClosedT se
+%  /\ STOREM se ss
+%  /\ STORET se sp ss
+%  /\ STOREP sp fs.
+\fbox{$\WfFS{\mstenv}{\mstprops}{\mstore}{\mstack}$}
+& \trm{(WfFS)}
+\\[2ex]
+
+\ruleI
+{ \begin{array}{cc}       
+          \pForall~ t~ \pin~ se.~ (\trm{ClosedT}~ t)       \\
+        \StoreT{\mse}{\msp}{\mss}
+\qq     \StoreP{\msp}{\mfs}
+\qq     \StoreM{\mse}{\mss}                           
+  \end{array}
+}
+{
+        \WfFS{\mse}{\msp}{\mss}{\mfs}
+}
+& \trm{(WfFS)}
+\\[5ex]
+
+% ---------------------------------------------------------
+% Definition STORET (se: stenv) (sp: stprops) (ss: store)
+%  := Forall2 (TYPEB nil nil se sp) ss se.
+\fbox{$\StoreT{\mstenv}{\mstprops}{\mstore}$}
+& \trm{(StoreT)}
+\\[3ex]
+
+\ruleI
+{ \begin{array}{l}
+        \trm{Forall2}~ b,t~ \pin~ ss,~se. 
+        ~~(\TypeB{~\nil}{\nil}{\mse}{\msp}{b}{t})
+  \end{array}
+}
+{
+        \StoreT{\mse}{\msp}{\mss}
+}
+& \trm{(StoreT)}
+\\[5ex]
+
+
+% ---------------------------------------------------------
+% Inductive TYPEB : kienv -> tyenv -> stenv -> stprops -> stbind -> ty -> Prop := 
+\fbox{$\TypeB{\mkienv}{\mtyenv}{\mstenv}{\mstprops}{\mstbind}{\mtype}$}
+& \trm{(TypeB)}
+\\[2ex]
+
+% -------------------------------------
+% | TbValue
+%   :  forall ke te se sp p v t
+%   ,  In (SRegion p) sp
+%   -> TypeV  ke te se sp v t
+%   -> TypeB  ke te se sp (StValue p v) (TRef (TRgn p) t)
+\ruleI
+{       \sregion{p} \in \msp
+\qq
+        \TypeV  {\mke}{\mte}{\mse}{\msp}{v}{t}
+}
+{       \TypeB  {\mke}{\mte}{\mse}{\msp}
+                {\sbvalue{p}{v}}
+                {\tcRef~ (\trgn{p})~ t}
+}
+& \trm{(TbValue)}
+\\[5ex]
+
+% | TbDead 
+%   :  forall ke te se sp p t
+%   ,  In (SRegion p) sp
+%   -> TypeB  ke te se sp (StDead p)    (TRef (TRgn p) t).
+\ruleI
+{
+        \sregion{p} \in \msp
+}
+{       \TypeB  {\mke}{\mte}{\mse}{\msp}
+                {\sbdead{p}}
+                {\tcRef~ (\trgn{p})~ t}
+}
+& \trm{(TbDead)}
+\\[5ex]
+
+
+% ---------------------------------------------------------
+% Definition StoreP  (sp : stprops) (fs : stack)
+%  := (forall m1 p2, In (FPriv  m1       p2) fs -> In (SRegion p2) sp)
+%  /\ (forall p1 p2, In (FPriv (Some p1) p2) fs -> In (SRegion p1) sp).
+\fbox{$\StoreP{\mstprops}{\mstack}$}
+& \trm{(StoreP)}
+\\[2ex]
+
+\ruleI
+{ \begin{array}{ll}
+  \trm{forall}~ p.~ 
+                \pIf~~      (\fprivs{p})   \in \mfs 
+                & \pthen~~    (\sregion{p})~ \in \msp
+\\
+        \trm{forall}~ p.~
+                \pIf~~      (\fprivm{p}{\_}) \in \mfs
+                & \pthen~~    (\sregion{p})~  \in \msp
+  \end{array}
+}
+{       
+        \StoreP {\msp}{\mfs}
+}
+& \trm{(StoreP)}
+\\[5ex]
+
+
+% ---------------------------------------------------------
+% Definition STOREM (se: stenv) (ss: store)
+%  := length se = length ss.
+\fbox{$\StoreM{\mstenv}{\mstore}$}
+& \trm{(StoreM)}
+\\[2ex]
+
+\ruleI
+{       \tt{length}~ \mse = \tt{length}~ \mss
+}
+{       \StoreM {\mse}{\mss}}
+& \trm{(StoreM)}
+\end{array}
+$$
+
+
+\medskip
+\hpad
+} % boxfig
+\smallskip
+\caption{Store Typing, Coverage, and Model}
+\label{f:StoreTyping}
+\end{figure}

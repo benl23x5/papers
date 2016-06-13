@@ -1,0 +1,4 @@
+DIGEST 20e184ac13e17b853677e9c7acdfcdfb
+FIron.Tactics.Case
+R70:75 Coq.Strings.String <> <> lib
+R278:280 Coq.Init.Logic <> :type_scope:x_'='_x not

@@ -1,0 +1,6 @@
+%!TEX root = ../Main.tex
+\section{Conclusion}
+Writing about a proof is like dancing about architecture.\footnote{After a quote about music by Frank Zappa, reimagined by Peter Gammie.} We intend this paper to be a summary of the language \SystemFre, presented in a way that can be mechanically proved sound, while leaving most of the low level details in the proof script where they belong.
+
+This work was carried out at a time of increasing community interest in producing mechanically verified languages and compiler implementations. The influential CompCert project \cite{Leroy:compcert} has yielded a verified compiler for the C language, and we are beginning to see results for higher level functional languages \cite{Chlipala:certified-untyped, Chlipala:verified-impure}. As opposed to C, implementations for functional languages implicitly depend on a runtime system to manage storage allocation, and verifying such a system requires a large investment of effort on its own \cite{Hawblitzel:garbage}. One advantage that \SystemFre has in this space is that the language semantics naturally includes storage management, which (we hope) will reduce the overall cost of verifying its implementation. 
+

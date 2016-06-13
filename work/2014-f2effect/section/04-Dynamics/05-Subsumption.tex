@@ -1,0 +1,116 @@
+%!TEX root = ../../Main.tex
+
+\input{figures/EquivT.tex}
+\input{figures/SubsT.tex}
+
+\subsection{Type Equivalence and Subsumption}
+\label{s:Subsumption}
+
+The rules for type equivalence are given in Fig.~\ref{f:EquivT}. As discussed in the previous section, we use type equivalence in rule (TcExp) of Fig.~\ref{f:TypeC} to normalize the effect of the reduction. The rules of Fig.~\ref{f:EquivT} are completely standard, though note that the relation also requires the types mentioned to be well kinded. This property is needed to prove the administrative lemmas that are used in the body of the proof. 
+
+Interestingly, the type (and effect) equivalence relation is not sufficient to make a general statement of Preservation. An example trace that highlights the problem is given in Fig.~\ref{f:ExampleTrace}. On the left of the figure we have the evaluation state as per the small step evaluation rules of Fig.~\ref{f:Step}, and on the right we have the effect of the configuration. This is the effect gained by applying the (TcExp) rule Fig.~\ref{f:TypeC}, using an empty kind and type environment. Note that the syntactic effect of the configuration is \emph{not preserved} during evaluation. For example, the effect if the initial state is $(\tcWrite~ (\trgn{0}))$, but it changes to $\bot$ in the next state and then increases to $(\tcAlloc~ (\trgn{1}) + \tcWrite~ (\trgn{1}))$ in the next. 
+
+The point about Fig~\ref{f:ExampleTrace} is that a running program dynamically allocates and deallocates new regions, and the effect we assign to intermediate states rightly reflects these changes. As we expose this runtime detail, we must define what it means for such an effect to be ``valid'', as it would not make sense for it to change to something completely arbitrary. As far as the client programmer is concerned, the observable effect of a closed, well typed program that begins evaluation in an empty store is precisely nothing. Such a program may allocate and deallocate new regions during evaluation, but because it cannot affect any \emph{existing} bindings in the store (because there were none), it must be observationally pure.
+
+We relate the effects of each successive program state with \emph{visible subsumption}, defined in Fig~\ref{f:SubsVisibleT}. The judgment $\SubsVisibleT{\mke}{\msp}{\msp'}{e_1}{e_2}$ reads ``with kind environment $\mke$ and store properties $\msp$, effect $e_1$ visibly subsumes effect $e_2$ relative to the new store properties $\msp'$''. This judgment is defined in terms of the standard subsumption judgment, which is given in Fig.~\ref{f:SubsT}. The effect $e_1$ visibly subsumes effect $e_2$ relative to store properties $\msp'$, when $e_1$ subsumes $e_2$ after masking out all atomic effects in $e_2$ on regions that are not in $\msp'$. In our statement of Preservation, we will use visible subsumption to mean ``subsumption without worrying about regions that haven't been allocated yet''. 
+
+As an example, the effect of the first state in Fig.~\ref{f:ExampleTrace} ($\tcWrite~(\trgn{0})$) visibly subsumes the effect of the third state ($\tcAlloc~(\trgn{1}) + \tcWrite~(\trgn{1})$) relative to the store properties ($\sregion{0}$). To write this statement formally, first note that the judgment form in Fig.~\ref{f:SubsVisibleT} takes two separate lists of store properties. The properties on the left of the turnstile must mention the region identifiers in \emph{both} effects being related, whereas the properties on the right mention just the identifiers of visible regions that we use to perform the masking. Here is the example statement in full, using an empty kind environment:
+$$
+\SubsVisibleT
+        {~\nil}
+        {\sregion{0},~ \sregion{1}}
+        {\sregion{0}}
+        {\tcWrite~(\trgn{0})~}
+        {~\tcAlloc~(\trgn{1}) + \tcWrite~(\trgn{1})}
+$$
+
+\noindent
+In the definition in Fig.~\ref{f:SubsVisibleT}, the meta-function `maskNotVisible' takes a list of store properties $\msp'$, an effect $e'$, and replaces atomic effect terms in $e'$ that act on regions that are not mentioned in $\msp'$ with $\bot$. For example:
+$$
+\begin{array}{ll}
+\trm{maskNotVisible}~ 
+        [\sregion{0},~ \sregion{2}]~
+        (\tcRead~(\trgn{0}) ~+~ \tcWrite~(\trgn{1}) ~+~ \tcAlloc~(\trgn{2})) \\
+~~ = \tcRead~(\trgn{0}) ~+~ \bot ~+~ \tcAlloc~(\trgn{2})
+\end{array}
+$$
+
+The meta-function `maskNotVisible' itself is defined in terms of `\mbox{maskOnT}', which is a higher order function that masks out atomic effect terms that do match the given predicate. In this case the required predicate is defined in terms of \mbox{`isVisibleE'}. The expression `isVisibleE $\msp'$ $t$' returns false when $t$ is an atomic effect on some region that is not listed in $\msp'$, and true otherwise. In the Coq script we reuse the meta-function `maskOnT' to define `maskOnVarT', which appears in Fig.~\ref{f:TypeX}, as well as administrative lemmas about it.
+
+
+\input{figures/SubsVisibleT.tex}
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Properties of Visible Subsumption}
+\label{s:VisibleSubsumption}
+
+% -----------------------------------------------
+% Lemma subsVisibleT_mask
+%  :  forall sp spVis r n e1 e2
+%  ,  hasSRegion n spVis = false
+%  -> r = TCap (TyCapRegion n)
+%  -> SubsVisibleT nil sp spVis e1 (maskOnVarT 0 e2)
+%  -> SubsVisibleT nil sp spVis e1 (substTT    0 r e2).
+%
+\begin{lemma} If effect $e_1$ visibly subsumes an effect $e_2$ that has terms involving region variable $\un{0}$ masked out, then $e_1$ also visibly subsumes effect $e_2$ after substituting region handle $\trgn{p}$ for the masked variable, provided $p$ is not a visible region identifier.
+\label{l:subsVisibleT_mask}
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \neg(\sregion{p} \in \mspVis)
+\\ ~\pand       & \SubsVisibleT
+                        {\nil}{\msp}{\mspVis}{e_1}
+                        {\mmaskOnVarT~ \un{0}~ e_2}
+\\  \pthen      & \SubsVisibleT
+                        {\nil}{\msp}{\mspVis}{e_1}
+                        {\subsTT{\un{0}}
+                                {(\trgn{p})}
+                                {e_2}
+                        }
+\end{array}
+$
+
+\medskip\noindent
+In the proof of Preservation, this lemma manages the region phase change which occurs to the overall effect of the program state when when apply rule (SfPrivatePush) from Fig.~\ref{f:Step}. Here it is again:
+$$
+\begin{array}{lllr}
+        & \mss ~|~ \msp ~|~ \mfs 
+        & \hspace{-1em} ~|~ \cx{\kprivate~ \bra{r}~ \kin~ x_2}              \\
+\lto    & \mss ~|~ \sregion{p},~ \msp ~|~ \mfs,~ \fprivd{p} ~~~~~~~
+        & \hspace{-1em} ~|~ \cx{x_2[\trgn{p}/\un{0}\bra{r}]_t}
+\\
+        & \mcarray{2}{l}{lll}
+          { \trm{where} 
+                & p  & = ~\trm{allocRegion}~ \msp
+          }
+\end{array}
+~~~~ \trm{(SfPrivatePush)}
+$$
+
+\noindent
+Suppose $x_2$ has effect $e_2$ and the overall expression $(\xprivate{r}{x_2})$ is closed. Using rule (TcExp) from Fig.~\ref{f:TypeC} and rule (TxPrivate) from Fig.~\ref{f:TypeX} with empty environments and frame stack, we assign the overall expression the effect $\lowerTT{(\trm{maskOnVarT}~ \un{0}\bra{r}~ e_2)}$. As the environments are empty we know that the masked effect is closed, so the overall effect of the expression is just $(\trm{maskOnVarT}~ \un{0}\bra{r}~ e_2)$, without the lowering operator. Applying rule (SfPrivatePush) above yields the new expression $(x_2[\trgn{p}/\un{0}\bra{r}]_t)$, with a fresh region handle substituted for variable $\un{0}\bra{r}$. Using the System-F style type substitution lemma, the effect of the new expression becomes $(e_2[\trgn{p}/\un{0}\bra{r}]_t)$. The lemma above is then used in the proof of Preservation to show that whatever effect visibly subsumes the effect of a @private@ expression before reduction also subsumes it afterwards. The premise $\neg(\sregion{p} \in \mspVis)$ is satisfied automatically because the region identifier $p$ is freshly allocated by (SfPrivatePush).
+\qqed
+
+% -----------------------------------------------
+% Lemma subsVisibleT_spVis_strengthen
+%  :  forall ke sp spVis spVis' e1 e2
+%  ,  extends spVis' spVis
+%  -> SubsVisibleT ke sp spVis' e1 e2
+%  -> SubsVisibleT ke sp spVis  e1 e2.
+\begin{lemma} Strengthening the related store properties preserves visible subsumption.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \mspVis' ~~\trm{extends}~~ \mspVis
+\\  ~\pand      & \SubsVisibleT{\mke}{\msp}{\mspVis'}{e_1}{e_2}
+\\  \pthen      & \SubsVisibleT{\mke}{\msp}{\mspVis} {e_1}{e_2}
+\end{array}
+$
+
+\vspace{1ex}
+where $(\mspVis' ~~\trm{extends}~~ \mspVis) 
+        ~~\eqdef~~ (\trm{exists}~ \msp.~ \mspVis' = \msp \doubleplus \mspVis)$
+\qqed
+
+\input{figures/Trace.tex}

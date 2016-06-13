@@ -1,0 +1,395 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\vfill
+\boxfig{
+% -----------------------------------------------------------------------------
+$$
+\begin{array}{cc}
+\fbox {$\TypeV{\mkienv}{\mtyenv}{\mstenv}{\mstprops}{\mval}{\mtype}$}
+& \trm{(TypeV)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TvVar
+%   :  forall ke te se sp i t
+%   ,  get i te = Some t
+%   -> KindT  ke sp t KData
+%   -> TYPEV  ke te se sp (VVar i) t 
+\ruleI
+{       t ~=~ \trm{get}~~ \cx{ix\bra{z}}~ \mte 
+\qq
+        \KindT  {\mke}{\msp}
+                {t}
+                {\kcData}
+}
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {ix\bra{z}}
+                {t}
+}
+& \trm{(TvVar)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TvLoc 
+%   :  forall ke te se sp i r t
+%   ,  get l se = Some (TRef r t)
+%   -> KindT  ke sp       (TRef r t) KData       
+%   -> TYPEV  ke te se sp (VLoc l)   (TRef r t)
+\ruleI
+{       \ct{\tcRef~~ r~~ t}
+         ~=~ \trm{get}~~ \cx{l}~~ \mse
+\qq
+        \KindT  {\mke}{\msp}
+                {\tcRef~~ r~~ t}
+                {\kcData}
+}
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {\vloc{l}}
+                {\tcRef~~ r~~ t}
+}
+& \trm{(TvLoc)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TvLam
+%   :  forall ke te se sp t1 t2 x2 e2
+%   ,  KindT  ke sp t1 KData
+%   -> TYPEX  ke (te :> t1) se sp x2 t2 e2
+%   -> TYPEV  ke te         se sp (VLam t1 x2) (TFun t1 e2 t2)
+\ruleI
+{       \KindT  {\mke}{\msp}
+                {t_1}
+                {\kcData}
+\qq     
+        \TypeX  {\mke}
+                {\mte,~ \ct{\bra{z}: t_1}}
+                {\mse}{\msp}
+                {x_2}
+                {t_2}
+                {e_2}
+}
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {\lambda \bra{z}: t_1.~ x_2}
+                {\tto{t_1}{e_2}{t_2}}
+}
+& \trm{(TvLam)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TvLAM
+%   :  forall ke te se sp k1 t2 x2
+%   ,  TYPEX (ke :> k1) (liftTE 0 te) (liftTE 0 se) sp x2 t2 (TBot KEffect)
+%   -> TYPEV ke          te            se   sp (VLAM k1 x2) (TForall k1 t2)
+\ruleI
+{       \TypeX  {\mke,~ \ct{\bra{a} : k_1}}
+                {\liftTEo{\mte}}
+                {\liftSEo{\mse}}
+                {\msp}
+                {x_2}
+                {t_2}
+                {\bot}
+}
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {\Lambda~ \bra{a}: k_1.~ x_2}
+                {\forall  \bra{a}: k_1.~ t_2}
+}
+& \trm{(TvLAM)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TvConst
+%   :  forall ke te se sp c t
+%   ,  t = typeOfConst c
+%   -> TYPEV  ke te se sp (VConst c) t
+\ruleI
+{       t = \trm{typeOfConst}~ c
+}
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {c}
+                {t}
+}
+& \trm{(TvConst)}
+\\[5ex]
+
+
+% ---------------------------------------------------------
+\fbox {$\TypeX{\mkienv}{\mtyenv}{\mstenv}{\mstprops}{\mexp}{\mtype}{\mtype}$}
+& \trm{(TypeX)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TxVal
+%   :  forall ke te se sp v1 t1
+%   ,  TYPEV  ke te se sp v1 t1
+%   -> TYPEX  ke te se sp (XVal v1) t1 (TBot KEffect)
+%
+\ruleI
+{       \hspace{-1.7em}
+        \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_1}
+                {t_1}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {v_1}
+                {t_1}
+                {\bot}
+}
+& \trm{(TxVal)}
+\\[2ex]
+
+
+% -------------------------------------
+% | TxLet
+%   :  forall ke te se sp t1 x1 t2 x2 e1 e2
+%   ,  KindT  ke sp t1 KData
+%   -> TYPEX  ke te         se sp x1 t1 e1
+%   -> TYPEX  ke (te :> t1) se sp x2 t2 e2
+%   -> TYPEX  ke te         se sp (XLet t1 x1 x2) t2 (TSum e1 e2)
+\ruleI
+{ \begin{array}{lll}
+        \KindT  {\mke}{\msp}
+                {t_1}
+                {\kcData}
+\\
+        \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {x_1}
+                {t_1}
+                {e_1}
+&       
+        \TypeX  {\mke}
+                {\mte,~ \ct{\bra{z} : t_1}}
+                {\mse}
+                {\msp}
+                {x_2}
+                {t_2}
+                {e_2}
+  \end{array}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {\klet~ \bra{z}: t_1 = x_1 ~~\kin~~ x_2}
+                {t_2~}
+                {~e_1 + e_2}
+}
+& \trm{(TxLet)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TxApp
+%   :  forall ke te se sp t11 t12 v1 v2 e1
+%   ,  TYPEV  ke te se sp v1 (TFun t11 e1 t12) 
+%   -> TYPEV  ke te se sp v2 t11
+%   -> TYPEX  ke te se sp (XApp v1 v2) t12 e1
+\ruleI
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_1}
+                {\tto{t_{11}}{e_1}{t_{12}}}
+\qq
+        \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_2}
+                {t_{11}}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {~v_1~ v_2}
+                {t_{12}}
+                {e_1}
+}
+& \trm{(TxApp)}
+\\[3ex]
+
+
+% -------------------------------------
+% | TvAPP
+%   :  forall ke te se sp v1 k11 t12 t2
+%   ,  TYPEV  ke te se sp v1 (TForall k11 t12)
+%   -> KindT  ke sp t2 k11
+%   -> TYPEX  ke te se sp (XAPP v1 t2) (substTT 0 t2 t12) (TBot KEffect)
+\ruleI
+{       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_1}
+                {\forall \bra{a} : k_{11}.~ t_{12}}
+\qq \quad
+        \KindT  {\mke}{\msp}{t_2}{k_{11}}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {v_1~ t_2}
+                {t_{12}[t_2/\un{0}\bra{a}]}
+                {\bot}
+}
+& \trm{(TxAPP)}
+\\[1.5em]
+
+
+% -------------------------------------
+% | TxPrivate
+%   :  forall ke te se sp x t tL e eL
+%   ,  lowerTT 0 t               = Some tL
+%   -> lowerTT 0 (maskOnVarT 0 e) = Some eL
+%   -> TYPEX (ke :> KRegion) (liftTE 0 te) (liftTE 0 se) sp x            t  e
+%   -> TYPEX ke              te             se           sp (XPrivate x) tL eL
+\ruleI
+{ \begin{array}{lr}
+&       e' ~=~ \lowerTT{(\trm{maskOnVarT}~~ \ct{\un{0}\bra{r}}~ e)}  
+\\
+        t' ~=~ \lowerTT{t}
+&       \TypeX  {ke,~ \ct{\bra{r}} : \kcRegion}
+                {\liftTEo{\mte}}
+                {\liftSEo{\mse}}
+                {\msp}
+                {x}
+                {t}
+                {e}
+  \end{array}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {~\kprivate~ \bra{r}~ \kin~ x}
+                {t'}
+                {e'}
+}
+& \trm{(TxPrivate)}
+\\[2em]
+
+
+% --------------------------------------
+% (* Extend an existing region. *)
+% | TxExtend
+%   :  forall ke te se sp r1 x2 t e eL
+%   ,  lowerTT 0 (maskOnVarT 0 e) = Some eL
+%   -> KindT ke sp r1 KRegion
+%   -> TypeX (ke :> KRegion) (liftTE 0 te) (liftTE 0 se) sp x2 t e
+%   -> TypeX ke te se  sp (XExtend r1 x2) (substTT 0 r1 t) (TSum eL (TAlloc r1))
+\ruleI
+{ \begin{array}{lr}
+&      \KindT  {\mke}{\msp}{t_1}{\kcRegion}
+~~~~~~ e' ~=~ \lowerTT{(\trm{maskOnVarT}~~ \ct{\un{0}\bra{r_2}}~ e)}
+\\
+&      t_3' ~=~ t_3[t_1/\un{0}\bra{r_2}]
+~~~~   \TypeX  {\mke, \ct{\bra{r_2}} : \kcRegion}
+                {\liftTEo{\mte}}
+                {\liftSEo{\mse}}
+                {\msp}
+                {x}
+                {t_3}
+                {e}
+  \end{array}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {~\kextend~ t_1~ \kwith~ \bra{r_2}~ \kin~ x}
+                {t_3'}
+                {e' + \tcAlloc~ t_1}
+}
+& \trm{(TxExtend)}
+\\[2em]
+
+% -------------------------------------
+% | TxOpAlloc 
+%   :  forall ke te se sp r1 v2 t2
+%   ,  KindT  ke sp r1 KRegion
+%   -> TYPEV  ke te se sp v2 t2
+%   -> TYPEX  ke te se sp (XAlloc r1 v2) (TRef r1 t2) (TAlloc r1)
+\ruleI
+{       \KindT  {\mke}{\msp}{t_1}{\kcRegion}
+\qq
+        \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_2}
+                {t_2}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {~\kalloc~  t_1~ v_2}
+                {\tcRef~   t_1~ t_2}
+                {\tcAlloc~ t_1}
+}
+& \trm{(TxAlloc)}
+\\[2em]
+
+
+% -------------------------------------
+% | TxOpRead
+%   :  forall ke te se sp v1 r1 t2
+%   ,  KindT  ke sp r1 KRegion
+%   -> TYPEV  ke te se sp v1 (TRef r1 t2)
+%   -> TYPEX  ke te se sp (XRead r1 v1) t2 (TRead r1)
+\ruleI
+{
+        \KindT  {\mke}{\msp}{t_1}{\kcRegion}
+\qq
+        \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_2}
+                {\tcRef~ t_1~ t_2}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {~\kread~ t_1~ v_2}
+                {t_2}
+                {\tcRead~ t_1}
+}
+& \trm{(TxRead)}
+\\[1.5em]
+
+
+% -------------------------------------
+% | TxOpWrite
+%   :  forall ke te se sp v1 v2 r1 t2
+%   ,  KindT  ke sp r1 KRegion
+%   -> TYPEV  ke te se sp v1 (TRef r1 t2)
+%   -> TYPEV  ke te se sp v2 t2
+%   -> TYPEX  ke te se sp (XWrite r1 v1 v2) TUnit (TWrite r1)
+\ruleI
+{ \begin{array}{ll}
+&       \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_2}
+                {\tcRef~ t_1~ t_2}
+\\
+        \KindT  {\mke}{\msp}{t_1}{\kcRegion}
+&       
+        \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_3}
+                {t_2}
+  \end{array}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {~\kwrite~ t_1~ v_2~ v_3}
+                {\tcUnit}
+                {\tcWrite~ t_1}
+}
+& \trm{(TxWrite)}
+\\[2em]
+
+
+% -------------------------------------
+% | TxOpPrim
+%   :  forall ke te se sp op v1 t11 t12 e
+%   ,  typeOfOp1 op = TFun t11 t12 e
+%   -> TYPEV  ke te se sp v1 t11
+%   -> TYPEX  ke te se sp (XOp1 op v1) t12 e.
+\ruleI
+{
+        \tto{\ct{t_{11}}}{\ct{e}}{\ct{t_{12}}}
+                ~=~ \trm{typeOfOp1}~ \cx{\mop}
+\qq
+        \TypeV  {\mke}{\mte}{\mse}{\msp}
+                {v_1}
+                {t_{11}}
+}
+{       \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {\mop~ v_1}
+                {t_{12}}
+                {e}
+}
+& \trm{(TxOpPrim)}
+\end{array}
+$$
+\smallskip
+} % boxfig
+\smallskip
+\caption{Types of Values and Expressions}
+\label{f:TypeX}
+\end{figure}
+
+

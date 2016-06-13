@@ -1,0 +1,10 @@
+DIGEST 0b92f7fde52289655447a4051f05cb08
+FIron.Language.SystemF2Effect.Type.Operator
+R16:64 Iron.Language.SystemF2Effect.Type.Operator.LiftTT <> <> lib
+R82:131 Iron.Language.SystemF2Effect.Type.Operator.LowerTT <> <> lib
+R149:198 Iron.Language.SystemF2Effect.Type.Operator.SubstTT <> <> lib
+R216:266 Iron.Language.SystemF2Effect.Type.Operator.FlattenT <> <> lib
+R284:332 Iron.Language.SystemF2Effect.Type.Operator.BunchT <> <> lib
+R350:399 Iron.Language.SystemF2Effect.Type.Operator.MaskOnT <> <> lib
+R417:467 Iron.Language.SystemF2Effect.Type.Operator.MaskOnTs <> <> lib
+R485:533 Iron.Language.SystemF2Effect.Type.Operator.MergeT <> <> lib

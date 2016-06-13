@@ -1,0 +1,57 @@
+
+% -- Meta commands ------------------------------------------------------------
+\newcommand{\NOTE}      [1]     {\textbf{(NOTE: #1)}}
+\newcommand{\TODO}      [1]     {\textbf{(TODO:~ #1)}}
+\newcommand{\CITE}              {\textbf{(CITE)}\xspace}
+\renewcommand{\REF}             {\textbf{(REF)}\xspace}
+
+
+% -- Short forms --------------------------------------------------------------
+\renewcommand{\tt}      [1]     {\texttt{#1}}
+\newcommand{\trm}       [1]     {\textrm{#1}}
+\newcommand{\tbf}       [1]     {\textbf{#1}}
+\newcommand{\trb}       [1]     {\textrm{\textbf{#1}}}
+\newcommand{\un}        [1]     {\underline{#1}}
+\newcommand{\ov}        [1]     {\overline{#1}}
+\newcommand{\qq}                {\quad \quad}
+\newcommand{\mc}        [2]     {\multicolumn{#1}{l}{#2}}
+\newcommand{\bra}       [1]     {\{#1\}}
+
+\newcommand\hpad                {$~$\vspace{-1em}}
+
+\newcommand\doubleplus          {+\kern-1.3ex+\kern0.8ex}
+
+% -- Proof meta operators -----------------------------------------------------
+\newcommand\pIf                 {\trm{If}}
+\newcommand\pthen               {\trm{then}}
+\newcommand\pand                {\trm{and}}
+\newcommand\por                 {\trm{or}}
+\newcommand\pforall             {\trm{forall}}
+\newcommand\pForall             {\trm{Forall}}
+\newcommand\pexists             {\trm{exists}}
+\newcommand\pimplies            {\trm{implies}}
+\newcommand\pin                 {\trm{in}}
+\newcommand\qqed
+{       \begin{flushright}
+        \vspace{-1.5em}
+        $\qed$
+        \end{flushright}
+}
+
+
+% -- Operators ----------------------------------------------------------------
+\newcommand\To                  {\Rightarrow}
+\newcommand\equalsdef           {\stackrel{\trm{\tiny{def}}}{=}}
+\newcommand\equalsobs           {\stackrel{\trm{\tiny{obs}}}{=}}
+\newcommand\lto                 {\longrightarrow}
+\newcommand\eqdef               {\stackrel{\mbox{\tiny def}}{=}}
+\newcommand\nil                 {\cdot}
+
+% -- Colors --------------------------------------------------------------------
+\newcommand\cx[1]               {\textcolor{Blue}{#1}}
+\newcommand\ct[1]               {\textcolor{OliveGreen}{#1}}
+\newcommand\ck[1]               {\textcolor{RedViolet}{#1}}
+
+% -- color to highlight differences in states.
+\newcommand\cdiff[1]            {\textcolor{Red}{#1}}
+

@@ -1,0 +1,48 @@
+%!TEX root = ../../Main.tex
+
+% -----------------------------------------------------------------------------
+\subsection{Small Step Evaluation}
+The small step semantics of Fig.~\ref{f:Step} is split into two judgment forms, one for the pure evaluation rules that do not affect the store or frame stack, and one for the others. We will describe the form of the store and frame stack when we discuss the specific rules that act upon it. The judgment $\StepP{x}{x'}$ reads: ``expression $x$ evaluates to expression $x'$''. The judgment $\StepF{\mss}{\msp}{\mfs}{x}{\mss'}{\msp'}{\mfs'}{x'}$ reads: ``with store $\mss$, store properties $\msp$ and frame stack $\mfs$, evaluation of expression $x$ produces a new store $\mss'$, properties $\msp'$, frame stack $\mfs'$ and expression $x'$.''~ We refer to a quadruple $(\mss ~|~ \msp ~|~ \mfs ~|~ x)$ as a \emph{machine state}, so our evaluation judgment takes one machine state and produces a new one.
+
+
+\eject
+% -----------------------------------------------------------------------------
+\subsubsection{Pure Evaluation Rules}
+Rules (SpAppSubst) and (SpAPPSubst) are the usual value and type application rules for System-F based languages. Because expressions contain both expression and type indices, we disambiguate the substitution operator with a subscript indicating which sort of index it operates on. In (SpAppSubst) we write $x_{12}[v_2/\un{0}\bra{x}]_x$ to substitute $v_2$ for the expression index $\un{0}$ in $x_{12}$. Likewise we write $x_{12}[t_2/\un{0}\bra{x}]_t$ for type substitution.
+
+Rules (SpSucc) and (SpZero) evaluate our representative pure primitive operators. For the meta-level implementation of these operators, we use the Coq library functions `S' and `beq\_nat' to take the successor and test for zero respectively.
+
+Rule (SfStep) embeds a pure evaluation rule in one that contains the store and frame stack.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Frame Stacks, let-continuations and Deallocation}
+\label{s:Steps-Deallocation}
+Fig.~\ref{f:Stores} gives the definition of frame stacks. A frame stack is a list of frames, where a frame can either be a let-continuation or region context. A let-continuation \mbox{$\flet{\bra{z}}{t}{x_2}$} holds the body of a let binding $x_2$ while the bound expression is being evaluated. We use the $\circ$ to indicate the part of the expression currently under evaluation. A region context frame ~$@priv@~ \mmode~ p$~ records the fact that region $p$ has been created and can have new bindings allocated into it. The $\mmode$ field says what to do with the store bindings in that region when we leave the scope of the construct that created it. For the @private@ construct we use mode @d@, which indicates that all store bindings in $p$ should be deallocated. For @extend@ we use a mode like ($@m@~ p'$) which indicates that all store bindings in the inner region $p$ should be merged into the outer region $p'$.
+
+Returning to Fig.~\ref{f:Step}, rule (SfLetPush) enters a let-binding by pushing a continuation holding the body $x_2$ onto the stack, and then begins evaluation of the bound expression $x_1$.
+
+Rule (SfLetPop) matches when the expression has reduced to a value and there is a let-continuation on the top of the stack. In this case we substitute the value into the body of the original let-expression $x_2$.
+
+% ----------------------------------------------------------------------------
+\input{figures/Step.tex}
+
+
+Rule (SfPrivatePush) allocates a new region. For this we use meta-function \mbox{`allocRegion'} to examine the current list of store properties and produce a fresh region identifier $p$. The definition of `allocRegion' in the Coq script just takes the maximum of all existing region identifiers and adds one to it. In a concrete implementation we could instead base the new identifier on a counter of previously allocated regions, or use the starting address of the new region as a fresh identifier. Having generated a fresh identifier, we then push a ~$\fprivd{p}$~ frame onto the stack to record that the region has been allocated. As we will see in \S\ref{s:Liveness}, we use the set of @priv@ frames currently on the stack to determine what locations in the store are safe to access, and the new frame also indicates that all store bindings in region $p$ are live (not yet deallocated). Finally, we substitute the region handle ~$\trgn{p}$~ for the original region variable in the body expression~$x_1$. This substitution performs the \emph{region phase change}, which means that any effects of $x_1$ had that mentioned the region variable $\un{0}\bra{r}$ now mention $\trgn{p}$ instead --- so an effect like $\tcRead~ r$ changes to $\tcRead~ (\trgn{p})$. In our proof of Preservation we manage this phase change with the visible subsumption judgment described in \S\ref{s:Subsumption}.
+
+
+% -----------------------------------------------------------------------------
+\input{figures/Store.tex}
+
+
+Rule (SfPrivatePop) matches when the expression has reduced to a value $v_1$. When the top-most frame on the stack is a ~$\fprivd{p}$~ we deallocate all bindings in region $p$ and pop the frame. Fig.~\ref{f:Stores} shows that a store is a list of store bindings, which themselves may be live or dead. A live store binding ~$\sbvalue{p}{\mval}$~ holds a value $\mval$, tagged with the region it is in $p$. 
+
+We model deallocation by replacing the value contained in the store binding by the placeholder $\bullet$, which indicates that the value is no longer available. This is also the approach taken by Calcagno \emph{et al.}~\shortcite{Calcagno:soundness-results}. In Fig.~\ref{f:Step} the deallocation of a single binding is performed using the meta-function `$\mdeallocB$', which takes a region identifier $p$, and a store binding, and replaces the contained value with $\bullet$ if the binding is tagged with $p$. Note that in the formal semantics we cannot simply remove dead bindings from the store. If we removed them, then any dangling references to these bindings would no longer be well typed. Dangling references were discussed in \S\ref{s:DanglingReferences}.
+
+Rules (SfExtendPush) and (SfExtendPop) are similar to (SfPrivatePush) and (SfPrivatePop), except that the version for @extend@ also records the identifier of the outer region in the stack frame. In (SfExtendPop) when the frame $\fprivm{p_1}{p_2}$ is popped from the stack we use the meta-function $`\mmergeB$' to merge all objects in region $p_2$ into region $p_1$, instead of simply deallocating them as before. The `$\mmergeB$' function rewrites the region annotation on store bindings, so ~$\sbvalue{p_2}{v}$~ becomes ~$\sbvalue{p_1}{v}$~ for any $v$, and ~$\sbdead{p_2}$~ becomes ~$\sbdead{p_1}$. In the formal semantics we must also rewrite the region annotations on dead bindings to ensure that dangling references retain their correct types, though in a concrete implementation we would not need to perform this operation at runtime.
+
+Rule (SfStoreAlloc) appends a new store binding in region $p$ to the store, using the meta-function `length' to get the location of this new binding.
+
+Rule (SfStoreRead) reads the value of the binding at location $l$. The binding must be live for this to succeed. The Preservation theorem in \S\ref{s:Preservation} ensures that well typed programs never try to read dead bindings.
+
+Rule (SfStoreWrite) first retrieves the binding at location $l$ to ensure that it is live, and then overwrites it with the new value. 

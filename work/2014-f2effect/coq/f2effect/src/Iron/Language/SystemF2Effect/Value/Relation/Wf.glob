@@ -1,0 +1,142 @@
+DIGEST f3dccd8c76471c77bee6d09476439633
+FIron.Language.SystemF2Effect.Value.Relation.Wf
+R16:53 Iron.Language.SystemF2Effect.Value.Exp <> <> lib
+R71:103 Iron.Language.SystemF2Effect.Type <> <> lib
+ind 259:261 <> WfV
+constr 299:306 <> WfV_VVar
+constr 373:380 <> WfV_VLoc
+constr 446:453 <> WfV_VLam
+constr 549:556 <> WfV_VLAM
+constr 636:645 <> WfV_VConst
+ind 700:702 <> WfX
+constr 741:748 <> WfX_XVal
+constr 818:825 <> WfX_XLet
+constr 954:961 <> WfX_XApp
+constr 1060:1067 <> WfX_VAPP
+constr 1159:1166 <> WfX_XOp1
+constr 1247:1258 <> WfX_XPrivate
+constr 1341:1351 <> WfX_XExtend
+constr 1457:1466 <> WfX_XAlloc
+constr 1563:1571 <> WfX_XRead
+constr 1667:1676 <> WfX_XWrite
+R274:276 Coq.Init.Datatypes <> nat ind
+R281:283 Iron.Language.SystemF2Effect.Value.Exp <> val ind
+R722:724 Iron.Language.SystemF2Effect.Value.Exp <> exp ind
+R345:347 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R359:362 Iron.Language.SystemF2Effect.Value.Exp <> VVar constr
+R364:365 Iron.Language.SystemF2Effect.Value.Relation.Wf <> ti var
+R333:335 Coq.Init.Peano <> :nat_scope:x_'<'_x not
+R331:332 Iron.Language.SystemF2Effect.Value.Relation.Wf <> ti var
+R418:420 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R432:435 Iron.Language.SystemF2Effect.Value.Exp <> VLoc constr
+R437:438 Iron.Language.SystemF2Effect.Value.Relation.Wf <> li var
+R406:408 Coq.Init.Peano <> :nat_scope:x_'<'_x not
+R404:405 Iron.Language.SystemF2Effect.Value.Relation.Wf <> li var
+R519:521 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R533:536 Iron.Language.SystemF2Effect.Value.Exp <> VLam constr
+R541:542 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x2 var
+R538:539 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t1 var
+R493:495 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R510:511 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x2 var
+R501:501 Coq.Init.Datatypes <> S constr
+R480:482 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R487:488 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t1 var
+R607:609 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R621:624 Iron.Language.SystemF2Effect.Value.Exp <> VLAM constr
+R629:629 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x var
+R626:627 Iron.Language.SystemF2Effect.Value.Relation.Wf <> k1 var
+R582:584 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R599:599 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x var
+R587:587 Coq.Init.Datatypes <> S constr
+R668:670 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R682:687 Iron.Language.SystemF2Effect.Value.Exp <> VConst constr
+R689:689 Iron.Language.SystemF2Effect.Value.Relation.Wf <> c var
+R792:794 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R806:809 Iron.Language.SystemF2Effect.Value.Exp <> XVal constr
+R811:811 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v var
+R771:773 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R784:784 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v var
+R920:922 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R934:937 Iron.Language.SystemF2Effect.Value.Exp <> XLet constr
+R945:946 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x2 var
+R942:943 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x1 var
+R939:940 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t1 var
+R894:896 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R911:912 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x2 var
+R902:902 Coq.Init.Datatypes <> S constr
+R872:874 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R885:886 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x1 var
+R856:858 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R863:864 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t1 var
+R1030:1032 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1044:1047 Iron.Language.SystemF2Effect.Value.Exp <> XApp constr
+R1052:1053 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v2 var
+R1049:1050 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1008:1010 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1021:1022 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v2 var
+R989:991 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1002:1003 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1129:1131 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1143:1146 Iron.Language.SystemF2Effect.Value.Exp <> XAPP constr
+R1151:1152 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t2 var
+R1148:1149 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x1 var
+R1113:1115 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R1120:1121 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t2 var
+R1094:1096 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1107:1108 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x1 var
+R1216:1218 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1230:1233 Iron.Language.SystemF2Effect.Value.Exp <> XOp1 constr
+R1239:1240 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1235:1237 Iron.Language.SystemF2Effect.Value.Relation.Wf <> op1 var
+R1194:1196 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1207:1208 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1307:1309 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1325:1332 Iron.Language.SystemF2Effect.Value.Exp <> XPrivate constr
+R1334:1334 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x var
+R1281:1283 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1298:1298 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x var
+R1286:1286 Coq.Init.Datatypes <> S constr
+R1420:1422 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1438:1444 Iron.Language.SystemF2Effect.Value.Exp <> XExtend constr
+R1449:1450 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x2 var
+R1446:1447 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t1 var
+R1394:1396 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1411:1412 Iron.Language.SystemF2Effect.Value.Relation.Wf <> x2 var
+R1399:1399 Coq.Init.Datatypes <> S constr
+R1378:1380 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R1385:1386 Iron.Language.SystemF2Effect.Value.Relation.Wf <> t1 var
+R1531:1533 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1545:1550 Iron.Language.SystemF2Effect.Value.Exp <> XAlloc constr
+R1555:1556 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1552:1553 Iron.Language.SystemF2Effect.Value.Relation.Wf <> tR var
+R1509:1511 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1522:1523 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1493:1495 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R1500:1501 Iron.Language.SystemF2Effect.Value.Relation.Wf <> tR var
+R1636:1638 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1650:1654 Iron.Language.SystemF2Effect.Value.Exp <> XRead constr
+R1659:1660 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1656:1657 Iron.Language.SystemF2Effect.Value.Relation.Wf <> tR var
+R1614:1616 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1627:1628 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1598:1600 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R1605:1606 Iron.Language.SystemF2Effect.Value.Relation.Wf <> tR var
+R1766:1768 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1780:1785 Iron.Language.SystemF2Effect.Value.Exp <> XWrite constr
+R1793:1794 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v2 var
+R1790:1791 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1787:1788 Iron.Language.SystemF2Effect.Value.Relation.Wf <> tR var
+R1744:1746 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1757:1758 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v2 var
+R1722:1724 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+R1735:1736 Iron.Language.SystemF2Effect.Value.Relation.Wf <> v1 var
+R1706:1708 Iron.Language.SystemF2Effect.Type.Relation.WfT <> WfT ind
+R1713:1714 Iron.Language.SystemF2Effect.Value.Relation.Wf <> tR var
+R1817:1819 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R1840:1842 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfV ind
+syndef 1973:1979 <> ClosedX
+R1987:1993 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R1996:1997 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R1998:2000 Iron.Language.SystemF2Effect.Value.Relation.Wf <> WfX ind
+R2004:2004 Coq.Init.Datatypes <> O constr
+R2002:2002 Coq.Init.Datatypes <> O constr

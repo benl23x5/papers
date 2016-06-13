@@ -1,0 +1,89 @@
+DIGEST 250b197ee6c6f745879791082809c88e
+FIron.Language.SystemF2Effect.Store.Bind
+R16:49 Iron.Language.SystemF2Effect.Value <> <> lib
+R67:129 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.WeakStProps <> <> lib
+R147:206 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.TypeKind <> <> lib
+ind 419:424 <> stbind
+constr 480:486 <> StValue
+constr 565:570 <> StDead
+R504:509 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R497:499 Iron.Language.SystemF2Effect.Value.Exp <> val ind
+R490:492 Coq.Init.Datatypes <> nat ind
+R582:587 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R575:577 Coq.Init.Datatypes <> nat ind
+R608:613 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+def 672:676 <> store
+R681:684 Coq.Init.Datatypes <> list ind
+R686:691 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+def 763:771 <> isStValue
+R778:783 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R790:796 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_x_','_x not
+R798:798 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_x_','_x not
+R800:801 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_x_','_x not
+R803:805 Coq.Init.Logic <> :type_scope:x_'='_x not
+R802:802 Iron.Language.SystemF2Effect.Store.Bind <> b var
+R806:812 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R831:839 Iron.Language.SystemF2Effect.Store.Bind <> isStValue def
+def 902:909 <> isStDead
+R916:921 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R928:934 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R936:939 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R941:943 Coq.Init.Logic <> :type_scope:x_'='_x not
+R940:940 Iron.Language.SystemF2Effect.Store.Bind <> b var
+R944:949 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R966:973 Iron.Language.SystemF2Effect.Store.Bind <> isStDead def
+def 1043:1056 <> regionOfStBind
+R1063:1068 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R1082:1082 Iron.Language.SystemF2Effect.Store.Bind <> b var
+R1092:1098 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R1112:1117 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R1147:1160 Iron.Language.SystemF2Effect.Store.Bind <> regionOfStBind def
+def 1354:1366 <> deallocRegion
+R1374:1376 Coq.Init.Datatypes <> nat ind
+R1384:1389 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R1405:1410 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R1423:1423 Iron.Language.SystemF2Effect.Store.Bind <> b var
+R1434:1440 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R1454:1460 Coq.Arith.EqNat <> beq_nat def
+R1462:1463 Iron.Language.SystemF2Effect.Store.Bind <> p1 var
+R1489:1495 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R1473:1478 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R1506:1511 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R1520:1525 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+def 1612:1617 <> mergeB
+R1628:1630 Coq.Init.Datatypes <> nat ind
+R1638:1643 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R1659:1664 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R1677:1677 Iron.Language.SystemF2Effect.Store.Bind <> b var
+R1687:1693 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R1702:1708 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R1744:1749 Iron.Language.SystemF2Effect.Value.Operator.MergeX <> mergeV def
+R1754:1755 Iron.Language.SystemF2Effect.Store.Bind <> p2 var
+R1751:1752 Iron.Language.SystemF2Effect.Store.Bind <> p1 var
+R1714:1720 Coq.Arith.EqNat <> beq_nat def
+R1724:1725 Iron.Language.SystemF2Effect.Store.Bind <> p2 var
+R1732:1733 Iron.Language.SystemF2Effect.Store.Bind <> p1 var
+R1763:1768 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R1778:1783 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R1790:1796 Coq.Arith.EqNat <> beq_nat def
+R1800:1801 Iron.Language.SystemF2Effect.Store.Bind <> p2 var
+R1808:1809 Iron.Language.SystemF2Effect.Store.Bind <> p1 var
+def 1906:1912 <> mergeBs
+R1927:1929 Coq.Lists.List <> map def
+R1946:1947 Iron.Language.SystemF2Effect.Store.Bind <> bs var
+R1932:1937 Iron.Language.SystemF2Effect.Store.Bind <> mergeB def
+R1942:1943 Iron.Language.SystemF2Effect.Store.Bind <> p2 var
+R1939:1940 Iron.Language.SystemF2Effect.Store.Bind <> p1 var
+prf 2029:2045 <> isStValue_stvalue
+R2064:2072 Iron.Language.SystemF2Effect.Store.Bind <> isStValue def
+R2075:2081 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R2085:2085 Iron.Language.SystemF2Effect.Store.Bind <> v var
+R2083:2083 Iron.Language.SystemF2Effect.Store.Bind <> p var
+R2113:2121 Iron.Language.SystemF2Effect.Store.Bind <> isStValue def
+R2149:2165 Iron.Language.SystemF2Effect.Store.Bind <> isStValue_stvalue thm
+prf 2176:2190 <> isStDead_stdead
+R2207:2214 Iron.Language.SystemF2Effect.Store.Bind <> isStDead def
+R2217:2222 Iron.Language.SystemF2Effect.Store.Bind <> StDead constr
+R2224:2224 Iron.Language.SystemF2Effect.Store.Bind <> p var
+R2252:2259 Iron.Language.SystemF2Effect.Store.Bind <> isStDead def
+R2287:2301 Iron.Language.SystemF2Effect.Store.Bind <> isStDead_stdead thm

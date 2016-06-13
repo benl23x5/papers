@@ -1,0 +1,16 @@
+DIGEST ad2cd755489994fd2bfcfd04e423a7a6
+FIron.Tactics.Burn
+R16:38 Iron.Tactics.LibTactics <> <> lib
+R56:75 Iron.Tactics.Rewrite <> <> lib
+R93:108 Iron.Tactics.Rip <> <> lib
+R126:130 Coq.omega.Omega <> <> lib
+R2178:2181 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2178:2181 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2202:2205 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2202:2205 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2301:2303 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2301:2303 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2325:2327 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2325:2327 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2355:2357 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2237:2239 Coq.Init.Logic <> :type_scope:x_'='_x not

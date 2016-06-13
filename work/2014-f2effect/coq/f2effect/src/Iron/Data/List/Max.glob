@@ -1,0 +1,135 @@
+DIGEST 3d702328b4315135c3c0d14dd4ce8a61
+FIron.Data.List.Max
+R16:34 Iron.Data.List.Base <> <> lib
+R52:63 Iron.Tactics <> <> lib
+def 77:84 <> max_list
+R92:95 Coq.Init.Datatypes <> list ind
+R97:99 Coq.Init.Datatypes <> nat ind
+R112:113 Iron.Data.List.Max <> xs var
+R124:126 Coq.Init.Datatypes <> nil constr
+R142:145 Coq.Init.Datatypes <> :list_scope:x_'::'_x not
+R152:154 Coq.Init.Peano <> max def
+R159:166 Iron.Data.List.Max <> max_list def
+R168:169 Iron.Data.List.Max <> xs var
+prf 186:197 <> max_ge_left1
+R223:226 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R216:218 Coq.Init.Peano <> max def
+R222:222 Iron.Data.List.Max <> b var
+R220:220 Iron.Data.List.Max <> a var
+R227:227 Iron.Data.List.Max <> a var
+R327:330 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R320:322 Coq.Init.Peano <> max def
+R327:330 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R320:322 Coq.Init.Peano <> max def
+R383:394 Iron.Data.List.Max <> max_ge_left1 thm
+prf 405:417 <> max_ge_right1
+R443:446 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R436:438 Coq.Init.Peano <> max def
+R442:442 Iron.Data.List.Max <> b var
+R440:440 Iron.Data.List.Max <> a var
+R447:447 Iron.Data.List.Max <> b var
+R582:594 Iron.Data.List.Max <> max_ge_right1 thm
+prf 605:615 <> max_ge_left
+R653:656 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R652:652 Iron.Data.List.Max <> c var
+R657:657 Iron.Data.List.Max <> a var
+R637:640 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R636:636 Iron.Data.List.Max <> c var
+R641:643 Coq.Init.Peano <> max def
+R647:647 Iron.Data.List.Max <> b var
+R645:645 Iron.Data.List.Max <> a var
+R804:807 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R808:810 Coq.Init.Peano <> max def
+R804:807 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R808:810 Coq.Init.Peano <> max def
+R872:882 Iron.Data.List.Max <> max_ge_left thm
+prf 893:904 <> max_ge_right
+R942:945 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R941:941 Iron.Data.List.Max <> c var
+R946:946 Iron.Data.List.Max <> b var
+R926:929 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R925:925 Iron.Data.List.Max <> c var
+R930:932 Coq.Init.Peano <> max def
+R936:936 Iron.Data.List.Max <> b var
+R934:934 Iron.Data.List.Max <> a var
+R1095:1098 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1099:1101 Coq.Init.Peano <> max def
+R1095:1098 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1099:1101 Coq.Init.Peano <> max def
+R1163:1174 Iron.Data.List.Max <> max_ge_right thm
+prf 1185:1201 <> max_ge_above_left
+R1242:1245 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1235:1237 Coq.Init.Peano <> max def
+R1241:1241 Iron.Data.List.Max <> c var
+R1239:1239 Iron.Data.List.Max <> a var
+R1246:1246 Iron.Data.List.Max <> b var
+R1225:1228 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1224:1224 Iron.Data.List.Max <> a var
+R1229:1229 Iron.Data.List.Max <> b var
+R1389:1392 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1382:1384 Coq.Init.Peano <> max def
+R1389:1392 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1382:1384 Coq.Init.Peano <> max def
+R1461:1477 Iron.Data.List.Max <> max_ge_above_left thm
+prf 1488:1505 <> max_ge_above_right
+R1546:1549 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1539:1541 Coq.Init.Peano <> max def
+R1545:1545 Iron.Data.List.Max <> a var
+R1543:1543 Iron.Data.List.Max <> c var
+R1550:1550 Iron.Data.List.Max <> b var
+R1529:1532 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1528:1528 Iron.Data.List.Max <> a var
+R1533:1533 Iron.Data.List.Max <> b var
+R1697:1700 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1697:1700 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1757:1774 Iron.Data.List.Max <> max_ge_above_right thm
+prf 1785:1799 <> max_weaken_left
+R1846:1849 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1839:1841 Coq.Init.Peano <> max def
+R1845:1845 Iron.Data.List.Max <> a var
+R1843:1843 Iron.Data.List.Max <> c var
+R1850:1850 Iron.Data.List.Max <> b var
+R1829:1832 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1828:1828 Iron.Data.List.Max <> a var
+R1833:1833 Iron.Data.List.Max <> b var
+R1988:1991 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1981:1983 Coq.Init.Peano <> max def
+R1988:1991 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R1981:1983 Coq.Init.Peano <> max def
+R2053:2067 Iron.Data.List.Max <> max_weaken_left thm
+prf 2173:2186 <> max_list_above
+R2206:2211 Coq.Lists.List <> Forall ind
+R2241:2242 Iron.Data.List.Max <> xs var
+R2234:2237 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R2223:2230 Iron.Data.List.Max <> max_list def
+R2232:2233 Iron.Data.List.Max <> xs var
+R2238:2238 Iron.Data.List.Max <> x var
+R2283:2285 Coq.Init.Logic <> not def
+R2324:2334 Coq.Lists.List <> Forall_cons constr
+R2324:2334 Coq.Lists.List <> Forall_cons constr
+R2422:2425 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R2411:2418 Iron.Data.List.Max <> max_list def
+R2426:2426 Iron.Data.List.Max <> x var
+R2371:2381 Coq.Lists.List <> Forall_impl thm
+R2422:2425 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R2411:2418 Iron.Data.List.Max <> max_list def
+R2426:2426 Iron.Data.List.Max <> x var
+R2371:2381 Coq.Lists.List <> Forall_impl thm
+R2481:2488 Iron.Data.List.Max <> max_list def
+R2481:2488 Iron.Data.List.Max <> max_list def
+R2514:2528 Iron.Data.List.Max <> max_weaken_left thm
+R2514:2528 Iron.Data.List.Max <> max_weaken_left thm
+R2555:2568 Iron.Data.List.Max <> max_list_above thm
+prf 2579:2598 <> max_list_succ_not_in
+R2618:2620 Coq.Init.Logic <> not def
+R2623:2624 Coq.Lists.List <> In def
+R2644:2645 Iron.Data.List.Max <> xs var
+R2627:2627 Coq.Init.Datatypes <> S constr
+R2630:2637 Iron.Data.List.Max <> max_list def
+R2639:2640 Iron.Data.List.Max <> xs var
+R2673:2675 Coq.Init.Logic <> not def
+R2696:2709 Iron.Data.List.Max <> max_list_above thm
+R2696:2709 Iron.Data.List.Max <> max_list_above thm
+R2725:2737 Coq.Lists.List <> Forall_forall thm
+R2725:2737 Coq.Lists.List <> Forall_forall thm
+R2783:2802 Iron.Data.List.Max <> max_list_succ_not_in thm

@@ -1,0 +1,142 @@
+DIGEST 32149b35f053fe50f5b6bf1d76cc9fc6
+FIron.Language.SystemF2Effect.Type.Exp.Base
+R16:48 Iron.Language.SystemF2Effect.Kind <> <> lib
+R66:108 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> <> lib
+R126:168 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> <> lib
+ind 278:279 <> ty
+constr 297:300 <> TVar
+constr 325:331 <> TForall
+constr 359:362 <> TApp
+constr 393:396 <> TSum
+constr 427:430 <> TBot
+constr 492:496 <> TCon0
+constr 520:524 <> TCon1
+constr 554:558 <> TCon2
+constr 626:629 <> TCap
+R319:320 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R309:311 Coq.Init.Datatypes <> nat ind
+R353:354 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R347:348 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R337:338 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R387:388 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R381:382 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R371:372 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R421:422 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R415:416 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R405:406 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R449:450 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R439:440 Iron.Language.SystemF2Effect.Kind.Ki <> ki ind
+R514:515 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R504:509 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+R548:549 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R542:543 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R532:537 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon1 ind
+R588:589 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R582:583 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R576:577 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R566:571 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon2 ind
+R648:649 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R638:642 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tycap ind
+R670:671 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+syndef 812:815 <> TRgn
+R828:831 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCap constr
+R834:844 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> TyCapRegion constr
+syndef 880:884 <> TRead
+R896:900 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon1 constr
+R902:910 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRead constr
+syndef 926:931 <> TWrite
+R942:946 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon1 constr
+R948:957 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConWrite constr
+syndef 972:977 <> TAlloc
+R988:992 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon1 constr
+R994:1003 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConAlloc constr
+syndef 1040:1043 <> TFun
+R1056:1059 Iron.Language.SystemF2Effect.Type.Exp.Base <> TApp constr
+R1062:1065 Iron.Language.SystemF2Effect.Type.Exp.Base <> TApp constr
+R1068:1071 Iron.Language.SystemF2Effect.Type.Exp.Base <> TApp constr
+R1074:1078 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon0 constr
+R1080:1087 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConFun constr
+syndef 1138:1142 <> TUnit
+R1154:1158 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon0 constr
+R1160:1168 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConUnit constr
+syndef 1181:1185 <> TBool
+R1197:1201 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon0 constr
+R1203:1211 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConBool constr
+syndef 1224:1227 <> TNat
+R1240:1244 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon0 constr
+R1246:1253 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConNat constr
+syndef 1310:1313 <> TRef
+R1326:1330 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon2 constr
+R1332:1339 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRef constr
+def 1555:1560 <> isTVar
+R1569:1571 Coq.Init.Datatypes <> nat ind
+R1579:1580 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R1593:1593 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R1603:1606 Iron.Language.SystemF2Effect.Type.Exp.Base <> TVar constr
+R1614:1620 Coq.Arith.EqNat <> beq_nat def
+R1622:1622 Iron.Language.SystemF2Effect.Type.Exp.Base <> n var
+R1641:1645 Coq.Init.Datatypes <> false constr
+def 1666:1671 <> IsTVar
+R1679:1681 Coq.Init.Datatypes <> nat ind
+R1689:1690 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R1707:1709 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1697:1702 Iron.Language.SystemF2Effect.Type.Exp.Base <> isTVar def
+R1706:1706 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R1704:1704 Iron.Language.SystemF2Effect.Type.Exp.Base <> n var
+R1710:1713 Coq.Init.Datatypes <> true constr
+prf 1780:1790 <> isTVar_form
+R1827:1832 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1826:1826 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R1833:1836 Iron.Language.SystemF2Effect.Type.Exp.Base <> TVar constr
+R1838:1838 Iron.Language.SystemF2Effect.Type.Exp.Base <> i var
+R1811:1816 Iron.Language.SystemF2Effect.Type.Exp.Base <> IsTVar def
+R1820:1820 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R1818:1818 Iron.Language.SystemF2Effect.Type.Exp.Base <> i var
+R1895:1900 Iron.Language.SystemF2Effect.Type.Exp.Base <> IsTVar def
+R1933:1943 Iron.Language.SystemF2Effect.Type.Exp.Base <> isTVar_form thm
+def 2027:2032 <> isTRgn
+R2039:2041 Coq.Init.Datatypes <> nat ind
+R2049:2050 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R2063:2063 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R2084:2090 Coq.Arith.EqNat <> beq_nat def
+R2092:2092 Iron.Language.SystemF2Effect.Type.Exp.Base <> n var
+R2111:2115 Coq.Init.Datatypes <> false constr
+def 2136:2141 <> IsTRgn
+R2150:2152 Coq.Init.Datatypes <> nat ind
+R2160:2161 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R2179:2181 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2169:2174 Iron.Language.SystemF2Effect.Type.Exp.Base <> isTRgn def
+R2178:2178 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R2176:2176 Iron.Language.SystemF2Effect.Type.Exp.Base <> n var
+R2182:2185 Coq.Init.Datatypes <> true constr
+R2200:2205 Iron.Language.SystemF2Effect.Type.Exp.Base <> IsTRgn def
+prf 2277:2287 <> isTRgn_form
+R2324:2329 Coq.Init.Logic <> :type_scope:x_'='_x not
+R2323:2323 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R2330:2333 Iron.Language.SystemF2Effect.Type.Exp.Base <> TRgn syndef
+R2335:2335 Iron.Language.SystemF2Effect.Type.Exp.Base <> i var
+R2308:2313 Iron.Language.SystemF2Effect.Type.Exp.Base <> IsTRgn def
+R2317:2317 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R2315:2315 Iron.Language.SystemF2Effect.Type.Exp.Base <> i var
+R2404:2409 Iron.Language.SystemF2Effect.Type.Exp.Base <> IsTRgn def
+R2455:2465 Iron.Language.SystemF2Effect.Type.Exp.Base <> isTRgn_form thm
+def 2551:2563 <> isEffectOnVar
+R2570:2572 Coq.Init.Datatypes <> nat ind
+R2580:2581 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R2595:2595 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R2605:2609 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon1 constr
+R2620:2623 Coq.Init.Datatypes <> andb def
+R2647:2652 Iron.Language.SystemF2Effect.Type.Exp.Base <> isTVar def
+R2654:2654 Iron.Language.SystemF2Effect.Type.Exp.Base <> n var
+R2626:2640 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> isEffectTyCon_b def
+R2678:2682 Coq.Init.Datatypes <> false constr
+def 2771:2783 <> isEffectOnCap
+R2790:2792 Coq.Init.Datatypes <> nat ind
+R2800:2801 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R2814:2814 Iron.Language.SystemF2Effect.Type.Exp.Base <> t var
+R2825:2829 Iron.Language.SystemF2Effect.Type.Exp.Base <> TCon1 constr
+R2840:2843 Coq.Init.Datatypes <> andb def
+R2867:2872 Iron.Language.SystemF2Effect.Type.Exp.Base <> isTRgn def
+R2874:2874 Iron.Language.SystemF2Effect.Type.Exp.Base <> n var
+R2846:2860 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> isEffectTyCon_b def
+R2898:2902 Coq.Init.Datatypes <> false constr

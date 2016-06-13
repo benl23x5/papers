@@ -1,0 +1,34 @@
+DIGEST 3ed1aeb686768fdc2891b2746967915a
+FIron.Data.List.Filter
+R16:34 Iron.Data.List.Base <> <> lib
+R52:63 Iron.Tactics <> <> lib
+def 129:134 <> filter
+R155:158 Coq.Init.Datatypes <> bool ind
+R150:150 Iron.Data.List.Filter <> A var
+R166:169 Coq.Init.Datatypes <> list ind
+R171:171 Iron.Data.List.Filter <> A var
+R176:179 Coq.Init.Datatypes <> list ind
+R181:181 Iron.Data.List.Filter <> A var
+R194:195 Iron.Data.List.Filter <> xx var
+R207:209 Coq.Init.Datatypes <> nil constr
+R218:220 Coq.Init.Datatypes <> nil constr
+R227:230 Coq.Init.Datatypes <> :list_scope:x_'::'_x not
+R242:242 Iron.Data.List.Filter <> f var
+R287:292 Iron.Data.List.Filter <> filter def
+R294:294 Iron.Data.List.Filter <> f var
+R252:256 Coq.Init.Datatypes <> :list_scope:x_'::'_x not
+R268:268 Coq.Init.Datatypes <> :list_scope:x_'::'_x not
+R257:262 Iron.Data.List.Filter <> filter def
+R264:264 Iron.Data.List.Filter <> f var
+prf 493:505 <> filter_length
+R525:528 Coq.Init.Datatypes <> list ind
+R530:530 Iron.Data.List.Filter <> A var
+R542:545 Coq.Init.Datatypes <> bool ind
+R537:537 Iron.Data.List.Filter <> A var
+R561:564 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R552:557 Coq.Init.Datatypes <> length def
+R559:560 Iron.Data.List.Filter <> xx var
+R565:570 Coq.Init.Datatypes <> length def
+R573:578 Iron.Data.List.Filter <> filter def
+R582:583 Iron.Data.List.Filter <> xx var
+R580:580 Iron.Data.List.Filter <> f var

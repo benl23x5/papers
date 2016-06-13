@@ -1,0 +1,78 @@
+DIGEST 410a35e680357f16d5e526b73f607723
+FIron.Data.Nat
+R125:136 Iron.Tactics <> <> lib
+prf 147:158 <> nat_eq_cases
+R178:180 Coq.Init.Datatypes <> nat ind
+R193:196 Coq.Init.Logic <> :type_scope:x_'\/'_x not
+R189:191 Coq.Init.Logic <> :type_scope:x_'='_x not
+R188:188 Iron.Data.Nat <> n var
+R192:192 Iron.Data.Nat <> m var
+R197:198 Coq.Init.Logic <> :type_scope:'~'_x not
+R204:204 Coq.Init.Logic <> :type_scope:'~'_x not
+R200:202 Coq.Init.Logic <> :type_scope:x_'='_x not
+R199:199 Iron.Data.Nat <> n var
+R203:203 Iron.Data.Nat <> m var
+R247:258 Iron.Data.Nat <> nat_eq_cases thm
+prf 269:283 <> nat_zero_le_all
+R299:302 Coq.Init.Peano <> :nat_scope:x_'<='_x not
+R303:303 Iron.Data.Nat <> n var
+R347:361 Iron.Data.Nat <> nat_zero_le_all thm
+prf 372:387 <> nat_zero_lt_succ
+R403:405 Coq.Init.Peano <> :nat_scope:x_'<'_x not
+R406:406 Coq.Init.Datatypes <> S constr
+R408:408 Iron.Data.Nat <> n var
+R452:467 Iron.Data.Nat <> nat_zero_lt_succ thm
+prf 579:590 <> nat_trans_le
+R632:635 Coq.Init.Peano <> :nat_scope:x_'<='_x not
+R631:631 Iron.Data.Nat <> a var
+R636:636 Iron.Data.Nat <> c var
+R622:625 Coq.Init.Peano <> :nat_scope:x_'<='_x not
+R621:621 Iron.Data.Nat <> b var
+R626:626 Iron.Data.Nat <> c var
+R612:615 Coq.Init.Peano <> :nat_scope:x_'<='_x not
+R611:611 Iron.Data.Nat <> a var
+R616:616 Iron.Data.Nat <> b var
+prf 757:769 <> nat_plus_zero
+R789:791 Coq.Init.Logic <> :type_scope:x_'='_x not
+R785:787 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R784:784 Iron.Data.Nat <> n var
+R792:792 Iron.Data.Nat <> n var
+R826:838 Iron.Data.Nat <> nat_plus_zero thm
+prf 858:870 <> nat_zero_plus
+R892:894 Coq.Init.Logic <> :type_scope:x_'='_x not
+R888:890 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R891:891 Iron.Data.Nat <> n var
+R895:895 Iron.Data.Nat <> n var
+R929:941 Iron.Data.Nat <> nat_zero_plus thm
+prf 961:974 <> nat_minus_zero
+R994:996 Coq.Init.Logic <> :type_scope:x_'='_x not
+R990:992 Coq.Init.Peano <> :nat_scope:x_'-'_x not
+R989:989 Iron.Data.Nat <> n var
+R997:997 Iron.Data.Nat <> n var
+R1040:1053 Iron.Data.Nat <> nat_minus_zero thm
+prf 1073:1084 <> nat_plus_one
+R1104:1106 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1100:1102 Coq.Init.Peano <> :nat_scope:x_'+'_x not
+R1099:1099 Iron.Data.Nat <> n var
+R1107:1107 Coq.Init.Datatypes <> S constr
+R1109:1109 Iron.Data.Nat <> n var
+R1291:1303 Iron.Data.Nat <> nat_plus_zero thm
+R1319:1332 Iron.Data.Nat <> nat_minus_zero thm
+R1348:1359 Iron.Data.Nat <> nat_plus_one thm
+R1463:1465 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1459:1462 Coq.Init.Datatypes <> true constr
+R1466:1472 Coq.Arith.EqNat <> beq_nat def
+R1463:1465 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1459:1462 Coq.Init.Datatypes <> true constr
+R1466:1472 Coq.Arith.EqNat <> beq_nat def
+R1552:1554 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1547:1551 Coq.Init.Datatypes <> false constr
+R1555:1561 Coq.Arith.EqNat <> beq_nat def
+R1552:1554 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1547:1551 Coq.Init.Datatypes <> false constr
+R1555:1561 Coq.Arith.EqNat <> beq_nat def
+R1603:1615 Coq.Arith.EqNat <> beq_nat_false thm
+R1514:1525 Coq.Arith.EqNat <> beq_nat_true thm
+R1727:1733 Coq.Arith.EqNat <> beq_nat def
+R1727:1733 Coq.Arith.EqNat <> beq_nat def
+R1780:1786 Coq.Arith.EqNat <> beq_nat def

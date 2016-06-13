@@ -1,0 +1,47 @@
+%!TEX root = ../../Main.tex
+
+\label{s:Grammar}
+The grammar for \SystemFre is shown in Fig.~\ref{f:Language}. We use a hybrid presentation with both named variables and de Bruijn indices. The Coq formalization uses de Bruijn indices natively, but as an aid to the reader we also include suggestive variable names when describing the language and stating the main theorems. We write concrete de Bruijn indices as underlined natural numbers, like $\un{0},~ \un{1},~ \un{2}$ and so on.
+
+% -----------------------------------------------------------------------------
+\input{figures/Language.tex}
+
+
+\smallskip
+% -------------------------------------
+\noindent
+\textbf{Kinds}\\
+A kind can be a constructor $\kcData$, $\kcRegion$ or $\kcEffect$. These are the primitive kinds of data types, region types and effect types respectively. We use $(\kto)$ as the function kind constructor, using a different arrow symbol to distinguish it from the type constructor $(\to)$. 
+
+
+\smallskip
+% -------------------------------------
+\noindent
+\textbf{Types}\\
+Type variables are written $ix\bra{a}$, where $ix$ is the de Bruijn index and $\bra{a}$ is a suggestive variable name. In all cases, if the reader prefers the concrete de Bruijn representation for binders, then they can simply erase the names between $\bra{}$ braces. 
+
+We join effect types with ~$\mtype + \mtype$, and the kinding rules in Fig.~\ref{f:KindT} constrain both type arguments to have the $\kcEffect$ kind. The effect of a pure computation is written $\bot$. 
+
+The type $\mtycon_n$ is a primitive type constructor of arity $n$. To simplify the presentation, all type constructors except $(\to)$ must be fully applied. In a larger language, partial application of the other constructors could be encoded using type synonyms.
+
+The type $\trgn{p}$ is a region handle which contains a natural number $p$ that identifies a runtime region.  A region handle is a \emph{static capability}, whose existence in a well typed expression indicates that region $p$ currently exists; can have new store bindings allocated into it, and can be read from and written to. Region handles are similar to the capabilities of \cite{Walker:static-capabilities}, except that they appear directly in the type language rather than being present in a separate environment of the typing judgment. Region handles can also be captured in function closures and appear in functional values held in the store.
+
+
+\eject
+% -------------------------------------
+\noindent
+\textbf{Values and Expressions}\\
+Values are the expressions that cannot be reduced further. Expression variables are written $ix\bra{z}$, where $ix$ is again a de Bruijn index and $\bra{z}$ a suggestive variable name. 
+
+The value ~$\vloc{l}$~ is a store location that contains a natural number $l$ giving the address of a mutable reference. All store locations have type $\tcRef~ t_1~ t_2$, where $t_1$ is the region that location is in and $t_2$ is the type of the value at the location.
+
+Function applications and primitive operators work on values rather than reducible expressions. As we will see in \S\ref{s:Dynamics}, this restriction ensures that the dynamic semantics only needs to deal with two reduction contexts, namely the right of a $\klet$ binding, and a context that includes a new region variable. The expression \mbox{$\xlet{\bra{z}}{t_1}{x_1}{x_2}$} first reduces $x_1$ to a value before substituting it for $z$ in $x_2$ (or for index \un{0} using the de Bruijn notation). 
+
+The expression ~$\mop_n~ \ov{\mval}^{\; n}$~ is a fully applied, pure primitive operator, where $n$ is the arity of the operator. The pure operators do not affect the store. 
+
+The expression ~$\xprivate{\bra{r}}{x}$~ creates a new region, then substitutes the corresponding region handle for variable $r$ in body $x$. It then reduces this new body to a value~$v$ and deallocates the region. The result of the overall expression is $v$. 
+
+The expression ~$\xextend{t_1}{\bra{r_2}}{x}$~ takes the handle $t_1$ of an existing region, and creates a new region for $r_2$, which is available in body $x$. It then reduces $x$ to a value $v$. Once the reduction of $x$ has completed, all store bindings in the new region $r_2$ are merged into the original region with handle $t_1$. The result of the overall expression is $v$.
+
+The expression $\xalloc{t}{v}$ takes a region handle $t$, a value $v$, and allocates a new store binding in that region containing the given value. The expression $\xread{t}{v}$ takes a region handle $t$, a store location $v$ in that region, and reads the value at the location. Finally, $\xwrite{t}{v_1}{v_2}$ takes a region handle $t$, a location $v_1$ in that region, a new value $v_2$, and overwrites the value in the store binding at location $v_1$ with the new value $v_2$.
+

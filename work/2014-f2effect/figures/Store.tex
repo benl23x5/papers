@@ -1,0 +1,38 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\begin{figure}
+\boxfig{
+\smallskip
+\begin{tabbing}
+MMMM \= MMM \= MM \= MMMMMMMMMMMMMMM  \= MMMMMMMMMMM \= \kill
+\> $\mstack$    \> ::=  \> $\ov{\mframe}$
+                \> (frame stacks)
+\\
+\> $\mframe$    \> ::=  \> $\flet{\bra{z}}{\mtype}{\mexp}$ 
+                \> (let-continuation)
+\\
+\>              \> $~|$ \> $@priv@~ \mmode~ p$
+                \> (region context)
+\\
+\> $\mmode$     \> ::=  \> $@d@ ~~|~~ @m@~ p$
+                \> (deallocate / merge)
+\end{tabbing}
+\begin{tabbing}
+MMMM \= MMM \= MM \= MMMMMMMMMMMMMMM  \= MMMMMMMMMMM \= \kill
+\> $\mstore$    \> ::=  \> $\ov{\mstbind}$
+                \> (mutable stores)
+\\
+\> $\mstbind$   \> ::=  \> $\sbvalue{p}{\mval}$
+                \> (live store binding)         
+\\
+\>              \> $~|$ \> $\sbdead{p}$
+                \> (dead store binding)
+\end{tabbing}
+\hpad
+} % boxfig
+\smallskip
+\caption{Stores and Store Bindings}
+\label{f:Stores}
+\end{figure}
+

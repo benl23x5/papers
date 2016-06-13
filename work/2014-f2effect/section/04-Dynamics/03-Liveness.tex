@@ -1,0 +1,132 @@
+%!TEX root = ../../Main.tex
+
+% -----------------------------------------------------------------------------
+\subsection{Liveness}
+\label{s:Liveness}
+Fig. \ref{f:Liveness} gives the key liveness invariants that ensure a running program will only accesses store bindings that exist in the store, and have not yet been deallocated. The judgment \mbox{$\LiveE{\mfs}{e}$} reads: ``frame stack $\mfs$ is live relative to effect $e$'', and the judgment $\LiveS{\mss}{\mfs}$ reads: ``store $\mss$ is live relative to frame stack $\mfs$''. The first says that for every region identifier $p$ in some effect $e$, there is a corresponding @priv@ $m~p$ frame on the stack $\mfs$. The second says that for every region identifier mentioned in a @priv@ frame on the stack, all the store bindings in the corresponding regions are live. The fact that every @read@ and @write@ statement in the program is assigned an appropriate effect by the rules of Fig.~\ref{f:TypeX} then makes it straightforward to reason that the evaluation of these statements only accesses store bindings that currently exist in the store.
+
+In the (LiveE) rule of Fig.~\ref{f:Liveness} the meta-function `flattenT' takes a compound effect and produces a list of its atomic components. For example, effect $\tcRead~ r_1 + (\tcWrite~ r_2 + \tcWrite~ r_3)$ flattens to the list $\tcRead~ r_1$, $\tcWrite~ r_2$, $\tcWrite~ r_3$. 
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Properties of Liveness}
+The following lemmas are used to ensure that the liveness invariants between the store, frame stack and effect of an expression are preserved under during evaluation. 
+
+
+% -----------------------------------------------
+% Lemma liveS_liveE_value
+%  :  forall ss fs e l b p
+%  ,  LiveS ss fs
+%  -> LiveE fs e
+%  -> handleOfEffect e = Some p
+%  -> get l ss         = Some b
+%  -> regionOfStBind b = p
+%  -> exists v, b = StValue p v.
+%
+\begin{lemma} 
+\label{l:liveS_liveE_value}
+If the store is live relative to the frame stack, and frame stack live relative to an atomic effect on some region $p$, then all store bindings in region $p$ are live.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf    & \LiveE{\mss}{\mfs} ~~~\pand~~~ \LiveS{\mfs}{e}
+\\  ~\pand  & b = \mget~ l~ \mss
+\\  ~\pand  & p = \mregionOfStBind~ b = \mhandleOfEffect~ e
+\\  \pthen  & \pexists~ v.~ b = \sbvalue{p}{v}
+\end{array}
+$
+\qqed
+
+
+% -----------------------------------------------
+% Lemma liveE_maskOnVarT
+%  :  forall fs e n
+%  ,  LiveE  fs (maskOnVarT n e)
+%  -> LiveE  fs e.
+%
+\begin{lemma} Masking effect on some variable with index $ix$ preserves the liveness relationship with the frame stack.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf   & \LiveE{\mfs}{~\trm{maskOnVarT}~ ix\bra{v}~ e}
+\\  \pthen & \LiveE{\mfs}{e}
+\end{array}
+$
+
+\medskip\noindent
+The lemma is ``obviously true'', because the rule (LiveE) rule only mentions region \emph{handles} rather than the region \emph{variables} that are being masked, though its proof requires some boilerplate to deal with the fact that the effect \emph{e} being flattened in the rule.
+\qqed
+
+
+% -----------------------------------------------
+% Lemma liveE_phase_change
+%  :  forall fs m1 p e
+%  ,  LiveE (fs :> FPriv m1 p) e
+%  -> LiveE (fs :> FPriv m1 p) (substTT 0 (TRgn p) e).
+%
+\begin{lemma} If there is a ~$\fpriv{m}{p}$~ frame on the frame stack, for some mode $m$, then substituting ~$\trgn{p}$~ for variable $\un{0}$ in some effect $e$ preserves liveness of the stack relative to that effect.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf   & \LiveE     {\mfs,~ \fpriv{m}{p}}
+                        {e}
+\\  \pthen & \LiveE     {\mfs,~ \fpriv{m}{p}}
+                        {e[\trgn{p}/\un{0}]}
+\end{array}
+$
+
+\medskip\noindent
+Suppose the evaluation of the @private@ expression creates a new region with identifier $p$. Given ($\LiveE{\mfs}{e}$), it is trivial to show that the weakened version ($\LiveE{\mfs,~ \fpriv{@d@}{p}}{e}$) is also true. Using the above lemma, we can then substitute $p$ into the body of the @private@ expression $e$ and show that the resulting frame stack is still live relative to the phase changed effect, ($\LiveE{\mfs,~ \fpriv{@d@}{p}}{e[\trgn{p}/\un{0}]}$). 
+\smallskip
+\qqed
+
+
+% -----------------------------------------------
+% Lemma liveS_deallocRegion
+%  :  forall ss fs p
+%  ,  NoPrivFs p fs
+%  -> LiveS ss (fs :> FPriv None p)
+%  -> LiveS (map (deallocRegion p) ss) fs.
+%
+\begin{lemma}
+\label{l:liveS_dealloc}
+If there is a ~$\fprivd{p}$~ frame on the top of the frame stack, then provided $p$ is not used in a @priv@ frame lower in the stack ($\trm{NoPrivFs}~ p~ \mfs$), then popping the top frame while deallocating all store bindings in region $p$ preserves liveness of the store relative to the frame stack.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \LiveS{ss}{\mfs,~ \fprivd{p}} 
+\\ ~~\pand~~    & \trm{NoPrivFs}~ p~ \mfs
+\\  \pthen      & \LiveS{\mmap~ (\mdeallocB~ p)~ \mss}{\mfs}
+\end{array}
+$
+
+\medskip\noindent
+This key lemma shows that the liveness invariant between the store and the frame stack is preserved when applying rule (SfPrivatePop) of Fig.~\ref{f:Step}. Assuming the frame on the top of the stack is $\fprivd{p}$, once the body of the associated @private@ expression reduces to a value, we pop the top frame and deallocate all store bindings in region $p$. Due to the NoPrivFs premise, we know that all store bindings in regions mentioned by @priv@ frames deeper in the stack are still live. 
+\qqed
+
+
+% -----------------------------------------------
+% Lemma liveS_mergeB
+%  :  forall ss fs p1 p2
+%  ,  LiveSP ss p2
+%  -> LiveS  ss fs
+%  -> LiveS  (map (mergeB p1 p2) ss) fs. 
+\begin{lemma} If all store bindings in region $p_2$ are live, and the store is live relative to the frame stack $\mfs$, then merging region $p_2$ into some other region $p_1$ preserves liveness of the store relative to the frame stack.
+\end{lemma}
+
+$
+\begin{array}{ll}
+        \pIf    & (\pforall~ b.~ b \in \mss ~~\pimplies~~ \LiveBP{b}{p_2})
+\\      ~\pand  & \LiveS{\mss}{\mfs}
+\\      \pthen  & \LiveS{\trm{map}~ (\trm{mergeB}~ p_1~ p_2)~ \mss}{\mfs}
+\end{array}
+$
+
+\medskip\noindent
+This lemma shows that the liveness invariant between the store and frame stack is preserved when applying rule (SfExtendPop) of Fig.~\ref{f:Step}. If all store bindings in region $p_2$ are live, then when we merge them into region $p_1$ they are still live. 
+\qqed
+
+% -----------------------------------------------------------------------------
+\input{figures/Live.tex}
+
+

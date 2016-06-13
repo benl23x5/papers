@@ -1,0 +1,77 @@
+DIGEST bcb90150b8fef86074774181a00d1336
+FIron.Language.SystemF2Effect.Store.StoreP
+R16:54 Iron.Language.SystemF2Effect.Step.Frame <> <> lib
+R72:110 Iron.Language.SystemF2Effect.Store.Bind <> <> lib
+def 509:514 <> StoreP
+R523:529 Iron.Language.SystemF2Effect.Store.Prop <> stprops def
+R538:542 Iron.Language.SystemF2Effect.Step.Frame <> stack def
+R549:549 Coq.Init.Logic <> :type_scope:x_'/\'_x not
+R612:618 Coq.Init.Logic <> :type_scope:x_'/\'_x not
+R681:681 Coq.Init.Logic <> :type_scope:x_'/\'_x not
+R594:595 Coq.Lists.List <> In def
+R610:611 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R598:604 Iron.Language.SystemF2Effect.Store.Prop <> SRegion constr
+R606:607 Iron.Language.SystemF2Effect.Store.StoreP <> p2 var
+R564:565 Coq.Lists.List <> In def
+R588:589 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R568:572 Iron.Language.SystemF2Effect.Step.Frame <> FPriv constr
+R584:585 Iron.Language.SystemF2Effect.Store.StoreP <> p2 var
+R575:576 Iron.Language.SystemF2Effect.Store.StoreP <> m1 var
+R663:664 Coq.Lists.List <> In def
+R679:680 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R667:673 Iron.Language.SystemF2Effect.Store.Prop <> SRegion constr
+R675:676 Iron.Language.SystemF2Effect.Store.StoreP <> p1 var
+R633:634 Coq.Lists.List <> In def
+R657:658 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R637:641 Iron.Language.SystemF2Effect.Step.Frame <> FPriv constr
+R653:654 Iron.Language.SystemF2Effect.Store.StoreP <> p2 var
+R644:647 Coq.Init.Datatypes <> Some constr
+R649:650 Iron.Language.SystemF2Effect.Store.StoreP <> p1 var
+prf 738:748 <> storeP_snoc
+R790:795 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R818:821 Iron.Data.List.Base <> ::x_':>'_x not
+R822:826 Iron.Language.SystemF2Effect.Step.Frame <> FPriv constr
+R833:833 Iron.Language.SystemF2Effect.Store.StoreP <> p var
+R828:831 Coq.Init.Datatypes <> None constr
+R816:817 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R807:810 Iron.Data.List.Base <> ::x_'<:'_x not
+R798:804 Iron.Language.SystemF2Effect.Store.Prop <> SRegion constr
+R806:806 Iron.Language.SystemF2Effect.Store.StoreP <> p var
+R811:812 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R773:778 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R783:784 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R780:781 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R852:857 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R929:932 Coq.Init.Logic <> :type_scope:x_'\/'_x not
+R924:926 Coq.Init.Logic <> :type_scope:x_'='_x not
+R933:934 Coq.Init.Logic <> :type_scope:'~'_x not
+R941:941 Coq.Init.Logic <> :type_scope:'~'_x not
+R936:938 Coq.Init.Logic <> :type_scope:x_'='_x not
+R929:932 Coq.Init.Logic <> :type_scope:x_'\/'_x not
+R924:926 Coq.Init.Logic <> :type_scope:x_'='_x not
+R933:934 Coq.Init.Logic <> :type_scope:'~'_x not
+R941:941 Coq.Init.Logic <> :type_scope:'~'_x not
+R936:938 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1015:1025 Iron.Language.SystemF2Effect.Store.StoreP <> storeP_snoc thm
+prf 1036:1054 <> storeP_stprops_snoc
+R1096:1101 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R1113:1114 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R1105:1108 Iron.Data.List.Base <> ::x_'<:'_x not
+R1104:1104 Iron.Language.SystemF2Effect.Store.StoreP <> p var
+R1109:1110 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R1079:1084 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R1089:1090 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R1086:1087 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R1132:1137 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R1175:1193 Iron.Language.SystemF2Effect.Store.StoreP <> storeP_stprops_snoc thm
+prf 1204:1213 <> storeP_pop
+R1262:1267 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R1272:1273 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R1269:1270 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R1238:1243 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R1251:1254 Iron.Data.List.Base <> ::x_':>'_x not
+R1255:1255 Iron.Language.SystemF2Effect.Store.StoreP <> f var
+R1249:1250 Iron.Language.SystemF2Effect.Store.StoreP <> fs var
+R1245:1246 Iron.Language.SystemF2Effect.Store.StoreP <> sp var
+R1300:1305 Iron.Language.SystemF2Effect.Store.StoreP <> StoreP def
+R1344:1353 Iron.Language.SystemF2Effect.Store.StoreP <> storeP_pop thm

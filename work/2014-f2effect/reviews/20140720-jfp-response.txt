@@ -1,0 +1,272 @@
+
+
+> I think the best way to proceed is for you to take a look at the reviews, paying particular attention to these points, and form your own opinion as to the best way to address the reviewers' concerns -- in particular, how to increase the technical novelty and pragmatic motivation for the system you're formalizing with reasonable effort.  Before actually undertaking the revisions, though, please drop me an email describing your plans so that I and the reviewers can give you an early reading on whether the changes you have in mind will be satisfactory.
+
+I'll respond to the high-level comments of the reviewers before summarising my plan for the paper. Thankyou again for the reviews, this is very helpful feedback.
+
+
+Reviewer #1
+~~~~~~~~~~~
+
+> For one thing, the motivation for this work, or the context in which this work is taking place, are not really described. The author suggests that perhaps this type system could be used (as a surface language? as an intermediate language?) in a certified compiler for a functional language. Is this just a suggestion, or is the construction of such a compiler actually being considered or undertaken?
+
+On a high level, I'm doing this work to support the DDC project:
+http://disciple.ouroborus.net
+
+I'm implementing real compiler, but don't have plans to build a fully certified one myself. I'm aiming for DDC to be "the next O'Caml", and that is ambituous enough without also formally proving it correct. However, I'm trying to set up the Coq proofs to make them reusable by others.
+
+The language in the paper is related to the DDC core language. Personally, I've been doing the Coq proofs to get a better understanding of the core language, and of programming language theory in general. The real DDC core language extends the language described in the paper in various ways, which I'll discuss later in this mail. I'm also developing a user-facing source language which is a light sugaring of the core language.
+
+There are examples here:
+https://github.com/DDCSF/ddc/blob/ddc-0.4.1/demo/Tetra/20-Lists/Main.dst
+https://github.com/DDCSF/ddc/blob/ddc-0.4.1/demo/Tetra/21-Freezing/Main.dst
+
+Although related, the DDC core language is sufficiently different from the one in the paper that I chose not to mention DDC in the paper. Back in November, not much of the DDC implemention was working, so I also didn't feel it was "real enough" to discuss. However, the proposed changes will bring the language in the paper close enough to DDC core that I can discuss DDC directly.
+
+
+> It is well-known that purely stack-based region disciplines are too coarse.
+They tend to force regions to remain live longer than necessary, effectively
+causing memory leaks. ... Also, systems based on capabilities (linear or affine tokens, which represent the ownership of a region) have appeared. ... I am sure the author is aware of these works, but my question is, why not adopt one of these flexible type disciplines? 
+
+For several reasons:
+
+1) I want the DDC source language to be a light sugaring of the core language, but I don't think it's reasonable to expect end-users to thread their own linear capabilities through the program. 
+
+2) If the source langauge does not contain linear capabilities, how hard is it to transform it into a core language that does include linear capabilities? This transform is probably straightforward for a simple first-order language, but I'm worried about what happens with polymorphism, higher order functions and type classes, etc.
+
+3) I think adding linear capabilities would complicate the language implementation too much. I want to apply standard GHC-style program transformations like worker/wrapper, let-floating, constructor specialisation etc. What happens to these transforms if we must also maintain linear capabilities? If I manage regions and capabilities contextually with a stack-based discipline, then I think the standard transforms will still be directly applicable.
+
+In terms of memory management, I wasn't planning to use the purely stack-based discipline in DDC due to the aforementioned space leak problem. However, doing the *proof* for it has given me a much better understanding about regions and effects in terms of the underlying aliasing information. 
+
+I talked to Greg Morrisett at ICFP 2013 and one of the things he said was: "Working with regions has given me a new respect for garbage collection", and I'll take his advice. However, I think stack-based management of capabilities is still useful because it allows type-safe freezing without needing linearity -- which I'll talk about later.
+
+
+> A (minor) detail that troubles me is that the author interprets \Lambda as
+suspending evaluation, which in my opinion amounts to imposing a strong form
+of the value restriction: it is essentially equivalent to requiring that the
+body of every \Lambda be a \lambda. Yet, the author does not explicitly
+acknowledge this (page 13). I would suggest at the very least clarifying the
+situation.
+
+My understanding of this is influenced by Xavier Leroy's paper: Polymorphism by name for references and continuations, POPL 1993. Reading that paper made me think that having \Lambda suspend (pure) evaluation is the only sensible option, but I know there are other viewpoints. I feel like type erasure is really a low-level implementation detail, rather than a consideration that should "leak" into the design of a core language.
+
+Compilers like GHC reuse heap objects for atomic values like '5' 'c', as well as atomic data constructors like 'True' and 'False'. The heap object for empty list can be reused similarly, without needing to change the higher-level language semantics. In my own programming experience I don't remember relying on the fact that the representation of complex polymorphic values would be shared between uses. For the paper, just making \Lambda suspend evaluation seemed like the easiest way to dodge worrying any more about the value restriction.
+
+
+> I should also say that the whole of section 1.6 seemed somewhat unclear to
+me. It wasn't really clear to me what the "problem" was, and the sentences of
+the form "we could perhaps [fix the problem in this or that unlikely manner]"
+were not helpful at all. As far as I am concerned, presenting the type system
+as it stands, directly, would be preferable.
+
+I plan to cut this section and replace it by a discussion about type-safe freezing (discussed below).
+
+
+Reviewer #2
+~~~~~~~~~~~
+
+> In its current form, I believe the type-and-effect system is incomplete in a significant sense: Due to serial limitations in the type-and-effect system, many trivial programs cannot be represented and typed in the type-and-effect system. In particular, the type-and-effect system does not have a sub-effecting rule and it does not support subtyping (with sub-effecting on arrows), one of which is a requirement for giving a type to a conditional expression with branches consisting of functions with different effects.
+
+My plan was to avoid adding subtyping and subeffecting, and just add a simple effect weakening rule.
+
+  env |- x :: t ; eff1
+ -----------------------------------------
+  env |- weaken eff2 x :: t ; eff1 + eff2
+
+When type checking an if-then-else expression in the source program: if the type checker finds that both branches produce functions with the same value types but different effects, then it can just weaken the effect of one to match the effect of the other.
+
+The result is an 'instrumented' program that type checks, without needing to add subeffecting or subtyping to the langauge.
+
+I didn't include 'weaken' in the paper because operationally it is just an identity function, so it doesn't complicate the proof at all. I'm happy to add it, and the discussion the paper, though.
+
+
+> The paper distinguishes between read effects and write effects (writes to a mutable reference). Adding this distinction to the type-and-effect system, which complicates proofs and adds complexity, seems dual to the goal of proving type-safety for a region-based language with support for mutable references and polymorphism. I would suggest that the complications of the added generality is moved to a separate section.
+
+I have separate Read/Write/Alloc effects because the work was done in the context of DDC, which also has them. Adding discussion of type-safe freezing to the paper will make direct use of this separation.
+
+
+Reviewer #3
+~~~~~~~~~~~
+
+> In particular, instead of considering a small-step semantics the author proposes a more complicated abstract machine semantics - this should not be necessary as Danvy has shown.
+
+I used the abstract machine semantics with a frame stack because it allows me to set up the liveness invariants between regions in the heap, and the effect of the computation. These invariants are in Figure 9 of the paper. There may be a better way to do this using a standard small-step semantics, but the presentation in the paper was the one that arose naturally when I was thinking about the problem.
+
+I know that the transformation between a small-step semantics using expression contexts, and an abstract machine is mechanical -- but I'm not so sure about the invariants and proof. I'm not convinced that if the proof was redone based on the small-step semantics then the "total cost of ownership" would be lower, especially considering I want a machine-checked proof. I'd be interested in related work that had something to say about this.
+
+
+> One difference to published systems is the consideration of region extension (section 1.4), which creates a new region, works with it, and then hides the resulting effect and merge the new region into an existing one. The main motivation of the author is that "Region extension allows store objects to be destructively initialized without revealing the associated write effects to the calling context". I fail to be convinced that this is a desirable property.
+
+Hopefully this will be more convincing in the context of type-safe freezing (discussed below). When I submitted the paper I new vaguely what I wanted, but hadn't worked out the details. 
+
+
+> In Figure 1 (page 9), I find it highly disturbing that variables are categorized as values with the explanation (page 10) "Values are expressions that cannot be reduced further". This is wrong and leads to underclassification later in the paper: whenever a lemma states "exists v such that ..." then v might be a variable. Reynolds called this kind of expression "trivial expressions" because their evaluation has no effect. Values are also trivial expressions, but they are further pinning down the possible outcomes of a computation.
+
+I agree that the terminology is odd. I was following the presentation in "Typed Operational Reasoning", Andrew Pitts, ATAPL p254. This chapter also has a let-normalised language with variables classified as "values". I'm happy to refine the discussion in the paper to refer to "trivial expressions" instead.
+
+
+> In Section 1.6, the author explains that the operational semantics is going to manipulate types. As previous work, for instance by Walker and others, has shown, it is possible to use actual values as region pointers. Type passing makes the impression that somehow types are needed at run time, which they are not. Again, I'd like to see a compelling reason for having types in run-time expressions.
+
+I understand the concern about this. Region handles are passed around as types, but at runtime region handles are needed but other types are not. It would be nice to bind region handles with the usual value-level \lambda, but I'm not sure how to manage the type-level region names without deviating from the standard System-F binding structure. 
+
+In "On Regions and Linear Types", David Walker, Kevin Watkins. 
+https://www.cs.princeton.edu/~dpw/papers/space.pdf
+
+The typing rule for \lambda (In Figure 4) also automatically adds to the type context. This work doesn't have separated value and type abstractions / applications. 
+
+As mentioned earlier, I'm working on a compiler that uses the language in this paper as its core language, so I'm trying to stick to System-F principles where possible. I'll try to work out another way to move region handles back down to the value level.
+
+
+Plan
+~~~~
+
+While working on this paper I had two extensions in mind, but in the interests of "not trying to do everything all at once", I just described the base system as it is. However, I think adding one or both of these extensions will give the reader a better idea of the context of the work, and why I've set up the language and semantics in this particular way. As of now I have these extensions implemented in DDC, but I have not completed the proof or paper description.
+
+
+Reification and Reflection
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first extension is to add "effect reification and reflection", using 'box' and 'run' constructs as follows. I'll write |v- for the type-of-value judgement, and |x- as the type-and-effect-of-expression.
+
+  envs |x- x     :: t ; e
+ -------------------------------
+  envs |v- box x :: S e t
+
+The keyword 'box' takes an expression, and produces a suspended computation with type 'S e t'. Here, 'S' is a type constructor with kind 
+
+ S : Effect -> Data -> Data
+
+... 'e' is the effect of the computation, and 't' is its result.
+
+A suspended computation is then evaluated with the 'run' construct.
+
+  envs |v- v      :: S e t
+ ------------------------------
+  envs |x- run v  :: t ; e
+
+The 'box' construct internalises the type-and-effect-of-expression judgement, producing reified object in the language. The 'run' construct elimiates this object, serving a similar role as "Equality Reflection" in Extensional Type Theory (ETT). 
+
+I think the reason Haskell-programmers get "trapped in a monad", is because the language lacks effect reflection, and that this happens for the same reason that Coq-drivers have so many problems with propositional equality.
+
+In the paper "The marriage of effects and monads", Wadler and Thiemann give a translation between a monadic language and one using latent effects. With 'box' and 'run' we get both approaches in the same language.
+
+The idea of effect reification and reflection has been described before by Andrzej Filinski, but in the context of a more complex system where the programmer can define non-state like effects. I don't think the straightforward rules show above have been presented before.
+
+The names 'box' and 'run' come from the paper:
+A Judgmental Reconstruction of Modal Logic
+Frank Pfenning and Rowan Davies, 2000.
+
+I think the closest related presentation is by Aleksandar Nanevski in his paper "A Nomnial Modal Calculus for Effects", which does not include effect polymorphism. The contribution relative to this work would be to show the link with latent effects, and to scale the idea up to a full language with effect polymorphism.
+
+
+
+Capabilities
+~~~~~~~~~~~~
+
+The second extension is to add capabilities to the 'private' and 'extend' forms which indicate which effects are permitted on the region they introduce. Adding these allows the language to support type-safe freezing without needing linearity. Data can be destructively initialised, then treated as immutable from then on. In Haskell this process is achieved unsafely with functions like 'unsafeFreezeArray'.
+
+Here is an example from:
+https://github.com/DDCSF/ddc/blob/master/demo/Tetra/21-Freezing/Main.ds
+
+---------------------------------------------------------------------
+data List (a : Data) where
+        Nil     : List a
+        Cons    : a -> List a -> List a
+
+
+forS (xx : List a) (f : a -> S e Unit) : S e Unit
+ = box case xx of
+        Nil        -> ()
+        Cons x xs  -> do { run f x; run forS xs f }
+
+
+length  [a : Data] [r1 : Region] 
+        (xx : List a)  : S (Alloc r1) (Ref# r1 Nat#)
+ = box extend r1 using r2 with {Read r2; Write r2; Alloc r2} in     
+   do   
+        -- Allocate the reference into the extension region.
+        ref       = run allocRef# [r2] 0
+
+        -- Destructively initialize the reference.
+        forS xx (\(_ : a). box
+         do     x       = run readRef# ref
+                run writeRef# ref (x + 1))
+
+        -- Return the reference.
+        ref
+
+main (_ : Unit) : S Console Unit
+ = box private r with { Alloc r; Read r } in 
+   do
+        -- Create a demo list.
+        xx      = enumFromTo 0 100
+
+        -- Count the length of the list.
+        -- From this calling context, the fact that the ref is
+        -- destructively initialized is not visible. 
+        ref     = run length [Nat#] [r] xx
+
+        -- Print out the final list length.
+        run putStrLn (showNat [r] (run readRef# ref))
+        ()
+---------------------------------------------------------------------
+
+The code above is written in the sugared source language. Bindings like [a : Data] desugar to type abstraction. Arguments like [r2] are type arguments. The source language is restricted so that the function space is pure -- hence no latent effects need to be mentioned in type signatures, and functions always return boxed computations.
+
+In the above example, the 'length' function creates an extension region 'r2' which has the Write capability. It then computes the length of the list by destructively updating a mutable reference in this region. However, note the type signature of 'length' includes just the (Alloc r1) effect, so the fact that this function uses mutation internally is not visible from the outside.
+
+The 'main' function calls 'length', and tells it to allocate its result into region 'r'. This region only has the Alloc and Read capabilities, so once 'length' returns we know the returned reference will not be updated further.
+
+There is a potential problem where a function can create an extension region with a Write capability, and return both an object in this region and a *function* that performs further writes. An example of this is as follows:
+
+
+---------------------------------------------------------------------
+foo [r1 : Region] : S (Alloc r1)
+                      (Tuple2 (Ref r1 Nat) (S (Write r1) Unit))
+ = box extend r1 using r2 with {Alloc r2; Write r2} in 
+    do   x = run allocRef [r2] [Nat] 0
+         f = writeRef [r2] [Nat] x 5
+         T2  [Ref r2 Nat] 
+             [S (Write r2) Unit] 
+              x f
+
+...
+ private r with {Alloc r; Read r} in
+   case run foo [r] of
+       T2 x f -> run f
+
+----------------------------------------------------------------------
+
+The above function produces a tuple containing a reference in region 'r1', as well as a suspended computation that performs a Write effect on this region.
+
+Later on, the expression 'run f' would cause the reference 'x' to be updated, which is behaviour we want to prevent. This is achieved by adding a side-condition 'Permits' to the typing rule for 'run':
+
+
+  envs |v- v      :: S e t     Permits envs e
+ ---------------------------------------------
+  envs |x- run v  :: t ; e
+
+
+During type checking, the capabilities attached to the 'private' and 'extend' constructs are added to the type environment. The 'run' construct only type checks when the context permits (has enough capability) to support the effect of the computation being run.
+
+In terms of operational semantics, the capabilities attached to the 'private' and 'extend' constructs will be added to the associated stack-frame when these constructs are entered. This shows that the stack frame really "owns" the capabilty to access each region. With the freezing example, we create an extension region with an added capability (ie mutation), do some work, then give up this capability when leaving the construct. However, we retain the capabilities of the base region, such as the ability to read the result.
+
+
+Returning to a comment by Reviewer #3:
+
+> The main motivation of the author is that "Region extension allows store objects to be destructively initialized without revealing the associated write effects to the calling context". I fail to be convinced that this is a desirable property.
+
+Is the above explanation more convincing? Languages like Haskell and Scala display a lack of "mutabilty polymorphism", whereby data structures such as flat unboxed vectors are provided in two seprate versions: a mutable one and an immutable one. To covert a mutable vector to the mutable version the programmer needs to either copy it, or perform an unsafe cast. I find this very odd considering that the runtime representation of mutable and immutable vectors is identical.
+
+With the above system, whether or not a region is mutable is lifted into a capability level, and the type of a mutable reference is no different from that of an immutable one. 
+
+
+Summary
+~~~~~~~
+
+Do the above extensions seem appropriate to "increase the technical novelty and pragmatic motivation for the system you're formalizing with reasonable effort"?
+
+The 'box' and 'run' constructs are easy to add to the proof, and I have already done so. Adding capabilities to 'private' and 'extend' will take some more work, but I think this can be done in the framework I already have. 
+
+I'd also be interested if any of the reviewers have tried the above before and found that it didn't work out, or have any other comments on these ideas.
+

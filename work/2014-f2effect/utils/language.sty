@@ -1,0 +1,145 @@
+
+% -- The name
+\newcommand\SystemFre           {System-F$^{re}$\xspace}
+
+% -- Meta
+\newcommand\mtype               {\mathit{type}}
+\newcommand\mkind               {\mathit{kind}}
+\newcommand\mtycon              {\mathit{tycon}}
+\newcommand\mval                {\mathit{val}}
+\newcommand\mexp                {\mathit{exp}}
+\newcommand\mconst              {\mathit{const}}
+\newcommand\mop                 {\mathit{op}}
+\newcommand\mtc                 {\mathit{tc}}
+\newcommand\mfv                 {\mathit{fv}}
+
+\newcommand\mkienv              {\mathit{kienv}}
+\newcommand\mtyenv              {\mathit{tyenv}}
+\newcommand\mstenv              {\mathit{stenv}}
+\newcommand\mstprops            {\mathit{stprops}}
+\newcommand\mstore              {\mathit{store}}
+\newcommand\mframe              {\mathit{frame}}
+\newcommand\mstack              {\mathit{stack}}
+\newcommand\mstbind             {\mathit{stbind}}
+\newcommand\mmode               {\mathit{mode}}
+
+\newcommand\mke                 {\mathit{ke}}
+\newcommand\mte                 {\mathit{te}}
+\newcommand\mse                 {\mathit{se}}
+\newcommand\msp                 {\mathit{sp}}
+\newcommand\mspVis              {\mathit{spVis}}
+\newcommand\mss                 {\mathit{ss}}
+\newcommand\mfs                 {\mathit{fs}}
+
+\newcommand\mget                {\trm{get}}
+\newcommand\mmap                {\trm{map}}
+\newcommand\mupdate             {\trm{update}}
+\newcommand\mregionOfStBind     {\trm{regionOfStBind}}
+\newcommand\mhandleOfEffect     {\trm{handleOfEffect}}
+\newcommand\mmaskOnT            {\trm{maskOnT}}
+\newcommand\mmaskOnVarT         {\trm{maskOnVarT}}
+\newcommand\mmaskNotVisible     {\trm{maskNotVisible}}
+\newcommand\misVisibleE         {\trm{isVisibleE}}
+\newcommand\mdeallocB           {\trm{deallocB}}
+\newcommand\mmergeB             {\trm{mergeB}}
+
+
+% -- Example Variable Names
+\newcommand\vtally              {\mathit{tally}}
+\newcommand\vstart              {\mathit{start}}
+\newcommand\vtotal              {\mathit{total}}
+\newcommand\vacc                {\mathit{acc}}
+\newcommand\veat                {\mathit{eat}}
+\newcommand\vcurrent            {\mathit{current}}
+\newcommand\vresult             {\mathit{result}}
+\newcommand\vbody               {\mathit{body}}
+\newcommand\vbroken             {\mathit{broken}}
+\newcommand\vref                {\mathit{ref}}
+\newcommand\vadd                {\mathit{add}}
+\newcommand\vtwice              {\mathit{twice}}
+\newcommand\vdangle             {\mathit{dangle}}
+\newcommand\vgoodbye            {\mathit{goodbye}}
+\newcommand\vdref               {\mathit{dref}}
+\newcommand\vtwo                {\mathit{two}}
+\newcommand\vtie                {\mathit{tie}}
+\newcommand\vzero               {\mathit{zero}}
+\newcommand\vdummy              {\mathit{dummy}}
+\newcommand\vloop               {\mathit{loop}}
+\newcommand\vfoo                {\mathit{foo}}
+
+% -- Kinds
+\newcommand\kto                 {\rightsquigarrow}
+\newcommand\kcData              {\mathit{Data}}
+\newcommand\kcRegion            {\mathit{Region}}
+\newcommand\kcEffect            {\mathit{Effect}}
+
+% -- Types
+\newcommand\tcUnit              {\mathit{Unit}}
+\newcommand\tcBool              {\mathit{Bool}}
+\newcommand\tcNat               {\mathit{Nat}}
+\newcommand\tcRead              {\mathit{Read}}
+\newcommand\tcWrite             {\mathit{Write}}
+\newcommand\tcAlloc             {\mathit{Alloc}}
+\newcommand\tcRef               {\mathit{Ref}}
+
+\newcommand\trgn[1]             {\tt{rgn}~ #1}
+\newcommand\tref[2]             {\tcRef~ #1~ #2}
+\newcommand\ttoe[1]             {\stackrel{#1}{\rightarrow}}
+\newcommand\tltoe[1]            {\stackrel{#1}{\longrightarrow}}
+
+% -- Expressions
+\newcommand\klet                {\tt{let}}
+\newcommand\kin                 {\tt{in}}
+\newcommand\knew                {\tt{new}}
+\newcommand\kalloc              {\tt{alloc}}
+\newcommand\kread               {\tt{read}}
+\newcommand\kwrite              {\tt{write}}
+\newcommand\kprivate            {\tt{private}}
+\newcommand\kextend             {\tt{extend}}
+\newcommand\kwith               {\tt{with}}
+
+
+\newcommand\ccNat               {\tt{CNat}}
+\newcommand\ccBool              {\tt{CBool}}
+
+\newcommand\xloc        [1]     {\tt{loc}~ #1}
+\newcommand\xlam        [3]     {\lambda #1 : #2.~ #3}
+\newcommand\xlet        [4]     {\klet~ #1 : #2 ~=~ #3 ~\kin~ #4} 
+\newcommand\xnew        [2]     {\knew~ #1~ \kin~ #2}
+\newcommand\xprivate    [2]     {\kprivate~ #1~ \kin~ #2}
+\newcommand\xextend     [3]     {\kextend~ #1~ \kwith~ #2~ \kin~ #3}
+\newcommand\xalloc      [2]     {\kalloc~ #1~ #2}
+\newcommand\xread       [2]     {\kread~ #1~ #2}
+\newcommand\xwrite      [2]     {\kwrite~ #1~ #2}
+
+% -- Values
+\newcommand\vloc[1]             {\tt{loc}~ #1}
+
+% -- Frames
+\newcommand\flet[3]             {\klet~ #1 : #2 = \circ~ \kin~ #3}
+\newcommand\fuse[1]             {\tt{use}~  #1}
+\newcommand\fprivd[1]           {\tt{priv}~ \tt{d}~ #1}
+\newcommand\fprivm[2]           {\tt{priv}~ (\tt{m}~ #1)~ #2}
+\newcommand\fprivs[1]           {\tt{priv}~ \_~ #1}
+\newcommand\fpriv[2]            {\tt{priv}~ #1~ #2}
+
+% -- Store Properties
+\newcommand\sregion[1]          {\tt{region}~ #1}
+
+
+% -- Store Bindings
+\newcommand\sbvalue     [2]     {#1 ~\tt{with}~ #2}
+\newcommand\sbdead      [1]     {#1 ~\tt{with}~ \bullet}
+
+\newcommand\tto[3]              {#1 \stackrel{#2}{\to} #3}
+\newcommand\liftTE      [2]     {#2\uparrow^{#1}}
+\newcommand\liftTEo     [1]     {#1\uparrow}
+\newcommand\liftSE      [2]     {#2\uparrow^{#1}}
+\newcommand\liftSEo     [1]     {#1\uparrow}
+\newcommand\lowerTT[1]          {#1\downarrow}
+
+\newcommand\liftTT[2]           {#2\uparrow^{#1}}
+\newcommand\liftXX[2]           {#2\uparrow^{#1}_{x}}
+\newcommand\liftTX[2]           {#2\uparrow^{#1}_{t}}
+
+\newcommand\subsTT[3]           {#3[#2/#1]}           

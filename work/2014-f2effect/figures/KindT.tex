@@ -1,0 +1,225 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+
+\begin{center}
+\hspace{3em}
+$\fbox{$\KindT{\mkienv}{\mstprops}{\mtype}{\mkind}$}~~ (\trm{KindT})$
+\end{center}
+
+% -------------------------------------
+% | KiVar
+%   :  forall ke sp i k
+%   ,  get i ke = Some k
+%   -> KindT ke sp (TVar i) k
+$$
+\ruleIL {KiVar}
+{       \ck{k}  = \trm{get}~~ \ct{ix\bra{a}}~~ ke
+}
+{       \KindT  {\mke}{\msp}
+                {ix\bra{a}}
+                {k}
+}
+\qq
+% -------------------------------------
+% | KiRgn
+%   :  forall ke sp n
+%   ,  In (SRegion n) sp
+%   -> KindT ke sp (TCap (TyCapRegion n)) KRegion.
+%
+\ruleIL {KiRgn}
+{       \sregion{p} \in sp
+}
+{
+        \KindT  {\mke} 
+                {\msp}
+                {\trgn{p}}
+                {\kcRegion}
+}
+$$
+% -------------------------------------
+% | KiForall
+%   :  forall ke sp k t
+%   ,  KindT (ke :> k) sp t KData
+%   -> KindT ke        sp (TForall k t) KData
+$$
+\ruleIL {KiForall}
+{       \KindT  {\mke,~ \ct{\bra{a}:k}} 
+                {\msp}
+                {t}
+                {\kcData}
+}
+{       \KindT  {\mke}     
+                {\msp}
+                {\forall \bra{a} : k.~~ t}      
+                {\kcData}
+}
+\qq
+% -------------------------------------
+% | KiBot
+%   :  forall ke sp k
+%   ,  sumkind k
+%   -> KindT ke sp (TBot k) k
+%
+\ruleIL {KiBot}
+{}
+{       \KindT  {\mke}
+                {\msp}
+                {\bot}
+                {\kcEffect}
+}
+$$
+% -------------------------------------
+% | KiApp 
+%   :  forall ke sp t1 t2 k11 k12
+%   ,  appkind k12
+%   -> KindT ke sp t1 (KFun k11 k12)
+%   -> KindT ke sp t2 k11
+%   -> KindT ke sp (TApp t1 t2) k12
+$$
+\ruleIL {KiApp}
+{ \hspace{-1em}
+  \begin{array}{ll}
+&       \ck{k_{12} \neq \kcRegion}
+\\
+&       \KindT {\mke}
+               {\msp}
+               {t_1}
+               {k_{11} \kto k_{12}}
+\qq
+        \KindT {\mke}
+               {\msp}
+               {t_2}
+               {k_{11}}
+  \end{array}
+}
+{       \KindT {\mke}
+               {\msp}
+               {t_1~~ t_2}
+               {k_{12}}
+}
+$$
+% -------------------------------------
+% | KiSum
+%   :  forall ke sp k t1 t2
+%   ,  sumkind k
+%   -> KindT ke sp t1 k -> KindT ke sp t2 k
+%   -> KindT ke sp (TSum t1 t2) k
+$$
+\ruleIL {KiSum}
+{ \begin{array}{ll}
+&       \KindT  {\mke}
+                {\msp}
+                {t_1}
+                {\kcEffect}
+\qq
+        \KindT  {\mke}
+                {\msp}
+                {t_2}
+                {\kcEffect}
+        \end{array}
+}
+{       \KindT  {\mke}
+                {\msp}
+                {t_1 +~ t_2}
+                {\kcEffect}
+}
+$$
+
+% -------------------------------------
+% | KiCon0
+%   :  forall ke sp tc k
+%   ,  k = kindOfTyCon0 tc
+%   -> KindT ke sp (TCon0 tc) k
+$$
+\ruleIL {KiCon0}
+{       \ck{k} ~=~ \trm{kindOfTyCon0}~~ \ct{\mtc}
+}
+{       \KindT  {\mke}
+                {\msp}
+                {\mtc}
+                {k}
+}
+\qq
+% -------------------------------------
+% | KiCon1 
+%   :  forall ke sp tc t1 k1 k
+%   ,  KFun k1 k = kindOfTyCon1 tc
+%   -> KindT ke sp t1 k1
+%   -> KindT ke sp (TCon1 tc t1) k
+%
+\ruleIL {KiCon1}
+{ \begin{array}{ll}
+        \KindT  {\mke}
+                {\msp}
+                {t_1}
+                {k_1}
+\\
+       \ck{k_1} \kto \ck{k} 
+                ~=~ \trm{kindOfTyCon1}~~ \ct{\mtc}
+  \end{array}
+}
+{       \KindT  {\mke}
+                {\msp}
+                {\mtc~~ t_1}
+                {k}
+}
+$$
+% -------------------------------------
+% | KiCon2 
+%   :  forall ke sp tc t1 t2 k1 k2 k
+%   ,  KFun k1 (KFun k2 k) = kindOfTyCon2 tc
+%   -> KindT ke sp t1 k1
+%   -> KindT ke sp t2 k2
+%   -> KindT ke sp (TCon2 tc t1 t2) k
+$$
+\ruleIL {KiCon2}
+{ \begin{array}{ll}
+        \KindT  {\mke}
+                {\msp}
+                {t_1}
+                {k_1}
+\\
+        \KindT  {\mke}
+                {\msp}
+                {t_2}
+                {k_2}
+\\
+        \ck{k_1} \kto (\ck{k_2} \kto \ck{k}) 
+                ~=~ \trm{kindOfTyCon2}~~ \ct{\mtc}
+  \end{array}
+}
+{       \KindT  {\mke}
+                {\msp}
+                {\mtc~~ t_1~~ t_2}
+                {k}
+}
+$$
+
+$$
+\begin{array}{lll}
+\trm{kindOfTyCon0} 
+        & (\to)         & =~ \kcData \kto \kcEffect \kto \kcData \kto \kcData \\
+        & \tcUnit       & =~ \kcData                              \\
+        & \tcBool       & =~ \kcData                              \\
+        & \tcNat        & =~ \kcData                              
+\\[1ex]
+
+\trm{kindOfTyCon1}
+        & \tcRead       & =~ \kcRegion \kto \kcEffect             \\
+        & \tcWrite      & =~ \kcRegion \kto \kcEffect             \\
+        & \tcAlloc      & =~ \kcRegion \kto \kcEffect
+\\[1ex]
+
+\trm{kindOfTyCon2}
+        & \tcRef        & =~ \kcRegion \kto \kcData \kto \kcData  \\
+\end{array}
+$$
+
+} % boxfig
+\medskip
+\caption{Kinds of Types}
+\label{f:KindT}
+\end{figure}
+

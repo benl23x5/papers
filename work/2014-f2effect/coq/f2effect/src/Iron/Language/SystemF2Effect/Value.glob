@@ -1,0 +1,16 @@
+DIGEST 9c1dd26143861353aeeec74f1eb7a252
+FIron.Language.SystemF2Effect.Value
+R16:53 Iron.Language.SystemF2Effect.Value.Exp <> <> lib
+R71:119 Iron.Language.SystemF2Effect.Value.Operator.LiftX <> <> lib
+R137:187 Iron.Language.SystemF2Effect.Value.Operator.SubstTX <> <> lib
+R205:255 Iron.Language.SystemF2Effect.Value.Operator.SubstVX <> <> lib
+R273:322 Iron.Language.SystemF2Effect.Value.Operator.MergeX <> <> lib
+R340:385 Iron.Language.SystemF2Effect.Value.Relation.Wf <> <> lib
+R403:452 Iron.Language.SystemF2Effect.Value.Relation.FreeXX <> <> lib
+R470:519 Iron.Language.SystemF2Effect.Value.Relation.FreshX <> <> lib
+R537:587 Iron.Language.SystemF2Effect.Value.Relation.TyJudge <> <> lib
+R605:662 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.Unique <> <> lib
+R680:740 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.WeakKiEnv <> <> lib
+R758:818 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.WeakTyEnv <> <> lib
+R836:896 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.WeakStEnv <> <> lib
+R914:976 Iron.Language.SystemF2Effect.Value.Relation.TyJudge.WeakStProps <> <> lib

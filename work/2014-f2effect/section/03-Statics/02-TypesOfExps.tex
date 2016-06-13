@@ -1,0 +1,261 @@
+%!TEX root = ../../Main.tex
+
+% -----------------------------------------------------------------------------
+\subsection{Types of Expressions}
+Fig.~\ref{f:TypeX} contains the mutually recursive judgments that assign a type to a value, and a type and effect to an expressions. The judgment ~$\TypeV{\mke}{\mte}{\mse}{\msp}{v}{t}$~ reads: ``with kind environment $\mke$, type environment $\mte$, store environment $\mse$ and store properties $\msp$, value $v$ has type $t$''. Similarly judgment ~$\TypeX{\mke}{\mte}{\mse}{\msp}{x}{t}{e}$~ reads: ``... expression $x$ has type $t$ and effect $e$''.
+
+Rule (TvVar) retrieves the type of an expression variable from the type environment $\mte$. The second premise requires all expression variables to have kind $\kcData$, which is needed for Lemma~\ref{l:typex_kind_type_effect}, to ensure that the data type and effect produced by the typing judgments have the corresponding kinds. Although this restriction is not commonly enforced in semi-formal presentations of the ambient System-F calculus, it is useful in a mechanized proof so we do not need to manage a separate statement of well-formedness for the type environment.
+
+Rule (TvLoc) retrieves the type of a location from the store environment $\mse$. As with rule (TyVar), we require the types in the store environment to have kind $\kcData$. All store locations are mutable references, so we can always attach the corresponding region variable to their types.Values of primitive types such as $\tcNat$ and $\tcBool$ are not tagged with a region variable, and do not appear naked in the store.
+
+Rule (TvLam) checks the body of the function abstraction $x_2$ in a type environment extended with the parameter of the abstraction. The type of the overall abstraction includes the effect $e_2$ of evaluating its body. The first premise rejects functional values for which no corresponding arguments exist, and ensures that types of higher kind are not added to the type environment. For example, the expression ($\xlam{\bra{z}}{\tcRef}{5}$) can never be applied because there is no way to introduce an argument of type $\tcRef$ (of kind $\kcRegion \kto \kcData \kto \kcData$) other than by wrapping it in a similarly bogus function abstraction.
+
+Rule (TvLAM) checks the body of a type abstraction $x_2$ in a kind environment extended with the parameter of the abstraction. As we are using the de Bruijn representation for binders, when we push the new kind $k_2$ onto the \emph{front} of the kind environment, we must also lift type indices in the existing type and store environments across the new element. In this paper we overload the $\uparrow$ symbol to represent the lifting operators for type and store environments, as well as for individual types and expressions. We write a plain $\uparrow$ as shorthand for $\uparrow^0$, meaning that lifting starts at index $\un{0}$.
+
+We require the body of a type abstraction to be pure (have effect $\bot$) to avoid the well known soundness problem with polymorphic mutable references \cite{Leroy:polymorphism-by-name}. In ML dialects this problem is typically mitigated by some version of the \emph{value restriction} \cite{Garrigue:relaxing}. Using an effect system it is possible to handle the problem more gracefully, while still allowing the body of a type abstraction to have side effects \cite{Talpin:discipline}. However, the matter of polymorphic mutable references is orthogonal to region deallocation, so for this paper we just require the body of a type abstraction to be pure. 
+
+Rule (TvConst) uses the meta-function `typeOfConst' to get the type of a constant, which helps keep the number of typing rules down.
+
+Rule (TxVal) injects values into the syntax of expressions, indicating that values are always pure.
+
+Rule (TxLet) checks the body of the let-expression $x_2$ in a type environment extended with the type of the binding $t_1$. This is a non-recursive let-binding, so we check the bound expression with the original type environment $\mte$. Similarly to the (TvLam) rule, we require the bound variable to have a type of kind $\kcData$. Without this premise we could prove that the other typing rules require the right of the binding $x_1$ to have kind $\kcData$ anyway, but writing this fact explicitly avoids needing to prove it separately.
+
+Note that the effect of a @let@-expression includes the effect of evaluating the binding $e_1$ as well as the body $e_2$, so the overall expression has effect $e_1 + e_2$. This is also the only rule that performs an effect join. We gain this property from the fact that we use a @let@-normalized presentation, where applications are always between values.
+
+Rule (TxApp) performs a function application that unleashes the effect $e_1$, which then appears in the consequent.
+
+Rule (TxAPP) performs type application by substituting the argument $t_2$ into the type of the body $t_{12}$. In Fig.~\ref{f:TypeX} we write $t_{12}[t_2/\un{0}\bra{a}]$ to indicate that $t_2$ is substituted for type index $\un{0}$ in $t_{12}$.
+
+Rule (TxPrivate) checks the body of a @private@ construct in a kind environment extended with a new region variable. As with rule (TvLAM), we need to lift indices in the type and store environment across this new element. As discussed in \S\ref{s:Tutorial}, because the region $\bra{r}$ is entirely local to the body of the @private@ expression, we can mask effects on it. This masking is performed by the type expression $(\trm{maskOnVarT}~ \un{0}\bra{r}~ e)$ which replaces the atomic $\tcRead$, $\tcWrite$ and $\tcAlloc$ effects in $e$ that mention $r$ with the pure effect~$\bot$. As the body of a @private@ expression is checked in a environment extended with the new region, we then need to lower indices in the data type and effect of the body ($t$ and $e$) before producing the type and effect of the overall expression ($t'$ and $e'$). In Fig.~\ref{f:TypeX} we write the lowering operator as~$\downarrow$. 
+
+% -----------------------------------------------------------------------------
+\input{figures/TypeX.tex}
+\input{figures/TypeOfConst.tex}
+
+
+The lowering operator $\downarrow$ only succeeds if its argument type does \emph{not} contain the type index~$\un{0}$, corresponding to the bound variable $\bra{r}$. In rule (TxPrivate), the effect being lowered is guaranteed not to include $\un{0}\bra{r}$ because we mask all terms that contain this index. However, in an ill-typed program it would be possible for the type expression $t$ to include a use of $\un{0}\bra{r}$. The fact that the lowering of $t$ succeeds only when it does not contain $\un{0}\bra{r}$ is equivalent to including the premise $r \notin fv(t)$ (checking that the free variables of $t$ do not include $r$). This latter premise is seen in presentations of effect system that use named binders rather than de Bruijn indices.
+
+Rule (TxExtend) checks the body of an @extend@ construct in a kind environment extended with the new region variable $\bra{r_2}$. The type of the overall expression is then the type of the body, but with the outer region type $t_1$ substituted for $\un{0}\bra{r_2}$. This substitution reflects the fact that once the evaluation of the body has completed, all store bindings in the inner region $\bra{r_2}$ will be merged into the outer region, represented by $t_1$. As with Rule (TxPrivate) we also mask the effects on the new region, though in this case the overall expression is assigned an $\tcAlloc~ t_1$ effect to reflect the fact that store bindings that were allocated into the new region are retained instead of being deallocated.
+
+Rules (TxAlloc), (TxRead) and (TxWrite) are straightforward. Each act on a reference in a region of type $t_1$ and produce the corresponding effect.
+
+Rule (TxOpPrim) uses the auxiliary function `typeOfOp1' to get the types of each primitive operator.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Properties of the typing rules}
+
+% -----------------------------------------------
+\begin{lemma}
+\label{l:typex_kind_type_effect}
+The data type and effect produced by a typing derivation have the appropriate kinds.
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x}{t}{e}
+\\  \pthen      & \KindT{\mke}{\msp}{t}{\kcData}
+ ~~~\pand~~~      \KindT{\mke}{\msp}{e}{\kcEffect}
+\end{array}
+$
+\qqed
+
+
+% -----------------------------------------------
+\begin{lemma}
+Two typing derivations for the same expression produce the same data type and effect. 
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x}
+                        {t_1}
+                        {e_1}
+
+ ~~~\pand~~~      \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x}
+                        {t_2}
+                        {e_2}
+\\ \pthen       & (\ct{t_1} = \ct{t_2}) 
+~~~\pand~~~       (\ct{e_1} = \ct{e_2})
+\end{array}
+$
+\qqed
+
+
+% -----------------------------------------------
+\begin{lemma}
+We can insert a new element into the kind environment at position $ix$, provided we lift existing references to elements higher than $ix$ over the new one. 
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x_1}
+                        {t_1}
+                        {e_1}
+\\
+    \pthen      & \TypeX{\trm{insert}~~ ix~~ k_2~~ ke}
+                        {~\liftTE{ix}{\mte}}
+                        {~\liftTE{ix}{\mse}}
+                        {~sp}
+                        {~\liftTX{ix}{x_1}}
+                        {~\liftTT{ix}{t_1}}
+                        {~\liftTT{ix}{e_1}}
+\end{array}
+$
+
+\smallskip\noindent
+In this lemma the lifting operator $\uparrow^{ix}_{t}$ applies to the \emph{type} indices in an expression, which is indicated by the $t$ subscript on the arrow. 
+\qqed
+
+
+% -----------------------------------------------
+\begin{lemma}
+We can insert a new element into the type environment at position $ix$, provided we lift existing references to elements higher than $ix$ over the new one.
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x_1}
+                        {t_1}
+                        {e_1}
+\\  \pthen      & \TypeX{\mke}
+                        {\trm{insert}~~ ix~~ t_2~~ \mte}
+                        {\mse}
+                        {\msp}
+                        {\liftXX{ix}{x_1}}
+                        {t_1}
+                        {e_1}
+\end{array}
+$
+
+\smallskip\noindent
+In this lemma the lifting operator $\uparrow^{ix}_{x}$ applies to the \emph{expression} indices in $x$, which is indicated by the $x$ subscript on the arrow. 
+\qqed
+
+
+% -----------------------------------------------
+% Lemma subst_type_exp_ix
+%  :  forall ix ke te se sp x1 t1 e1 t2 k2
+%  ,  get ix ke = Some k2
+%  -> TypeX ke te se sp x1 t1 e1
+%  -> KindT (delete ix ke) sp t2 k2
+%  -> TypeX (delete ix ke)     (substTE ix t2 te)  (substTE ix t2 se) sp
+%           (substTX ix t2 x1) (substTT ix t2 t1)  (substTT ix t2 e1).
+\begin{lemma}
+Substitution of types in expressions.
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \trm{get}~ ix~ \mke = k_2
+\\  ~~\pand     & \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x_1}{t_1}{e_1}
+\\  ~~\pand     & \KindT{\trm{delete}~ ix~ \mke}
+                        {\msp}
+                        {t_2}
+                        {k_2}
+
+\\  \pthen      & \TypeX{\trm{delete}~ ix~ \mke}
+                        {\mte[t_2/ix]}
+                        {\mse[t_2/ix]}
+                        {\msp}
+                        {x_1[t_2/ix]}
+                        {t_1[t_2/ix]}
+                        {e_1[t_2/ix]}
+\end{array}
+$
+
+\smallskip\noindent
+This is the type substitution lemma discussed in the motivation in \S\ref{s:ProblemPrivate}. In the proof of Preservation it is used to show that the result of a type application has the correct type.
+\qqed
+
+\eject
+% -----------------------------------------------
+% Lemma subst_val_exp_ix
+%  :  forall ix ke te se sp x1 t1 e1 v2 t2
+%  ,  get  ix te = Some t2
+%  -> TypeX ke te             se sp x1 t1 e1
+%  -> TypeV ke (delete ix te) se sp v2 t2
+%  -> TypeX ke (delete ix te) se sp (substVX ix v2 x1) t1 e1.
+\begin{lemma}
+Substitution of values in expressions.
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \trm{get}~ ix~ \mte~ = t_2
+\\  ~~\pand     & \TypeX{\mke}{\mte}{\mse}{\msp}
+                        {x_1}{t_1}{e_1}
+\\  ~~\pand     & \TypeV{\mke}
+                        {\trm{delete}~ ix~ \mte}
+                        {\mse}
+                        {\msp}
+                        {v_2}
+                        {t_2}
+\\  \pthen      & \TypeX{\mke}
+                        {\trm{delete}~ ix~ \mte}
+                        {\mse}
+                        {\msp}
+                        {x_1[v_2/ix]}
+                        {t_1}
+                        {e_1}
+\end{array}
+$
+
+\smallskip\noindent
+This lemma is used in the proof of Preservation to show the result of a function application has the correct type.
+\qqed
+
+
+% -----------------------------------------------
+\begin{lemma}
+Adding closed types to the end of the store environment preserves the inferred type and effect.
+\end{lemma}
+
+$
+\begin{array}{ll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse_1}{\msp}
+                        {x}
+                        {t_1}
+                        {e_1}
+ ~~~\pand~~~ (\pForall~ t ~\pin~ \mse_2.~ \trm{ClosedT}~ t)
+\\  \pthen      & \TypeX{\mke}{\mte}{\mse_2,~ \mse_1}{\msp}
+                        {x}
+                        {t_1}
+                        {e_1}
+\end{array}
+$
+
+\smallskip\noindent
+The `ClosedT' predicate checks that its argument does not contain free type indices. Throughout this paper, when we describe a judgement informally instead of giving an explicit definition we write it with in prefix form (as with $\trm{ClosedT}~ t$) instead of mixfix using a turnstyle symbol $\vdash$. See the accompanying Coq script for full details. 
+\qqed
+
+
+% -----------------------------------------------
+\begin{lemma}
+Adding a new property to the start or end of the store properties lists preserves the inferred type and effect.
+\end{lemma}
+
+$
+\begin{array}{lll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse}{\msp}      {x}{t}{e}     \\
+    \pthen      & \TypeX{\mke}{\mte}{\mse}{\msp,~ p}  {x}{t}{e}
+\end{array}
+$
+\quad
+$
+\begin{array}{lll}
+    \pIf        & \TypeX{\mke}{\mte}{\mse}{\msp}      {x}{t}{e}       \\
+    \pthen      & \TypeX{\mke}{\mte}{\mse}{p,~ \msp}  {x}{t}{e}
+\end{array}
+$
+\qqed
+
+
+
+

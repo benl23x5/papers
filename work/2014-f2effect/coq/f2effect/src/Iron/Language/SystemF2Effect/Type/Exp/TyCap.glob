@@ -1,0 +1,16 @@
+DIGEST 66a1cd56746e93ef0391fbead87fe9d4
+FIron.Language.SystemF2Effect.Type.Exp.TyCap
+R16:48 Iron.Language.SystemF2Effect.Kind <> <> lib
+ind 93:97 <> tycap
+constr 276:286 <> TyCapRegion
+R299:303 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tycap ind
+R292:294 Coq.Init.Datatypes <> nat ind
+R325:329 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tycap ind
+def 386:392 <> EqTyCap
+R401:405 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tycap ind
+R415:419 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tycap ind
+R444:446 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tc2 var
+R439:441 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> tc1 var
+R456:466 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> TyCapRegion constr
+R472:482 Iron.Language.SystemF2Effect.Type.Exp.TyCap <> TyCapRegion constr
+R492:494 Coq.Init.Logic <> :type_scope:x_'='_x not

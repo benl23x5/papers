@@ -1,0 +1,11 @@
+DIGEST ce46f87e622b0d2e5fbed7d1ca1fd69e
+FIron.Language.SystemF2Effect.Type.Relation
+R16:61 Iron.Language.SystemF2Effect.Type.Relation.WfT <> <> lib
+R79:126 Iron.Language.SystemF2Effect.Type.Relation.KindT <> <> lib
+R144:192 Iron.Language.SystemF2Effect.Type.Relation.EquivT <> <> lib
+R210:259 Iron.Language.SystemF2Effect.Type.Relation.EquivTs <> <> lib
+R277:324 Iron.Language.SystemF2Effect.Type.Relation.SubsT <> <> lib
+R342:390 Iron.Language.SystemF2Effect.Type.Relation.SubsTs <> <> lib
+R408:462 Iron.Language.SystemF2Effect.Type.Relation.SubsVisibleT <> <> lib
+R480:527 Iron.Language.SystemF2Effect.Type.Relation.FreeT <> <> lib
+R545:593 Iron.Language.SystemF2Effect.Type.Relation.FreshT <> <> lib

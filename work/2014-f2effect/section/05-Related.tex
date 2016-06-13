@@ -1,0 +1,37 @@
+%!TEX root = ../Main.tex
+\section{Related Work}
+
+% -----------------
+Banerjee, Heintze and Riecke \shortcite{Banerjee:region} prove soundness for a fragment of the region calculus \cite{Tofte:theory} by translation to a target language. The target language is given a denotational semantics, and completeness of the translation shows that the source language is sound. The fragment covered is monomorphic, and does not include mutable references.
+
+
+% -----------------
+Calcagno, Helsen and Thiemann \shortcite{Helsen:soundness-region-calclus, Calcagno:soundness-results} give hand written syntactic soundness proofs for several versions of the region calculus \cite{Tofte:theory}. The version in \cite{Helsen:soundness-region-calclus} models region deallocation by substituting a special dead region identifier for the associated variable when leaving the scope of a @private@ construct. Their dynamic semantics does not include an explicit store, and does not make a phase distinction between compile-time region variables and run-time region handles. This store-less semantics supports a straightforward proof of the region deallocation mechanism, but does not support mutable references. Calcagno \emph{et al.}~\shortcite{Calcagno:soundness-results} extend the previous work with mutable references and a store, but remove polymorphism. As discussed in \S\ref{s:ProblemPrivate}, the dynamic semantics of this latter language makes polymorphism difficult to add due to the use of an auxiliary expression to hold allocated region names. The version presented in \cite{Calcagno:stratified} is similar.
+
+
+% -----------------
+Walker, Crary and Morisett \shortcite{Walker:static-capabilities} define the Capability Language (CL), which supports region based memory management where the allocation and deallocation points for separate regions can be interleaved. To achieve this, the CL requires programs to be written in continuation passing style (CPS) so that the set of live regions can be tracked at each point in the program. In contrast, languages like \SystemFre require region lifetimes to be nested, following the lexical scoping of the @private@ construct. Walker et al give a hand written syntactic soundness proof for the CL, as well as a type directed translation from Tofte and Talpin's language into CL. Compared to lexically scoped languages, the CPS style CL permits more efficient use of memory for objects whose lifetimes do not follow the lexical structure of the code. However, the lexically scoped version directly supports well known program transformations, which is a key motivation for our current work. For a concrete compiler implementation it would seem reasonable to use both approaches, basing the front-end language on the lexically scoped representation, but optimizing region lifetimes by converting to the CPS representation during code generation.
+
+
+% -----------------
+Henglein, Makholm and Niss \shortcite{henglein:direct-flow-sensitive-regions, Henglein:effect-types} present a language related to CL that also allows the allocation and deallocation points for separate regions to be interleaved. Their system does not require the program to be CPS converted, but only supports first order programs. A different language presented by Henglein~\emph{et al.} \shortcite{Henglein:effect-types} illustrates the core of a type and effect system by simulating the usual mechanisms that access immutable regions (allocate and read) with ones that simply tag and untag a value with a region identifier. As with the system by Calcagno~\emph{et al.}~\shortcite{Calcagno:soundness-results} they prove soundness of the region calculus and translation correctness from the source language separately. They use nu-binding \cite{Pitts:new} as per rule (TyPrivate) from \S\ref{s:ProblemPrivate} to introduce new region identifiers, and their evaluation semantics relies on implicit alpha conversion to avoid variable capture.
+
+
+% -----------------
+Fluet and Morisett \shortcite{Fluet:monadic-regions-icfp, Fluet:linear-regions} define a monadic intermediate language, $\trm{F}^{RGN}$ inspired by the ST monad of Launchbury \& Peyton Jones~\shortcite{Launchbudy:state-threads}. The monadic system provides a stack of regions, as well as constraints that particular regions must outlive others. They give a soundness argument for the region calculi in terms of translation onto F$^{RGN}$, and the companion technical report \cite{Fluet:monadic-regions-techreport} contains a hand written proof. Although the intermediate language F$^{RGN}$ distills the essential mechanism of region deallocation, there is a large semantic gap between it and the original region calculi, with the translation to F$^{RGN}$ proceeding via two other intermediate languages. The later work by Fluet~\shortcite{Fluet:linear-regions} gives a translation from F$^{RGN}$ to an even lower level language with linearly typed regions. Kiselyov \& Shan \shortcite{Kiselyov:monadic-regions} provide an embedding in Haskell.
+
+% -----------------
+Papakyriakou, Gerakios and Papaspyrou \shortcite{Papakyriakou:poly-ref} provide a syntactic soundness proof for a version of System-F with mutable references, but without regions. The proof was mechanized in Isabelle/HOL \cite{Nipkow:Isabelle}.
+
+
+% -----------------
+Boudol \shortcite{Boudol:safe-deallocation} defines a monomorphic variant of the region calculus that allows regions to be deallocated earlier than they would be using the stack discipline. The type system includes \emph{negative} deallocation effects, and ensures that the usual \emph{positive} effects such as reads and writes are not performed after negative effects to the same region. This work includes a hand written soundness proof based on ``subject reduction up-to-simulation''.
+
+
+% -----------------
+Montenegro, Pena, Segura and Dios \shortcite{Montenegro:safe, dios:certified} present a first order functional language with nested regions. The language includes a @case@ expression that deallocates its argument while it destructing it, and the type system tracks which arguments of functions will be deallocated during evaluation. Later work by de Dios~\emph{et al.}~\shortcite{dios:certified} describes a soundness proof in Isabelle/HOL, as well as a method for generating certificates that prove type checked programs do not contain dangling pointers.
+
+
+% -----------------
+Pottier \shortcite{Pottier:jfp-hidden-state} presents a mechanized syntactic soundness proof for a type and capability system with hidden state. Pottier's system uses affine capabilities and includes region adoption and focusing \cite{Fahndrich:adoption-focus}, and the anti-frame rule \cite{Pottier:anti-frame} for hiding local state. Pottier's system assumes garbage collection, and does not include region deallocation. Regions are used to reason about the aliasing and separation properties of data, but not as memory management discipline. In contrast, the regions in our system are intended primarily for memory management, and our type system does not encode the more advanced separation properties.
+

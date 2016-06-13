@@ -1,0 +1,113 @@
+DIGEST 8391384eab32efac851e50a648f6834d
+FIron.Language.SystemF2Effect.Step.SuppF
+R16:55 Iron.Language.SystemF2Effect.Step.FreshF <> <> lib
+def 134:138 <> SuppF
+R146:148 Coq.Init.Datatypes <> nat ind
+R156:160 Iron.Language.SystemF2Effect.Step.Frame <> frame ind
+R185:185 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R195:198 Iron.Language.SystemF2Effect.Step.Frame <> FLet constr
+R209:213 Iron.Language.SystemF2Effect.Value.Relation.SuppX <> SuppX def
+R215:215 Iron.Language.SystemF2Effect.Step.SuppF <> l var
+R222:226 Iron.Language.SystemF2Effect.Step.Frame <> FPriv constr
+R236:240 Coq.Init.Logic <> False ind
+def 325:330 <> SuppFs
+R337:339 Coq.Init.Datatypes <> nat ind
+R348:352 Iron.Language.SystemF2Effect.Step.Frame <> stack def
+R360:366 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R368:369 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R377:380 Coq.Init.Logic <> :type_scope:x_'/\'_x not
+R370:371 Coq.Lists.List <> In def
+R375:376 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R381:385 Iron.Language.SystemF2Effect.Step.SuppF <> SuppF def
+R387:387 Iron.Language.SystemF2Effect.Step.SuppF <> l var
+def 583:589 <> CoversF
+R598:602 Iron.Language.SystemF2Effect.Value.Relation.TyJudge <> stenv def
+R611:615 Iron.Language.SystemF2Effect.Step.Frame <> frame ind
+R646:652 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R654:655 Iron.Tactics.LibTactics <> :type_scope:'exists'_x_','_x not
+R664:666 Coq.Init.Logic <> :type_scope:x_'='_x not
+R656:658 Iron.Data.List.Base <> get def
+R662:663 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R660:660 Iron.Language.SystemF2Effect.Step.SuppF <> l var
+R667:670 Coq.Init.Datatypes <> Some constr
+R632:636 Iron.Language.SystemF2Effect.Step.SuppF <> SuppF def
+R640:640 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R638:638 Iron.Language.SystemF2Effect.Step.SuppF <> l var
+R688:694 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+def 785:792 <> CoversFs
+R800:804 Iron.Language.SystemF2Effect.Value.Relation.TyJudge <> stenv def
+R813:817 Iron.Language.SystemF2Effect.Step.Frame <> stack def
+R824:829 Coq.Lists.List <> Forall ind
+R844:845 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R832:838 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+R840:841 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R860:867 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+prf 949:961 <> coversFs_head
+R1012:1018 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+R1024:1024 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R1021:1022 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R986:993 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1001:1004 Iron.Data.List.Base <> ::x_':>'_x not
+R1005:1005 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R999:1000 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R995:996 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1051:1058 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1102:1114 Iron.Language.SystemF2Effect.Step.SuppF <> coversFs_head thm
+prf 1125:1137 <> coversFs_tail
+R1188:1195 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1200:1201 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R1197:1198 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1162:1169 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1177:1180 Iron.Data.List.Base <> ::x_':>'_x not
+R1181:1181 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R1175:1176 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R1171:1172 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1228:1235 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1279:1291 Iron.Language.SystemF2Effect.Step.SuppF <> coversFs_tail thm
+prf 1302:1319 <> freshSuppF_coversF
+R1384:1393 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppF def
+R1407:1407 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R1399:1402 Iron.Data.List.Base <> ::x_'<:'_x not
+R1398:1398 Iron.Language.SystemF2Effect.Step.SuppF <> t var
+R1403:1404 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1395:1395 Iron.Language.SystemF2Effect.Step.SuppF <> p var
+R1362:1371 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppF def
+R1378:1378 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R1375:1376 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1373:1373 Iron.Language.SystemF2Effect.Step.SuppF <> p var
+R1345:1351 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+R1356:1356 Iron.Language.SystemF2Effect.Step.SuppF <> f var
+R1353:1354 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1434:1440 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+R1481:1490 Iron.Language.SystemF2Effect.Value.Relation.FreshX <> FreshSuppX def
+R1562:1564 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1562:1564 Coq.Init.Logic <> :type_scope:x_'='_x not
+R1581:1593 Iron.Data.List.Base <> get_snoc_some thm
+R1581:1593 Iron.Data.List.Base <> get_snoc_some thm
+prf 1708:1728 <> freshSuppFs_coveredFs
+R1798:1808 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppFs def
+R1822:1823 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R1814:1817 Iron.Data.List.Base <> ::x_'<:'_x not
+R1813:1813 Iron.Language.SystemF2Effect.Step.SuppF <> t var
+R1818:1819 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1810:1810 Iron.Language.SystemF2Effect.Step.SuppF <> p var
+R1774:1784 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppFs def
+R1791:1792 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R1788:1789 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1786:1786 Iron.Language.SystemF2Effect.Step.SuppF <> p var
+R1755:1762 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1767:1768 Iron.Language.SystemF2Effect.Step.SuppF <> fs var
+R1764:1765 Iron.Language.SystemF2Effect.Step.SuppF <> se var
+R1886:1892 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+R1886:1892 Iron.Language.SystemF2Effect.Step.SuppF <> CoversF def
+R1911:1918 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1911:1918 Iron.Language.SystemF2Effect.Step.SuppF <> CoversFs def
+R1937:1947 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppFs def
+R1937:1947 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppFs def
+R1968:1977 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppF def
+R1968:1977 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppF def
+R2012:2022 Iron.Language.SystemF2Effect.Step.FreshF <> FreshSuppFs def
+R2035:2045 Coq.Lists.List <> Forall_cons constr
+R2035:2045 Coq.Lists.List <> Forall_cons constr
+R2068:2085 Iron.Language.SystemF2Effect.Step.SuppF <> freshSuppF_coversF thm
+R2068:2085 Iron.Language.SystemF2Effect.Step.SuppF <> freshSuppF_coversF thm

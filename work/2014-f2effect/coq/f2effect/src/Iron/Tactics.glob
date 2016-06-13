@@ -1,0 +1,12 @@
+DIGEST 96d20dcda320de6a79b3c59a149f9839
+FIron.Tactics
+R16:38 Iron.Tactics.LibTactics <> <> lib
+R56:73 Iron.Tactics.Short <> <> lib
+R91:106 Iron.Tactics.Rip <> <> lib
+R124:142 Iron.Tactics.Exists <> <> lib
+R160:176 Iron.Tactics.Case <> <> lib
+R194:210 Iron.Tactics.Nope <> <> lib
+R228:247 Iron.Tactics.Rewrite <> <> lib
+R265:281 Iron.Tactics.Burn <> <> lib
+R299:316 Iron.Tactics.Break <> <> lib
+R334:338 Coq.omega.Omega <> <> lib

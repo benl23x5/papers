@@ -1,0 +1,112 @@
+%!TEX root = ../../Main.tex
+
+% -----------------------------------------------------------------------------
+Fig.~\ref{f:Environments} shows the environments we use in both the kinding rules of Fig.~\ref{f:KindT} and typing rules of Fig.~\ref{f:TypeX}. In the Coq formalization these are de Bruijn environments, indexed by number, starting from the \emph{right}. Following our hybrid presentation we also include suggestive variable names. We index environments from the right so that they appear as stacks that grow to the left. For example, consider the following kind environment:
+$$
+\bra{a_1} : \kcData,~~ \bra{e_1} : \kcEffect,~~ \bra{r_1} : \kcRegion
+$$
+
+Here, index $\un{0}$ refers to the element $\bra{r_1} : \kcRegion$ and index $\un{1}$ to $\bra{e_1} : \kcEffect$. For this reason we write the corresponding type variables as $\un{0}\bra{r_1}$ and $\un{1}\bra{e_1}$ respectively. In typing judgments we write an empty environment using a single $\cdot$ dot.
+
+In Fig.~\ref{f:Environments}, the kind environment $\mkienv$ and type environment $\mtyenv$ consist of a list of kinds and types as usual. The store environment $\mstenv$ gives the type of each location in a store, and the store properties $\mstprops$ records the identifiers of regions that have been created so far. When a region is deallocated all the bindings in that region of the store are marked as dead. However, we retain the corresponding entry in the list of store properties so that any dangling references to those bindings are still well typed.
+
+
+% -----------------------------------------------------------------------------
+\input{figures/KindT.tex}
+\input{figures/Environments.tex}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Kinds of Types}
+In Fig.~\ref{f:KindT} the judgment ~$\KindT{\mke}{\msp}{t}{k}$ reads: ``with kind environment $\mke$ and store properties $\msp$, type $t$ has kind $k$.'' 
+
+Rule (KiVar) retrieves the kind of a type variable from position $ix$ in the kind environment $\mke$, using the `get' meta function. 
+
+Rule (KiRgn) requires a region handle to have a corresponding entry in the store properties list. The store properties model which regions currently exist in the store, so we know that if a region handle exists in the program then the corresponding region exists in the runtime store.
+
+Rule (KiForall) requires the body type to have kind $\kcData$ to mirror the corresponding formation rule for type abstractions, (TvLAM) in Fig.~\ref{f:TypeX}.
+
+Rules (KiSum) and (KiBot) require the types used as arguments to a type sum to have $\kcEffect$ kind. During the development of this work we tried an alternate presentation where effects and effect sums were separated into their own syntactic class, instead of including them in the general type language, but this introduced much superficial detail in the formalization. If effects were separated into their own syntactic class then we would also need separate effect abstraction and effect application forms in the expression language. We would also need to prove administrative properties about de Bruijn lifting and substitution separately for effects as well as general types. Including effect sums in the general type language turned out to be much simpler.
+
+Rule (KiApp) prevents the result of a type application from having $\kcRegion$ kind. This restriction is needed to provide the canonical forms Lemma~\ref{l:kind_region} which states that every closed type of kind $\kcRegion$ is a region handle. If we allowed type applications to have $\kcRegion$ kind then this would not be true. We have not thought of a situation where relaxing this restriction would be useful.
+
+Rules (KiCon0) - (KiCon2) give the kinds of primitive type constructors, using the auxiliary meta-level functions `kindOfTyCon0' -- `kindOfTyCon2'. These auxiliary functions are used for proof engineering reasons: they reduce the number of kinding rules and allow us to add new type constructors without disturbing the body of the proof.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Properties of the kinding rules}
+
+% -----------------------------------------------
+% Lemma kind_region
+%  :  forall t sp
+%  ,  KindT   nil sp t KRegion
+%  -> (exists p, t = TCap (TyCapRegion p)).
+%
+\begin{lemma}
+\label{l:kind_region}
+A closed type of kind $\kcRegion$ is a region handle.
+\end{lemma}
+$
+\begin{array}{ll}
+        \pIf    & \KindT{\nil}{\msp}{t}{\kcRegion}
+\\      \pthen  & (\pexists~ p.~ t = \trgn{p})
+\end{array}
+$
+
+\smallskip\noindent
+Used in the proof of Progress (Theorem~\ref{t:Progress}) to ensure that the region types passed to primitive operators like @read@ and @write@ are indeed region handles.
+\qqed
+
+
+% -----------------------------------------------
+% Lemma kind_kienv_insert
+%  :  forall ke sp ix t k1 k2
+%  ,  KindT  ke sp t k1
+%  -> KindT  (insert ix k2 ke) sp (liftTT 1 ix t) k1.
+%
+\begin{lemma}
+We can insert a new element into the kind environment at position $ix$, provided we lift existing references to elements higher than this across the new one.
+\end{lemma}
+$
+\begin{array}{ll}
+        \pIf    & \KindT{\mke}{\msp}{t}{k_1}
+\\      \pthen  & \KindT{\trm{insert}~ ix~ k_2~ ke}
+                        {sp}
+                        {\liftTT{ix}{t}}
+                        {k_1}
+\end{array}
+$
+\
+
+\smallskip\noindent
+The syntax $\liftTT{ix}{t}$ is the de Bruijn index lifting operator for type expressions. The application $(\trm{insert}~ ix~ k_2~ \mke)$ inserts element $k_2$ at position $ix$ in the list $\mke$, using the meta-function `insert'.
+\qqed
+
+
+
+% -----------------------------------------------
+\begin{lemma}
+Adding a new store property to the start or end of the list preserves the inferred kind of a type.
+\end{lemma}
+
+\begin{center}
+$
+\begin{array}{ll}
+        \pIf    & \KindT{ke}{\msp}{t}{k}
+\\      \pthen  & \KindT{ke}{\msp,~ p}{t}{k}
+\end{array}
+$
+\qq\qq
+$
+\begin{array}{ll}
+        \pIf    & \KindT{\mke}{\msp}{t}{k}
+\\      \pthen  & \KindT{\mke}{p,~ \msp}{t}{k}
+\end{array}
+$
+\end{center}
+
+\smallskip\noindent
+These weakening lemmas are used when adding allocating a new region in the store. In this paper presentation we overload the comma operator to add elements to the beginning and end of an environment, as well as to append two environments.
+
+\qqed
+

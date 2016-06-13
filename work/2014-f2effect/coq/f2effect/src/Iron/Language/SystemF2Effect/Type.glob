@@ -1,0 +1,7 @@
+DIGEST 4ac9197d4c23ea2ce5afe137e1b0825d
+FIron.Language.SystemF2Effect.Type
+R16:52 Iron.Language.SystemF2Effect.Type.Exp <> <> lib
+R70:107 Iron.Language.SystemF2Effect.Type.Util <> <> lib
+R125:163 Iron.Language.SystemF2Effect.Type.TyEnv <> <> lib
+R181:222 Iron.Language.SystemF2Effect.Type.Operator <> <> lib
+R240:281 Iron.Language.SystemF2Effect.Type.Relation <> <> lib

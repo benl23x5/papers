@@ -1,0 +1,24 @@
+DIGEST 3bd4bbe9b1cc05a6b85c32c258f66a11
+FIron.Language.SystemF2Effect.Base
+R16:29 Iron.Data.Bool <> <> lib
+R47:60 Iron.Data.List <> <> lib
+R78:90 Iron.Data.Nat <> <> lib
+R108:121 Iron.Norm.List <> <> lib
+R139:147 Iron.Norm <> <> lib
+R165:180 Iron.Tactics.Rip <> <> lib
+R198:217 Iron.Tactics.Rewrite <> <> lib
+R235:251 Iron.Tactics.Case <> <> lib
+R269:285 Iron.Tactics.Nope <> <> lib
+R303:320 Iron.Tactics.Break <> <> lib
+R338:355 Iron.Tactics.Short <> <> lib
+R373:389 Iron.Tactics.Have <> <> lib
+R407:425 Iron.Tactics.Exists <> <> lib
+R443:465 Iron.Tactics.LibTactics <> <> lib
+R483:497 Coq.Arith.Arith <> <> lib
+R515:535 Coq.Arith.Compare_dec <> <> lib
+R553:586 Coq.Logic.FunctionalExtensionality <> <> lib
+R728:731 Coq.Init.Peano <> :nat_scope:x_'>'_x not
+R761:764 Coq.Init.Peano <> :nat_scope:x_'<'_x not
+R794:797 Coq.Init.Peano <> :nat_scope:x_'>='_x not
+R827:830 Coq.Init.Peano <> :nat_scope:x_'<='_x not
+R941:947 Coq.Arith.EqNat <> beq_nat def

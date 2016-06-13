@@ -1,0 +1,211 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+$$
+\begin{array}{cc}
+% -----------------------------------------------
+% Inductive TYPEC 
+%    :  kienv -> tyenv 
+%    -> stenv -> stprops 
+%    -> stack -> exp 
+%    -> ty    -> ty -> Prop :=
+%
+\fbox{$\TypeC{\mkienv}{\mtyenv}{\mstenv}{\mstprops}
+             {\mstack}{\mexp}{\mtype}{\mtype}$}
+& \trm{(TypeC)}
+\\[3ex]
+
+
+% ----------------------------------------------
+% | TcExp
+%   :  forall ke te se sp fs x1 t1 e1 t2 e2 e3
+%   ,  EquivT ke sp (TSum e1 e2) e3 KEffect
+%   -> TYPEX  ke te se sp x1 t1 e1
+%   -> TYPEF  ke te se sp fs t1 t2 e2
+%   -> TYPEC  ke te se sp fs x1 t2 e3.
+%
+\ruleI
+{ \begin{array}{ll}
+&
+        \EquivT {\mke}{\msp}
+                {e_1 + e_2}
+                {e_3}
+                {\kcEffect}
+\\
+        \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs}
+                {t_1}
+                {t_2}
+                {e_2}
+        & 
+        \TypeX  {\mke}{\mte}{\mse}{\msp}
+                {x_1}
+                {t_1}
+                {e_1}
+  \end{array}
+}
+{       \TypeC  {\mke}{\mte}{\mse}{\msp}
+                {\mfs}
+                {x_1}
+                {t_2}
+                {e_3}
+}
+& \trm{(TcExp)}
+\\[5ex]
+
+
+% -----------------------------------------------
+% TYPEF :  kienv -> tyenv 
+%       -> stenv -> stprops 
+%       -> stack -> ty -> ty 
+%       -> ty -> Prop := 
+\fbox{$\TypeF   {\mkienv}{\mtyenv}{\mstenv}{\mstprops}
+                {\mstack}{\mtype}{\mtype}{\mtype}$}
+& \trm{(TypeF)}
+\\[3ex]
+
+
+% ----------------------------------------------
+% | TfNil 
+%   :  forall ke te se sp t
+%   ,  KindT  ke sp t KData
+%   -> TYPEF  ke te se sp nil t t (TBot KEffect)
+\ruleI
+{
+        \KindT  {\mke}{\msp}{t}{\kcData}
+}
+{
+        \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\nil}
+                {t}
+                {t}
+                {\bot}
+}
+& \trm{(TfNil)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% | TfConsLet
+%   :  forall ke te se sp fs t1 x2 t2 e2 t3 e3
+%   ,  STOREP sp fs
+%   -> KindT  ke sp t1 KData
+%   -> TYPEX  ke (te :> t1) se sp                    x2 t2 e2
+%   -> TYPEF  ke te         se sp fs                 t2 t3 e3
+%   -> TYPEF  ke te         se sp (fs :> FLet t1 x2) t1 t3 (TSum e2 e3)
+\hspace{-1em}
+\ruleI
+{ \begin{array}{ll}
+&
+       \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs}
+                {t_2}
+                {t_3}
+                {e_3}
+\\
+       \KindT  {\mke}{\msp}
+                {t_1}
+                {\kcData}
+&       \TypeX  {\mke}
+                {\mte,~ \bra{z} : t_1}
+                {\mse}
+                {\msp}
+                {x_2}
+                {t_2}
+                {e_2}
+\end{array}
+}
+{       \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs,~ \klet~ \bra{z} : t_1 = \circ ~\kin~ x_2}
+                {t_1}
+                {t_3}
+                {e_2 + e_3}
+}
+& \hspace{-1em} \trm{(TfConsLet)}
+\\[4ex]
+
+
+% -----------------------------------------------
+% | TfConsPriv
+%   :  forall ke te se sp fs t1 t2 e2 p
+%   ,  In (SRegion p) sp
+%   -> NoPrivFs p fs
+%   -> LiveE  fs e2
+%   -> TypeF  ke te se sp fs                   t1 t2 e2
+%   -> TypeF  ke te se sp (fs :> FPriv None p) t1 t2 e2
+\ruleI
+{ \begin{array}{l}
+        \sregion{p} \in \msp
+\qq  
+        \trm{NoPrivFs}~ p~ \mfs
+\\
+        \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs}
+                {t_1}
+                {t_2}
+                {e_2}
+\qq
+        \LiveE  {\mfs}{e_2}
+ \end{array}
+}
+{       \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs,~ \fprivd{p}}
+                {t_1}
+                {t_2}
+                {e_2}
+}
+& \hspace{-1em}\trm{(TfConsPriv)}
+\\[4ex]
+
+
+% -----------------------------------------------
+% | TfConsExt 
+%   :  forall ke te se sp fs t0 t1 e2 p1 p2
+%   ,  In (SRegion p1) sp 
+%   -> In (SRegion p2) sp
+%   -> FreshFs     p2 fs
+%   -> FreshSuppFs p2 se fs
+%   -> LiveE  fs (TSum e2 (TAlloc (TRgn p1)))
+%   -> TypeF  ke te se sp fs                         (mergeT p1 p2 t0) t1 e2
+%   -> TypeF  ke te se sp (fs :> FPriv (Some p1) p2) t0 t1 (TSum e2 (TAlloc (TRgn p1))).
+\ruleI
+{ \begin{array}{l}
+        \sregion{p_1} \in \msp
+\qq     \sregion{p_2} \in \msp
+\\
+        \LiveE  {\mfs}
+                {e_2 +  \tcAlloc~ (\trgn{p_1})}
+\qq     \trm{FreshFs}~     p_2~ \mfs
+\qq     \trm{FreshSuppFs}~ p_2~ \mse~ \mfs
+\\
+        \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs}
+                {(\trm{mergeT}~ p_1~ p_2~ t_1)}
+                {t_2}
+                {e_2}
+ \end{array}
+}
+{       \TypeF  {\mke}{\mte}{\mse}{\msp}
+                {\mfs,~ \fprivm{p_1}{p_2}}
+                {t_1}
+                {t_2}
+                {e_2 + \tcAlloc~ (\trgn{p_1})}
+}
+& \hspace{-1em}\trm{(TfConsExt)}
+\\[2ex]
+
+
+
+
+\end{array}
+$$
+
+} % boxfig
+\smallskip
+\caption{Types of Configurations and Frame Stacks}
+\label{f:TypeC}
+\end{figure}
+
+
+

@@ -1,0 +1,144 @@
+%!TEX root = ../../Main.tex
+
+\input{figures/StoreT.tex}
+\subsection{Store Environment and Well Formedness}
+
+The store environment contains the types of each location in the store, and was defined in Fig.~\ref{f:Environments}. Well formedness for stores is defined in Fig.~\ref{f:StoreTyping}. The judgment \mbox{$\WfFS{\mse}{\msp}{\mss}{\mfs}$} reads: ``with store environment $\mse$ and store properties $\msp$, store $\mss$ and frame stack $\mfs$ are well formed''. To keep the formalism manageable, this well-formedness judgment is defined in terms of several auxiliary judgments. The first says that all types in the store environment must be closed. We describe the others in turn.
+
+The judgment ~$\StoreT{\mse}{\msp}{\mss}$~ reads: ``with store environment $\mse$ and store properties $\msp$, store $\mss$ is well typed.'' A judgment of this form specifies that all store bindings in the store are closed and well typed with respect to their corresponding entries in the store environment. This judgment form is defined in terms of an auxiliary one ~$\TypeB{\mke}{\mte}{\mse}{\msp}{b}{t}$~ that checks the type of a single store binding $b$. In the notation used in rule (StoreT), a statement like `$\trm{Forall2}~ b,t ~\trm{in}~ \mss,\mse.~P(b,t)$' asserts that property $P$ is true for pairs of elements $b$ and $t$ taken from the lists $\mss$ and $\mse$. The quantifier `$\trm{Forall2}$' comes as part of the standard Coq libraries, along with many administrative lemmas.
+
+Rule (TbValue) says that a value $v$ in some region $p$, written $\sbvalue{p}{v}$, is well typed when the value itself is well typed and the region identifier $p$ exists in the store properties. Rule (TbDead) is similar, though a deallocated value can be assigned any type, similarly to the @undefined@ value from Haskell.
+
+The judgment ~$\StoreP{\msp}{\mfs}$~ reads: ``with store properties $\msp$, the frame stack $\mfs$ is covered''. The only inference rule (StoreP) ensures that every region identifier $p$ that appears in a @priv@ frame on the stack also appears in the store properties. 
+
+The judgment ~$\StoreM{\mse}{\mss}$~ reads: ``the store environment $\mse$ models the store $\mss$''. The only inference rule (StoreM) requires both $\mse$ and $\mss$ to have the same length, which together with (StoreT) ensures that there are no entries in the store environment that do not have corresponding entries in the store.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Properties of the Store Typing}
+The following are the key lemmas used to show that the well formedness of the store is preserved during evaluation. We have one lemma for each of the rules of Fig~\ref{f:Step} that modify the store. 
+
+
+% -----------------------------------------------
+% Lemma wfFS_push_priv_top
+%  :  forall se sp ss fs p2
+%  ,  WfFS se sp ss fs
+%  -> WfFS se (SRegion p2 <: sp) ss (fs :> FPriv None p2).
+%
+% Lemma wfFS_push_priv_ext
+%  :  forall se sp ss fs p1 p2
+%  ,  In (SRegion p1) sp
+%  -> WfFS  se  sp ss fs
+%  -> WfFS  se  (SRegion p2 <: sp) ss (fs :> FPriv (Some p1) p2).
+
+\begin{lemma} Pushing a new @priv@ frame on the stack, and appending the corresponding entry to the store environment preserves well formedness of the store.
+\end{lemma}
+$
+\begin{array}{ll}
+   \pIf         & \WfFS{\mse}{\msp}{\mss}{\mfs}
+\\ \pthen       & \WfFS{\mse}{\sregion{p},~ \msp}{\mss~}{~\mfs,~ \fprivd{p}~}
+\end{array}
+$
+
+\medskip
+$
+\begin{array}{ll}
+   \pIf         & \WfFS{\mse}{\msp}{\mss}{\mfs} 
+ ~~~ \pand ~~~      \sregion{p_1} \in \msp
+\\ \pthen       & \WfFS{\mse}{\sregion{p_2},~ \msp}{\mss~}{~\mfs,~ \fprivm{p_1}{p_2}~}
+\end{array}
+$
+
+\medskip\noindent
+During evaluation, new region identifiers are created by the (SfPrivatePush) and (SfExtendPush) rules of Fig~\ref{f:Step}. Note that the well formedness judgment itself does not require that the new region identifiers are fresh with respect to existing identifiers. Freshness is enforced by the (TypeF) judgment of Fig.~\ref{f:TypeC}, which we will discuss in \S\ref{s:Configurations}.
+\qqed
+
+
+% -----------------------------------------------
+% Lemma wfFS_stbind_snoc
+%  :  forall se sp ss fs p v t
+%  ,  In (SRegion p) sp
+%  -> TypeV  nil nil se sp v t
+%  -> WfFS           se sp ss fs
+%  -> WfFS   (TRef (TRgn p) t <: se) sp 
+%            (StValue p v <: ss) fs.
+\begin{lemma} Adding a closed store binding to the store, and corresponding entry to the store environment preserves the well formedness of the store.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \TypeV{\nil}{\nil}{\mse}{\msp}{v}{t}
+  ~~~\pand~~      \sregion{p} \in \msp
+\\ ~\pand       & \WfFS {\mse}{\msp}{\mss}{\mfs}
+\\  \pthen      & \WfFS {\tcRef~ (\trgn{p})~ t,~ \mse}
+                         {\msp}
+                         {\sbvalue{p}{v},~ \mss}
+                         {\mfs}
+\end{array}
+$
+\qqed
+
+
+% -----------------------------------------------
+% Lemma wfFS_stbind_update
+%  :  forall se sp ss fs l p v t
+%  ,  get l se = Some (TRef (TRgn p) t)
+%  -> In (SRegion p) sp
+%  -> TypeV nil nil se sp v t
+%  -> WfFS se sp ss fs
+%  -> WfFS se sp (update l (StValue p v) ss) fs.
+\begin{lemma} Updating a store location with a closed well typed binding preserves the well formedness of the store.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \mget~ l~ \mse = \tref{p}{t}
+\\ ~\pand       & \TypeV {~\nil}{~\nil}{\mse} {\msp}{v}{t}
+  ~~\pand~~       \sregion{p} \in \msp
+\\ ~\pand       & \WfFS  {\mse} {\msp} {\mss} {\mfs}
+\\  \pthen      & \WfFS  {\mse} {\msp} {\mupdate~ l~ (\sbvalue{p}{v})~ \mss} {\mfs}
+\end{array}
+$
+\qqed
+
+
+% ------------------------------------------------
+% Lemma wfFS_region_deallocate
+%  :  forall se sp ss fs p
+%  ,  WfFS se sp ss                     (fs :> FPriv None p)
+%  -> WfFS se sp (map (deallocRegion p) ss) fs.
+\begin{lemma} Deallocating a region preserves the well formedness of the store.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \WfFS{\mse}{\msp}{\mss}{\mfs,~ \fprivd{p}}
+\\  \pthen      & \WfFS{\mse}{\msp}{\trm{map}~ (\mdeallocB~ p)~ \mss}{\mfs}
+\end{array}
+$
+
+\medskip\noindent
+The bare fact that deallocating a region preserves the well formedness of the store is straightforward to prove, because the (TbDead) rule of Fig.~\ref{f:StoreTyping} allows deallocated bindings to have the same types as they did before deallocation. Proving that subsequent reduction does not get stuck requires further machinery, which we discuss in \S\ref{s:Liveness}.
+\qqed
+
+\eject
+% -----------------------------------------------
+% Lemma wfFS_pop_priv_ext
+%  :  forall se sp ss fs p1 p2
+%  ,  In (SRegion p1) sp
+%  -> WfFS se sp ss (fs :> FPriv (Some p1) p2)
+%  -> WfFS (mergeTE p1 p2 se) sp (mergeBs p1 p2 ss) fs.
+\begin{lemma} Merging bindings into an existing region preserves the well formedness of the store.
+\end{lemma}
+$
+\begin{array}{ll}
+    \pIf        & \WfFS{\mse}{\msp}{\mss}{\mfs,~ \fprivm{p_1}{p_2}} 
+\\  ~~\pand     & \sregion{p_1} \in \msp
+\\  \pthen      & \WfFS {\trm{map}~ (\trm{mergeT}~ p_1~ p_2)~ \mse}
+                        {\msp}
+                        {\trm{map}~ (\mmergeB~ p_1~ p_2)~ \mss}
+                        {\mfs}
+\end{array}
+$
+
+\medskip\noindent
+When we merge bindings from one region into another, we must update their corresponding types in the store environment to match. This is achieved with the `mergeT' meta-function, where the application ($\trm{mergeT}~p_1~p_2~ t$) rewrites all region identifiers $p_2$ to $p_1$ in type $t$. 
+\qqed
+

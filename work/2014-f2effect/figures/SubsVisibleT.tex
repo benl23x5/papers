@@ -1,0 +1,39 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+$$
+\begin{array}{cc}
+\fbox{$\SubsVisibleT{\mkienv}{\mstprops}{\mstprops}{\mtype}{\mtype}$}
+& \trm{(SubsVisibleT)}
+\\[3ex]
+
+
+% -----------------------------------------------
+% Definition SubsVisibleT ke sp spVis e e'
+%  := SubsT ke
+%           sp 
+%           e 
+%           (maskOnT (fun t => negb (isVisibleE spVis t)) e') 
+%           KEffect.
+\ruleI
+{       \SubsT  {\mke}{\msp}{e}
+                {\mmaskNotVisible~ \msp'~ e'}
+                {\kcEffect}
+}
+{       \SubsVisibleT  
+                {\mke}{\msp}{\msp'}{e}{e'}
+}
+& \trm{(SubsVisibleT)}
+\\[3ex]
+
+\mmaskNotVisible~ \msp'~ e' 
+        \eqdef \mmaskOnT~ (\lambda t.~ \neg (\misVisibleE~ \msp'~ t))~ e'
+
+\end{array}
+$$
+} % boxfig
+\smallskip
+\caption{Visible Subsumption}
+\label{f:SubsVisibleT}
+\end{figure}

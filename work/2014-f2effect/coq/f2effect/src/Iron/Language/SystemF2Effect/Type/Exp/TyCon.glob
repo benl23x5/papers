@@ -1,0 +1,109 @@
+DIGEST cdc55f6d304f8a5d3d6ab1399f2633bb
+FIron.Language.SystemF2Effect.Type.Exp.TyCon
+R373:405 Iron.Language.SystemF2Effect.Kind <> <> lib
+ind 516:521 <> tycon0
+constr 536:543 <> TyConFun
+constr 560:568 <> TyConUnit
+constr 584:592 <> TyConBool
+constr 608:615 <> TyConNat
+R550:555 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+R574:579 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+R598:603 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+R622:627 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+R648:653 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+def 667:678 <> kindOfTyCon0
+R686:691 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon0 ind
+R704:705 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc var
+R715:722 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConFun constr
+R731:734 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R743:746 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R757:760 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R768:772 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R762:766 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R748:754 Iron.Language.SystemF2Effect.Kind.Ki <> KEffect constr
+R736:740 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R779:787 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConUnit constr
+R795:799 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R804:812 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConBool constr
+R820:824 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R829:836 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConNat constr
+R845:849 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+def 868:877 <> tycon0_beq
+R902:904 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc2 var
+R897:899 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc1 var
+R914:921 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConFun constr
+R927:934 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConFun constr
+R942:945 Coq.Init.Datatypes <> true constr
+R950:958 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConUnit constr
+R963:971 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConUnit constr
+R978:981 Coq.Init.Datatypes <> true constr
+R986:994 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConBool constr
+R999:1007 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConBool constr
+R1014:1017 Coq.Init.Datatypes <> true constr
+R1022:1029 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConNat constr
+R1035:1042 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConNat constr
+R1050:1053 Coq.Init.Datatypes <> true constr
+R1086:1090 Coq.Init.Datatypes <> false constr
+ind 1241:1246 <> tycon1
+constr 1261:1269 <> TyConRead
+constr 1285:1294 <> TyConWrite
+constr 1309:1318 <> TyConAlloc
+R1275:1280 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon1 ind
+R1299:1304 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon1 ind
+R1323:1328 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon1 ind
+def 1342:1353 <> kindOfTyCon1
+R1361:1366 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon1 ind
+R1379:1380 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc var
+R1393:1401 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRead constr
+R1409:1412 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R1422:1428 Iron.Language.SystemF2Effect.Kind.Ki <> KEffect constr
+R1414:1420 Iron.Language.SystemF2Effect.Kind.Ki <> KRegion constr
+R1433:1442 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConWrite constr
+R1449:1452 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R1462:1468 Iron.Language.SystemF2Effect.Kind.Ki <> KEffect constr
+R1454:1460 Iron.Language.SystemF2Effect.Kind.Ki <> KRegion constr
+R1473:1482 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConAlloc constr
+R1489:1492 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R1502:1508 Iron.Language.SystemF2Effect.Kind.Ki <> KEffect constr
+R1494:1500 Iron.Language.SystemF2Effect.Kind.Ki <> KRegion constr
+def 1527:1536 <> tycon1_beq
+R1561:1563 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc2 var
+R1556:1558 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc1 var
+R1573:1581 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRead constr
+R1586:1594 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRead constr
+R1601:1604 Coq.Init.Datatypes <> true constr
+R1609:1618 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConWrite constr
+R1622:1631 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConWrite constr
+R1637:1640 Coq.Init.Datatypes <> true constr
+R1645:1654 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConAlloc constr
+R1658:1667 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConAlloc constr
+R1673:1676 Coq.Init.Datatypes <> true constr
+R1709:1713 Coq.Init.Datatypes <> false constr
+def 1734:1748 <> isEffectTyCon_b
+R1756:1761 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon1 ind
+R1774:1775 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc var
+R1785:1793 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRead constr
+R1802:1805 Coq.Init.Datatypes <> true constr
+R1810:1819 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConWrite constr
+R1827:1830 Coq.Init.Datatypes <> true constr
+R1835:1844 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConAlloc constr
+R1852:1855 Coq.Init.Datatypes <> true constr
+ind 2007:2012 <> tycon2
+constr 2027:2034 <> TyConRef
+R2041:2046 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon2 ind
+R2067:2072 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon2 ind
+def 2086:2097 <> kindOfTyCon2
+R2105:2110 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tycon2 ind
+R2123:2124 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc var
+R2134:2141 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRef constr
+R2151:2154 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R2165:2168 Iron.Language.SystemF2Effect.Kind.Ki <> KFun constr
+R2176:2180 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R2170:2174 Iron.Language.SystemF2Effect.Kind.Ki <> KData constr
+R2156:2162 Iron.Language.SystemF2Effect.Kind.Ki <> KRegion constr
+def 2200:2209 <> tycon2_beq
+R2234:2236 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc2 var
+R2229:2231 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> tc1 var
+R2246:2253 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRef constr
+R2260:2267 Iron.Language.SystemF2Effect.Type.Exp.TyCon <> TyConRef constr
+R2273:2276 Coq.Init.Datatypes <> true constr

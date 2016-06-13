@@ -1,0 +1,6 @@
+DIGEST f134a58cf030e38524766a9ea9a6171e
+FIron.Language.SystemF2Effect.Type.Relation.KindT
+R16:68 Iron.Language.SystemF2Effect.Type.Relation.KindT.Base <> <> lib
+R86:136 Iron.Language.SystemF2Effect.Type.Relation.KindT.Wf <> <> lib
+R154:211 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakKiEnv <> <> lib
+R229:288 Iron.Language.SystemF2Effect.Type.Relation.KindT.WeakStProps <> <> lib

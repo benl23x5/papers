@@ -1,0 +1,10 @@
+DIGEST 89844f164e8e281f7ac014dc5f0965f8
+FIron.Language.SystemF2Effect.Step
+R16:49 Iron.Language.SystemF2Effect.Store <> <> lib
+R67:99 Iron.Language.SystemF2Effect.Type <> <> lib
+R117:150 Iron.Language.SystemF2Effect.Value <> <> lib
+R168:205 Iron.Language.SystemF2Effect.Step.Pure <> <> lib
+R223:261 Iron.Language.SystemF2Effect.Step.Frame <> <> lib
+R279:320 Iron.Language.SystemF2Effect.Step.Progress <> <> lib
+R338:383 Iron.Language.SystemF2Effect.Step.Preservation <> <> lib
+R401:439 Iron.Language.SystemF2Effect.Step.Steps <> <> lib

@@ -1,0 +1,43 @@
+DIGEST b1ca8a65b5e4944bae8a0765bb7592e4
+FIron.Language.SystemF2Effect.Store
+R16:52 Iron.Language.SystemF2Effect.Store.Wf <> <> lib
+R70:109 Iron.Language.SystemF2Effect.Store.TypeB <> <> lib
+R127:167 Iron.Language.SystemF2Effect.Store.StoreT <> <> lib
+R185:224 Iron.Language.SystemF2Effect.Store.LiveE <> <> lib
+R242:281 Iron.Language.SystemF2Effect.Store.LiveS <> <> lib
+prf 458:473 <> storet_get_typev
+R602:606 Iron.Language.SystemF2Effect.Value.Relation.TyJudge <> TypeV ind
+R624:624 Iron.Language.SystemF2Effect.Store <> t var
+R622:622 Iron.Language.SystemF2Effect.Store <> v var
+R619:620 Iron.Language.SystemF2Effect.Store <> sp var
+R616:617 Iron.Language.SystemF2Effect.Store <> se var
+R612:614 Coq.Init.Datatypes <> nil constr
+R608:610 Coq.Init.Datatypes <> nil constr
+R576:578 Coq.Init.Logic <> :type_scope:x_'='_x not
+R567:569 Iron.Data.List.Base <> get def
+R574:575 Iron.Language.SystemF2Effect.Store <> ss var
+R571:572 Iron.Language.SystemF2Effect.Store <> ix var
+R579:582 Coq.Init.Datatypes <> Some constr
+R585:591 Iron.Language.SystemF2Effect.Store.Bind <> StValue constr
+R595:595 Iron.Language.SystemF2Effect.Store <> v var
+R593:593 Iron.Language.SystemF2Effect.Store <> r var
+R537:539 Coq.Init.Logic <> :type_scope:x_'='_x not
+R528:530 Iron.Data.List.Base <> get def
+R535:536 Iron.Language.SystemF2Effect.Store <> se var
+R532:533 Iron.Language.SystemF2Effect.Store <> ix var
+R540:543 Coq.Init.Datatypes <> Some constr
+R546:549 Iron.Language.SystemF2Effect.Type.Exp.Base <> TRef syndef
+R552:555 Iron.Language.SystemF2Effect.Type.Exp.Base <> TRgn syndef
+R557:557 Iron.Language.SystemF2Effect.Store <> r var
+R560:560 Iron.Language.SystemF2Effect.Store <> t var
+R508:513 Iron.Language.SystemF2Effect.Store.StoreT <> StoreT def
+R521:522 Iron.Language.SystemF2Effect.Store <> ss var
+R518:519 Iron.Language.SystemF2Effect.Store <> sp var
+R515:516 Iron.Language.SystemF2Effect.Store <> se var
+R651:656 Iron.Language.SystemF2Effect.Store.StoreT <> StoreT def
+R675:694 Iron.Data.List.Forall2 <> Forall2_get_get_same thm
+R703:704 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R696:701 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind
+R675:694 Iron.Data.List.Forall2 <> Forall2_get_get_same thm
+R703:704 Iron.Language.SystemF2Effect.Type.Exp.Base <> ty ind
+R696:701 Iron.Language.SystemF2Effect.Store.Bind <> stbind ind

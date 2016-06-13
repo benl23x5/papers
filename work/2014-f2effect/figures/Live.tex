@@ -1,0 +1,127 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\boxfig{
+$$
+\begin{array}{cc}
+
+% -------------------------------------
+% Definition LiveEs (fs : stack) (es : list ty)
+%  := Forall (fun e1 => forall p2,  handleOfEffect e1 = Some p2
+%                    -> (exists m1, In (FPriv m1 p2) fs))
+%            es.
+%
+% Definition LiveE  (fs : stack) (e : ty)
+%  := LiveEs fs (flattenT e).
+%
+\fbox{$\LiveE{\mstack}{\mtype}$}
+& \trm{(LiveE)}
+\\[2ex]
+
+\ruleI
+{
+        \begin{array}{ll}
+        \pForall~ e_1~ \pin~ (\trm{flattenT}~ e). \\
+        ~~(\pforall~ p.~      
+                \pIf~~  p = \mhandleOfEffect~ e_1  ~~
+                \pthen~ (\pexists~ m.~ @priv@~m~p \in~ \mfs)
+        \end{array}
+}
+{       \LiveE  {\mfs}{e}
+}
+\\[2ex]
+
+\begin{array}{lll}
+\mhandleOfEffect~ 
+        & \hspace{-2ex} (\tcRead~  (\trgn p))   & \hspace{-2ex} = p      \\
+        & \hspace{-2ex} (\tcWrite~ (\trgn p))   & \hspace{-2ex} = p      \\
+        & \hspace{-2ex} (\tcAlloc~ (\trgn p))   & \hspace{-2ex} = p
+\end{array}
+\\[4ex]
+
+
+% -------------------------------------
+% Definition LiveS (ss : store) (fs : stack)
+%  := forall b f, In b ss -> In f fs -> LiveBF b f.
+%
+\fbox{$\LiveS{\mstore}{\mstack}$}
+& \trm{(LiveS)}
+\\[2ex]
+
+\ruleI
+{       \pforall~ b~ f
+                .~              b \in \mss 
+                ~\wedge~        f \in \mfs 
+                ~~\pimplies~~   \LiveBF{b}{f}     
+}
+{       \LiveS{\mss}{\mfs}      }
+\\[4ex]
+
+
+% -------------------------------------
+% Inductive  LiveBF : stbind -> frame -> Prop :=
+%  | LiveBF_FLet
+%    :  forall b t x
+%    ,  LiveBF  b (FLet t x)
+%
+%  | LiveBF_FPrivNone 
+%    :  forall b p
+%    ,  LiveBP b p             
+%    -> LiveBF b (FPriv None p)
+%
+%  | LiveBF_FPrivSome
+%    :  forall b p1 p2
+%    ,  LiveBP b p1 -> LiveBP b p2
+%    -> LiveBF b (FPriv (Some p1) p2).
+
+\fbox{$\LiveBF{\mstbind}{\mframe}$}
+& \trm{(LiveBF)}
+\\[2ex]
+
+\ruleA
+{       \LiveBF{b}{\flet{t}{x}} }
+\\[2ex]
+
+
+\ruleI
+{       \LiveBP{b}{p}           }
+{       \LiveBF{b}{\fprivd{p}}  }
+\qq
+
+
+\ruleI
+{       \LiveBP{b}{p_1} 
+ \quad   \LiveBP{b}{p_2}
+}
+{       \LiveBF{b}{\fprivm{p_1}{p_2}}  }
+\\[4ex]
+
+
+% -------------------------------------
+% Definition LiveBP  (b : stbind) (p : nat) 
+%  := regionOfStBind b = p -> isStValue b.
+
+\fbox{$\LiveBP{\mstbind}{p}$}
+& \trm{(LiveBP)}
+\\[2ex]
+
+\ruleA
+{       \LiveBP{\sbvalue{p_1}{v}}{p_2}  }
+\qq
+
+\ruleI
+{       p_1 \neq p_2                    }
+{       \LiveBP{\sbdead{p_1}}{p_2}      }
+
+\end{array}
+$$
+
+\medskip
+\hpad
+} % boxfig
+\smallskip
+\caption{Liveness of Effects and Frame Stacks}
+\label{f:Liveness}
+\end{figure}
+
+

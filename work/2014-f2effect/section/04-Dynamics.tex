@@ -1,0 +1,14 @@
+%!TEX root = ../Main.tex
+
+\section{Dynamic Semantics}
+\label{s:Dynamics}
+Fig.~\ref{f:Step} contains the small step dynamic semantics for \SystemFre. We use a frame stack to hold the continuation when evaluating a $\klet$ binding, as well as to remember the set of currently live regions. The single step semantics is defined in the next section, and there is a trace of an example expression in Fig.~\ref{f:ExampleTrace}.
+
+\input{section/04-Dynamics/01-Steps.tex}
+\input{section/04-Dynamics/02-StoreTyping.tex}
+\input{section/04-Dynamics/03-Liveness.tex}
+\input{section/04-Dynamics/04-TypesOfConfigs.tex}
+\input{section/04-Dynamics/05-Subsumption.tex}
+\input{section/04-Dynamics/11-Preservation.tex}
+\input{section/04-Dynamics/10-Progress.tex}
+

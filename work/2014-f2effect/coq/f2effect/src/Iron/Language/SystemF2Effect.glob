@@ -1,0 +1,7 @@
+DIGEST 688a7e2222bcda3f13f4f11b2ff992b4
+FIron.Language.SystemF2Effect
+R98:130 Iron.Language.SystemF2Effect.Kind <> <> lib
+R184:216 Iron.Language.SystemF2Effect.Type <> <> lib
+R277:310 Iron.Language.SystemF2Effect.Value <> <> lib
+R362:395 Iron.Language.SystemF2Effect.Store <> <> lib
+R431:463 Iron.Language.SystemF2Effect.Step <> <> lib
