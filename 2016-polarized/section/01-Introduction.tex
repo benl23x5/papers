@@ -13,11 +13,6 @@ Libraries like Iteratee and Enumerator guarantee that the client programs run in
 \item We show how to design the core API in a generic fashion so that chunk-at-a-time operators can interoperate smoothly with element-at-a-time operators. (\S\ref{s:Chunked})
 
 \item We use continuation passing style (CPS) to provoke the Glasgow Haskell Compiler into applying stream fusion across chunks processed by independent flow operators. (\S\ref{s:IntraChunk})
-
-% For example, the map-map fusion on flows arises naturally from map-map fusion rule on chunks (arrays) of elements.
-
-% We demonstrate how this technique can be extended to branching data flows, where produced flows are consumed by multiple consumers.
-
 \end{itemize}
 
 Our target applications concern \emph{medium data}, meaning data that is large enough that it does not fit in the main memory of a normal desktop machine, but not so large that we require a cluster of multiple physical machines. For lesser data one could simply load it into main memory and use an in-memory array library. For greater data one needs to turn to a distributed system such as Hadoop~\cite{Shvachko:Hadoop} or Spark~\cite{Zaharia:RDDs} and deal with the unreliable network and lack of shared memory. Repa Flow targets the sweet middle ground.

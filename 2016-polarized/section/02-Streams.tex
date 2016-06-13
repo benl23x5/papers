@@ -43,9 +43,6 @@ The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Si
         drainP ss sk
 \end{code}
 
-% In our concrete implementation we also include a @drainS@ (sequential) which evaluates each stream in turn rather than concurrently.
-%% trying to remove space, do not think this is necessary
-
 \begin{figure}
 \begin{code}
 sourceFs :: [FilePath] -> IO (Sources Int IO Char)
@@ -80,8 +77,6 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject)
         ejects = oeject i >> writeIORef loop False
     in  while (readIORef loop) (ipull i eats ejects)
 \end{code}
-% This was the best I could do with the updated drainP function.
-% I think the 'while' function is obvious enough to not be defined.
 
 \caption{Sourcing, Sinking and Draining}
 \label{f:Draining}
@@ -226,12 +221,6 @@ map_i f (Sources n pullsA)
                 ejectA = ejectB
 \end{code}
 
-% We have written this definition using separate let-bindings for each intermediate function, rather than with a single inline lambda abstraction for two reasons:
-% \begin{enumerate}
-% \item When writing larger functions using contination passing style we begin to feel worringly inside-out. Using intermediate bindings allows us to name each function with the type it expects, which makes the code easier to follow.
-% \item It allows us to attach INLINE pragmas to each bound name. This is a critical part of our fusion system, which we will discuss further in \S\ref{s:Chunked}.
-% \end{enumerate}
-
 Note that both @map_i@ and @map_o@ are simply flow transformers, and are neither inherently parallel or sequential. Repa Flow provides data parallelism, and this parallelism is introduced by the singular @drainP@ function. In this respect @drainP@ is similar to the @computeP@ function over delayed arrays from our original Repa library \cite{Lippmeier:Guiding}, except that parallelism is introduced on a per-stream level rather than a per-element level. We will return to the definition of @map_i@ when we discuss chunking in \S\ref{s:Chunked}.
 
 
@@ -285,7 +274,6 @@ project_o :: i -> Sinks   i m a -> Sinks   () m a
 funnel_i :: Sources i IO a ->  IO (Sources () IO a)
 funnel_o :: i -> Sinks () IO a -> IO (Sinks i IO a)
 \end{code}
-% the extra index argument to funnel_o messes up layout, and it's such a small implementation detail that I don't think it's worth putting in.
 
 The @project@ operators each take a stream index, an endpoint for a flow of several streams, and return an endpoint for a singleton flow containing only the specified stream. The @project_i@ operator takes a flow source of several streams, and returns a flow source that selects only the specified stream. The @project_o@ operator takes a flow sink for several streams and returns a sink that discards data in all streams except the specified one.
 
@@ -307,8 +295,6 @@ This is better expressed as a picture:
 \end{center}
 
 Drain fattening is valid provided the consumer of the final result source @k@ performs a commutative reduction, or is otherwise insensitive to the order in which elements arrive. By exchanging the order of @drainP@ and @funnel@ we allow parallel evaluation of multiple streams in the flow, at the expense of introducing non-determinism in the order in which elements are pushed to the sink. Drain fattening expresses the change in computation structure that arises when moving from a process that performs sequential reduction of a data set, to one that performs parallel tree reduction. However, in our case the change in computation structure is separated from the need to actually perform a reduction.
-
-% In future work it would be interesting to add a phantom type parameter to our @Sinks@ data type to represent the fact that a particular sink is insensitive to the order in which elements arrive. This would enable us to fatten our drains automatically, but for now the transformation must be performed by hand.
 
 Finally, although the syntactic transform requires @funnel_i@ to be close to @drainP@, the fact that our operators come in a variety of polarity versions allows us to pull many through a @drainP@ to bring their arguments closer, for example:
 \begin{alltt}

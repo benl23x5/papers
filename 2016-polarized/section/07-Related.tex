@@ -1,12 +1,5 @@
 %!TEX root = ../Main.tex
 \section{Related Work}
-% The idea of expressing data processing as a data flow graph is as old as computer science itself. The main contributions of this paper are 1) the observation that if we are careful about the polarity of our operators we can avoid introducing intermediate buffering; 2) the simple types of @Sources@ and @Sinks@ that enable data parallelism using @drainP@, and 3) the observation that using continuation passing style to define the operators, combined with the lack of buffering enables intra-chunk fusion. 
-
-% Contrast central dogma with back pressure.
-
-
-% However, we are not aware of an existing stream processing library based around the simple data types above.
-
 Our work is embodied in Repa Flow, which is available on Hackage. Repa Flow is a new layer on top of the existing Repa library for delayed arrays~\cite{Lippmeier:Guiding}, and performs fusion via the GHC simplifier rather than using a custom program transformation based on series expressions~\cite{Lippmeier:DataFlow} as in our prior work.
 
 Our system ensures that programs run in constant space, without requiring buffering or backpressure as in Akka~\cite{github:akka} and Heron~\cite{Kulkarn:Heron}. Our stream programs are fused into nested loops that read the input data from the source files, process it, and write the results immediately without blocking. The only intermediate space required is for aggregators --- for example if we had a stream of text and were counting the number of occurrences of each word we would need a map of words to the number of occurrences. 
@@ -20,30 +13,3 @@ The idea that parallelism can be introduced into a data flow graph via a single 
 
 In itself the duality between source and sink, push and pull, is folklore, and has previously been used for code generation in array processing languages~\cite{Claessen:ExpressiveArray,Svensson:Defunctionalizing} and XML processing pipelines~\cite{Kay:YouPull}. More recently, Bernardy and Svenningsson describe a library~\cite{Bernardy:Duality} that defines streams with sources and sinks, where each is defined as if it were the logical negation of the other. They also define co-sources and co-sinks, where a co-source is a sink that accepts element consumers and a co-sink is a source that produces element consumers. In related work Bernardy~\emph{et al} describe a core calculus \cite{Bernardy:Composable} based on Linear Logic which guarantees fusion does not increase the cost of program execution. The system is based fundamentally around linear logic rather than lambda calculus, with evaluation being driven by cut elimiation rather than function application. They describe a compiler targeting C and encouraging benchmark results.
 
-
-% In future work would be interesting to implement a system to take a data flow graph without a polarity assignment, and assign polarities to the combinators such that the entire graph can be executed without buffering (if possible). However, so far the largest programs we have written using the library have included only 10-15 combinators in a single function, and so far assigning the polarities has not been a burden. 
-
-% In practice there is usually a natural distinction between the \emph{input network} written using sources and the \emph{output network} using sinks, and hybrid combinators such as @dup_iio@ are used infrequently.
-
-% \begin{itemize}
-% \item Machines~\cite{hackage:machines} support multiple inputs and fanout.
-% \item FRP libraries, eg reflex.
-% \item Kahn networks.
-% \item StreamIt, Brook.
-
-% \item Iteratee~\cite{Kiselyov:iteratee}
-% \item Enumerator~\cite{hackage:enumerator}
-% \item Conduit~\cite{hackage:conduit}, we don't have await and yield. Flows are not monad transformers.
-% \item Pipes~\cite{hackage:pipes}
-% \item Monad par, is event flow network using IVars.
-% \item Spark~\cite{Zaharia:RDDs}.
-% \item Google Tensorflow
-% \item Lucy~\cite{Mandel:Lucy}.
-% \item On the polarity of pipelines~\cite{Kay:YouPull}.
-% \item Scalaz streams library~\cite{github:scalaz-streams}
-% \item Obsidian~\cite{Claessen:ExpressiveArray}.
-% \item Volcano DBMS one of the first to use abstract producers and iterator pattern. Its exchange operator is similar to our drainP.~\cite{Graefe:Volcano}
-% \end{itemize}
-
-
-% Repa flow fills a sweet spot between the roles functional array library and analytic database. In terms of the programming model, a key feature of Repa Flow compared with Scoobi and Scalding is that the API carefully distinguishes between operators that run in constant space and those which do not. Systems based on map-reduce make implicit use of a \emph{shuffle} operator that distributes data between the compute nodes. The \emph{shuffle} operator sends data between the nodes in a data-dependent way, which can result in a skewed workload where most data is sent to a subset of nodes while the others are starved. When all source-level queries are converted into map-reduce jobs then there is no systematic way in which skew can be avoided. Taking inspiration from the work on synchronous data flow and Khan networks, we have arranged our API so that most operators execute without buffering. With Repa Flow it is easy to write programs where both buffering and data skew are avoided by construction, or admitted only in a controlled way.
