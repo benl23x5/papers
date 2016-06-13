@@ -1,0 +1,32 @@
+\section{Introduction}
+
+Data Parallel Haskell (DPH) is an extension to the Glasgow Haskell Compiler (GHC) that implements \emph{nested data parallelism}. DPH is based on a vectorising program transformation called \emph{flattening}~\cite{blelloch-sabot:compiling-collection, keller-chak:tflat, chak-keller:more-types, leshchinskiy-etal:ho-flattening, Jones08harnessingthe}, which converts irregular and nested data parallelism into regular traversals over multiple flat arrays. Flattening simplifies load balancing and enables SIMD parallelism together with cache-friendly, linear traversals of unboxed arrays. 
+
+Unfortunately, without subsequent aggressive optimisation, flattened code is grossly inefficient on current computer architectures. A key aspect of flattening is to convert \emph{scalar operations} into aggregate \emph{array operations} --- such as turning floating-point addition into the pairwise addition of two arrays of floats. However, intermediate scalar values in the source code are also converted to arrays, so values that were once stored in scalar registers are now shuffled to and from memory between each array operation.
+
+The observation that flattening increases memory traffic is not new~\cite{so-etal:dp-many-core, chak:functional-array-fusion, chak-etal:partial-vectorisation, chak-etal:status-report}, and DPH uses array fusion~\cite{coutts:rewriting-strings, coutts:stream-fusion} to try and combine successive array operations back into a single traversal. While this works for small kernels, relying on fusion alone turned out to have four serious drawbacks:
+%
+\begin{enumerate}
+\item Array fusion can be fragile, as it depends on many enabling code transformations.
+
+\item Specifically, fusion depends critically on inlining --- which must be conservative in the presence of sharing to avoid work duplication, and cannot handle recursive definitions.
+
+\item Aggressive inlining leads to large intermediate programs, and hence long compile times.
+
+\item Even if fusion goes well, GHC's current back-end code generators cannot properly optimise fused code, which leads to excessive register use in the resulting machine code.
+\end{enumerate}
+
+On closer inspection, we have identified many common situations in which vectorisation provides no benefit, though the overheads introduced are very much apparent. Thus motivated, we present a program analysis that allows us to completely avoid vectorising parts of the program that do not require it. To our knowledge, this is the first attempt to guide flattening-based vectorisation so that vectorisation is avoided where it is not needed, instead of relying on a subsequent fusion stage to clean up afterwards. 
+
+In summary, we make the following contributions:
+%
+\begin{itemize}
+\item We characterise those parts of DPH programs where vectorisation introduces overheads, without appropriate gain (Section~\ref{Section:too-much} \&~\ref{Section:Vectorisation}).
+
+\item We introduce a program analysis to identify subexpressions that need not be vectorised and modify the flattening transform to lift entire expressions to vector-space, which avoids converting its intermediates to array values. (Section~\ref{Section:NewTrafo}).
+
+\item We present empirical evidence that supports our claim that vectorisation avoidance is an improvement over plain array fusion, at least for our benchmarks (Section~\ref{Section:Performance})
+\end{itemize}
+%
+
+In our previous work~\cite{chak-etal:partial-vectorisation} we introduced \emph{partial vectorisation}, which allows vectorised and unvectorised code to be combined in the same program. With partial vectorisation, the unvectorised portion fundamentally \emph{cannot} be vectorised, such as when it performs an IO action. In contrast, this paper presents \emph{vectorisation avoidance}, where the unvectorised portion is code that \emph{could} be vectorised, but we choose not to for performance reasons. We discuss further related work in Section~\ref{sec:related}.

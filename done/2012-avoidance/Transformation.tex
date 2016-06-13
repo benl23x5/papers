@@ -1,0 +1,196 @@
+\section{Transformation Rules}
+\label{Section:NewTrafo}
+
+\begin{figure*}
+$$\begin{array}{c}
+\hline \\[-2mm]
+\mbox{Definition of right associative operator \orp, overloaded to work on labels and labelled expressions}\\[2mm]
+\begin{array}{rcll}
+t \orp \AVP &=& \AVP \\
+t_1 \orp t_2    &=& t_1,  \mbox{if $t_2 \neq \AVP$} 
+\end{array}
+%
+\\ \\[-2mm]
+\hline \\[-2mm]
+%
+\mbox{$\AT{\cdot} :: \textit{Type} \to \{\AVP,\AVC,\AVS\}$} \\ \\
+\begin{array}{rcll}
+\AT{\tau_1 \to \tau_2} & = & \AVC \orp \AT{\tau_1} \orp \AT{\tau_2} \\
+\AT{@[:@\tau@:]@}    & = & \AVP  \\
+%\AT{\tau} & = & \AVS, \tau \in @Scalar@  & \mbox{Scalar types}\\
+\AT{T~\tau_1 \ldots \tau_n} & = &  \AVS &\mbox{if $T~\tau_1$ $\ldots$ $\tau_n$ $\in$ @Scalar@, where \(n \geq 0\)} \\
+     &=& \AVP& \mbox{if $T \in P_{ts}$} \\
+     &=& \AVC \orp \AT{\tau_1} \orp \cdots \orp \AT{\tau_n}& \mbox{otherwise}
+\end{array} \\ \\[-2mm]
+%
+\hline \\[-2mm]
+%
+\mbox{$\AV\cdot\cdot :: \textit{Expr} \to \{\textit{Var}\} \to \textit{LExpr}$} \\ \\
+\begin{array}{rcll}
+\AV{k::\tau}{P}            & = & (k, \AVS) & \mbox{$k$ is a literal} \\
+%       
+\AV{x::\tau}{P}            & = & (x, \AVP)       \hspace{3.3em} \mbox{if $x \in P$}  & \mbox{$x$ is a variable}  \\
+                           &   & (x, \AT{\tau})  \hspace{1em} \mbox{otherwise} \\
+%
+\AV{C::\tau}{P}            & = & (C, \AT{\tau})    & \mbox{$C$ is data constructor} \\
+%
+\AV{e_1 \; e_2 :: \tau}{P} & = & ((\AV{e_1}{P})(\AV{e_2}{P}), \\
+                           &   & \;\AT{\tau} \orp \AV{e_1}{P} \orp \AV{e_2}{P})\\
+%
+   \AV{(\lambda{x:: \tau}.e)}{P} & = & (\lambda{x}. (\AV{e}{P})  , ~~ \AV{e}{P} \orp \AT{\tau}) \\
+%                                & = & (\lambda{x}. (\AV{e}{s})  , \AVC \orp \AV{e}{s} \orp \AT{\tau}) & \mbox{otherwise}\\   
+%                                  
+\AV{(@if@\,e_1  @then@ \,e_2\, @else@ \, e_3) :: \tau}{P} 
+    & = & ( @if@\, \AV{e_1}{P} \, @then@ \,\AV{e_2}{P} \, @else@ \, \AV{e_3}{P}, \\
+    &   & \;\AT{\tau} \orp \AV{e_1}{P} \orp \AV{e_2}{P} \orp \AV{e_3}{P})\\
+%       
+\AV{(@let@\, x:: \tau_1   @=@ \,e_1\,  @in@ \,e_2) :: \tau}{P} 
+  & =  & (@let@\, x  @=@ \,\AV{e_1}{(P \cup \{x\})} \, @in@\, \AV{e_2}{(P \cup \{x\})}, \AVP) 
+       & \mbox{if $\AV{e_1}{P} = (e_1', \AVP)$} \\
+  &&   & \mbox{and $\tau_1 \not\in @Scalar@$}\\
+%
+%\AV{(@let@\, x :: \tau_1  @=@ \,e_1\,  @in@ \,e_2) :: \tau}{s} 
+  & = & (@let@\, x  @=@ \,\AV{e_1}{P} \, @in@\, \AV{\,e_2}{P}, & \mbox{otherwise}\\
+  && \;{\AT{\tau} \orp \AV{e_1}{P} \orp \AV{e_2}{P}}) \\
+  %
+\AV{(@case@\,e_1 \, @of@ \,C\,\tup{x_i ::\tau_i} \, \rightarrow \,e_2) :: \tau}{P} 
+  & =& (@case@\, \AV{e_1}{P} \, @of@ \,C\,\tup{x_i ::\tau_i}\, \rightarrow \,\AV{e_2}{(P\cup \tup{x_i})}, &\mbox{if $\AV{e_1}{P} = (e_1', \AVP)$}\\
+ &&   \; \AVP)                    & \mbox{and $\tup{\tau_i} \not\in @Scalar@$}\\
+%
+%\AV{(@case@\,e_1 \, @of@ \,C\, \tup{x_i ::\tau_i}  \, \rightarrow \,e_2) :: \tau}{p} 
+  & =& (@case@\, \AV{e_1}{P} \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,\AV{e_2}{P},& \mbox{otherwise} \\
+ &&\; \AT{\tau} \orp \AV{e_1}{P} \orp \AV{e_2}{P})   \\ 
+\end{array} \\ \\[-2mm]
+\end{array}$$
+\caption{Static code analysis determining the subexpressions that need to be vectorised}
+\label{fig:labeling}
+\end{figure*}
+%
+We will now formalise our intuition about where and how to avoid vectorisation. The formalisation consists of three parts:
+\begin{enumerate}
+\item   \emph{labelling} --- a static code analysis that identifies maximal sequential subexpressions
+\item   \emph{encapsulation} --- a code transformation that isolates the maximal sequential subexpressions
+\item   a slight modification of the vectorisation transformation that uses labelling information to avoid vectorisation.
+\end{enumerate}
+
+
+% -----------------------------------------------------------------------------
+\subsection{Labelling}
+
+Labelling performs an initial pass over the program to be vectorised. To decide which parts are maximally sequential, we need labels for each subexpression, as well as the current context. Figure~\ref{fig:labeling} defines \AT\cdot ~ to label types, and \AV\cdot\cdot ~ to label expressions. These functions produce four possible labels:
+%
+\begin{itemize}
+\item $\AVP$ --- the labelled expression (or type) \emph{may contain} a parallel subexpression (or a parallel array subtype);
+
+\item $\AVS$ --- the labelled expression (or type) \emph{does not contain} any parallel subexpression (or parallel array subtype) and 
+the type of the expression (or the type itself) \emph{is} a member of type class @Scalar@;
+
+\item $\AVC$ --- the labelled expression (or type) \emph{does not contain} any parallel subexpression (or parallel array subtype), but the type of the expression (or the type itself) \emph{is not} a member of type class @Scalar@; and
+
+\item $\AVE$ --- the labelled expression is an encapsulated lambda abstractions whose body we avoid to vectorise.
+\end{itemize}
+
+\eject
+\noindent
+The type labeller maps a type to a label:
+\[
+\AT\cdot :: \textit{Type} \to \{\AVS, \AVP, \AVC\} 
+\]
+In the present formalisation, we omit polymorphic types as they don't add anything interesting. Our implementation in GHC works fine with polymorphism and all of GHC's type extensions.
+
+The intuition behind $\AT{\tau}$ is that it produces $\AVS$ for types in the class @Scalar@, $\AVP$ for types containing parallel arrays, and $\AVC$ in all other cases. It depends on a set $P_{ts}$ (parallel types) that contains all type constructors whose definition either directly includes @[::]@ or indirectly includes it via other types in $P_{ts}$.
+
+Labelling uses a right associative operator $\orp$ (combine) that combines labelling information from subexpressions 
+and subtypes. It is biased towards its first argument, except when the second argument is $\AVP$, in which 
+case $\AVP$ dominates. We assume $\orp$ is overloaded to work on labels and labelled  expression. In the latter case, it ignores the expression and considers the label only.
+
+The expression labeller takes an expression to be labelled, and a set of variables $P$ (parallel variables) which may introduce parallel computations. It produces a \emph{labelled expression}, being a pair of an expression and a label, which we denote by \textit{LExpr}.
+\[
+\AV\cdot\cdot :: \textit{Expr} \to \{\textit{Var}\} \to \textit{LExpr}
+\]
+We assume $P$ initially includes all imported variables that are bound to potentially parallel computations.  Labelling of expressions does not just produce one label, it rewrites the expression so that each subexpression is labelled as well. A label can be considered an attribute in the sense of attribute grammars.
+
+The expression labeller operates as follows. Literals are labeled $\AVS$. Variables in the set $P$ are labeled $\AVP$, otherwise the label depends on their type, as is the case with data constructors. For applications, the label depends on their type, unless one subexpression is $\AVP$. The same holds for conditionals.
+
+If the body of a lambda expression or its argument type are $\AVP$, then the whole expression will be labelled $\AVP$, otherwise it is handled slightly differently. The type of a sequential lambda expression is never in @Scalar@, so tagging it $\AVC$ does not add any information. What we are interested in is the tag of its body (once stripped of all lambda abstractions), as this is the information we need to decide whether we need to vectorise it.
+
+For let-expressions, we add the variable to the set $P$ if the bound expression is labelled $\AVP$ and the variable's type is not in @Scalar@. If the type \emph{is} in @Scalar@, then our unboxed array representation ensures that demanding the value of this expression in the vectorised program cannot trigger a suspended parallel computation --- remembering that GHC core is a lazy language. Note that if the bound expression turns out to be labeled \AVP \ then we may need to re-run the analysis to handle recursive lets. First, we assume the expression is not \AVP, so we do not include the bound variable in $P$. Under this assumption, if we run the analysis and the expression \emph{does} turn out to be \AVP, then we need to run it again with the set $P \cup \{x\}$, as we may have tagged subexpressions incorrectly. In GHC core, there is a distinction between recursive and non-recursive let-bindings, and this step is only necessary for recursive bindings. If the bound expression is not tagged $\AVP$, we proceed as usual.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Encapsulation}
+
+\begin{figure*}
+$$\begin{array}{c}
+\hline \\[-2mm] 
+\begin{array}{rcll}
+  \fvs{e} &=& \forall v::\tau \in \mathit{FreeVars} (e). \AT{\tau} = \AVS
+\end{array}
+\\ \\[-2mm]
+\hline \\[-2mm]
+\mbox{$\Encaps\cdot :: \textit{LExpr} \to \textit{LExpr}$} \\ \\
+\begin{array}{rcll}
+   \Encaps{(k,l)} &=& (k, l) \\
+   \Encaps{(x,l)} &=& (x, l) \\
+   \Encaps{(C, l)}&=& (C, l) \\
+   \Encaps{(e_1\, e_2, \AVS)} &=& encapsulate (e_1\;e_2), & \mbox{if a \fvs{e_1\,e_2}} \\
+ \Encaps{(e_1\, e_2,  l)} &=& (\Encaps{e_1}\, \Encaps{e_2}, l) \\
+ %
+ \Encaps{(\lambda{\tup{x_i}}.e, \AVS)} &=&  
+       encapsulate (\lambda{\tup{x_i}}.e) &\mbox{if \fvs{e}} \\ 
+  \Encaps{(\lambda{\tup{x_i}}.e, l)} &=&  
+       (\lambda{\tup{x_i}}. \Encaps e), l)\\
+ % 
+\Encaps{(@if@\,e_1  @then@ \,e_2 @else@ \, e_3, \AVS)} &=&  
+    encapsulate (@if@\,e_1  @then@ \,e_2 @else@ \, e_3)& \mbox{if  $\fvs{e_1\,e_2}$} \\
+\Encaps{(@if@\,e_1  @then@ \,e_2 @else@ \, e_3, l)} &=&  
+    (@if@\,\Encaps{e_1}  @then@ \,\Encaps{e_2} @else@ \, \Encaps{e_3}, l) \\
+%
+\Encaps{(@let@\, x @=@ \,e_1  @in@ \,e_2, \AVS)}   &=& 
+    encapsulate (@let@\, x @=@ \,e_1  @in@ \,e_2) & \mbox{if  \fvs{@let@\, x @=@ \,e_1  @in@ \,e_2}} \\
+\Encaps{(@let@\, x @=@ \,e_1  @in@ \,e_2, l)}   &=& 
+    (@let@\, x @=@ \,\Encaps{e_1}  @in@ \,\Encaps{e_2}), l)\\
+\Encaps{(@case@\,e_1 \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,e_2, \AVS)} &=&
+    encapsulate (@case@\,e_1 \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,e_2) 
+          & \mbox{if \fvs{@case@\,e_1 \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,e_2}}\\
+\Encaps{(@case@\,e_1 \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,e_2, l)} &=&
+(@case@\,\Encaps{e_1} \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,\Encaps{e_2}, l) 
+\end{array}
+\end{array}$$
+\caption{Encapsulation of maximal sequential subexpressions} 
+\label{fig:encaps}
+\end{figure*}
+%
+Once we have the labeled tree, we then traverse it to find the maximal sequential subexpressions we do not want to vectorise. As per Section~\ref{sec:maximal-seq}, we avoid vectorisation by first lambda lifting the expression, and then applying the resulting function to all its free variables. This is done by the following encapsulation function, where $x_i$ are the free variables of $exp$.
+$$
+\begin{array}{l}
+  \textit{encapsulate} \;\textit{exp} = \\
+  \;\;((\lambda{x_{1}}.(\ldots \lambda{x_k}.\textit{exp} , \AVE),\ldots), \AVE)(x_{1}, \AVS)\ldots(x_{k}, \AVS), \AVE)
+\end{array}
+$$
+As usual top-level bindings are not included in the free variables. Note how \textit{encapsulate} labels all new lambda expressions as well as the encapsulated expression $\textit{exp}$ with $\AVE$. 
+
+Figure~\ref{fig:encaps} defines \(\Encaps\cdot :: \mathit{LExpr} \to \mathit{LExpr}\), which, given a labelled expression, encapsulates all subexpressions that (1) perform some work (are larger than an individual literal, variable, or data constructor), (2) are marked as $\AVS$, and (3) whose free variables are also marked as $\AVS$. These are our sequential subexpressions. Since $\Encaps\cdot$ defines a top down transformation, it encapsulates the first subexpression it encounters that meets the requirements. Hence, it encapsulates maximal sequential subexpressions.
+
+\subsection{Modifying vectorisation}
+
+\begin{figure*}
+$$\begin{array}{c}
+\hline \\[-2mm] 
+\begin{array}{rcll}
+\VE{(\lambda{x_1 \ldots x_k}.e, \AVE)} 
+  & \multicolumn{2}{l}{= @Clo@\begin{array}[t]{l} 
+              \{ @env@ = () \\
+              , @clo@_s = \lambda{env\,{x_1 \ldots x_k}}.\,e \\
+              , @clo@_l = \lambda env\,{x_1 \ldots x_k}.\,
+                 @case@\, env\, @of@\; @ATup@\; n\; \to (@zipWithPar@k (\lambda{x_1 \ldots x_k}.e)) \}
+           \end{array}} \\
+           \end{array}
+\end{array}$$
+\caption{Modified vectorisation rules for lambda abstractions} 
+\label{fig:vectUpdated}
+\end{figure*}
+%
+After labelling an expression with $\AV\cdot\cdot$ and encapsulating all maximal sequential subexpressions with $\Encaps\cdot$, we only need a slight addition to the rules of vectorisation from Figure~\ref{fig:vect} to avoid vectorisation. Firstly, the vectorisation and lifting transform, $\VT\cdot$ and $\LT\cdot\cdot$ need to be adapted to process labelled expressions. That adaptation is trivial as the existing rules all just ignore the label and operate on the expression as usual.
+
+Secondly, we add one additional rule for vectorising lambda expressions that is shown in Figure~\ref{fig:vectUpdated}. If a lambda expression is labelled $\AVE$, we know without needing any further checks that it is safe to lift it by simply using a scalar mapping function, @zipWithPar@$k$,\footnote{We assume @zipWithPar1 = mapPar@.} instead of the full lifting transformation $\LT\cdot\cdot$. In this case, we do not need to check for free variables, as lambda abstractions marked $\AVE$ are closed.

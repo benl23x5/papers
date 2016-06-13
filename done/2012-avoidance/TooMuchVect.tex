@@ -1,0 +1,270 @@
+\eject
+\section{Too Much Vectorisation}
+\label{Section:too-much}
+
+Vectorisation for higher-order programs is a complex transformation, but we only need the basics to appreciate the problem addressed in this paper. In this section, we walk though a simple example that highlights the problem with intermediate values, and sketch our solution.
+
+% -----------------------------------------------------------------------------
+\subsection{Parallel force calculation}
+
+We use a parallel gravitation simulation as a running example. The simulation consists of many massive points (bodies), each with a mass, a location in two dimensions, and a velocity vector: 
+%
+\begin{small}
+\begin{alltt}
+  type Mass      = Float
+  type Vector    = (Float, Float)
+  type Location  = Vector
+  type Velocity  = Vector
+  type Accel     = Vector
+  data MassPoint = MP Mass Location Velocity
+\end{alltt}
+\end{small}
+%
+At each time step we compute the acceleration due to gravitational force between each body, and use the sum of accelerations to update each body's velocity. The following @accel@ function computes the acceleration between two bodies. The @eps@ (epsilon) parameter is a smoothing factor that prevents the acceleration from approaching infinity when the distance between the two bodies approaches zero.
+%
+\begin{small}
+\begin{alltt}
+  accel :: Float -> MassPoint -> MassPoint -> Accel                            
+  accel eps (MP _ (x1, y1) _) (MP m (x2, y2) _)
+   = let dx   = x1 - x2 
+         dy   = y1 - y2 
+         rsqr = dx * dx + dy * dy + eps * eps
+         r    = sqrt rsqr 
+         aabs = m  / rsqr
+     in  (aabs * dx / r , aabs * dy / r)  
+\end{alltt}
+\end{small}
+%
+In DPH we express nested data parallelism using bulk operations on \emph{parallel arrays}. The type of parallel arrays is written @[:e:]@, for some element type @e@. Parallel array operators behave like Haskell's standard list operators (but on arrays), and are identified by a suffix @P@ --- for example, @mapP@, @unzipP@, @sumP@, and so on.  We also use \emph{parallel array comprehensions}, which behave similarly to list comprehensions~\cite{Jones08harnessingthe}.
+
+Using parallel array comprehensions, we implement a na\"ive $O(n^2)$ algorithm that takes a parallel array of bodies, and computes the gravitational acceleration acting on each one:
+%
+\begin{small}
+\begin{alltt}
+  allAccels :: Float -> [:MassPoint:] -> [:Accel:]
+  allAccels eps mps 
+   = [: (sumP xs, sumP ys) 
+      | mp1 <- mps
+      , let (xs, ys) = unzipP [: accel eps mp1 mp2 
+                     | mp2 <- mps :]    
+      :]
+\end{alltt}
+\end{small}
+%
+The crucial difference between Haskell lists and parallel arrays is that the latter have a parallel evaluation semantics. Demanding any element in a parallel array results in them all being computed, and on a parallel machine we expect this computation to run in parallel.
+
+The degree of parallelism in @allAccels@ is $n^2$, as we use nested parallelism by way of nested array comprehensions to compute all pairwise accelerations in parallel. We also sum the individual accelerations on each body using $2*n$ parallel sums in parallel. In the full simulation we would then use the resulting accelerations to compute new velocities and positions for each body. 
+
+Although this is a na\"ive algorithm, it presents the same challenges with respect to vectorisation of intermediates as the more sophisticated \mbox{Barnes-Hut} algorithm. We stick to the simpler version to avoid complications with the irregular tree structures that \mbox{Barnes-Hut} uses, which are orthogonal to the ideas discussed in this paper.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Lifting functions into vector space}
+\label{Subsection:liftedFunctions}
+
+Vectorising @accel@ from the previous section and simplifying yields \texttt{accel\sub{L}} shown below. The subscript $L$ is short for ``lifted'', and we describe vectorisation as \emph{lifting a function to vector space}. 
+%
+\begin{small}
+\begin{alltt}
+ accel\sub{L} :: PArray Float 
+         -> PArray MassPoint -> PData MassPoint 
+         -> PArray Accel
+ accel\sub{L} epss (MP\sub{L} _ (xs1,ys1) _) (MP\sub{L} ms (xs2,ys2) _)
+  = let dxs   = xs1 -\sub{L} xs2 
+        dys   = ys1 -\sub{L} ys2 
+        rsqrs = dxs *\sub{L} dxs +\sub{L} dys *\sub{L} dys +\sub{L} epss *\sub{L} epss
+        rs    = sqrt\sub{L} rsqrs 
+        aabss = ms  /\sub{L} rsqrs 
+    in  (aabss *\sub{L} dxs /\sub{L} rs , aabss *\sub{L} dys /\sub{L} rs)  
+\end{alltt}
+\end{small}
+%
+In the type of \texttt{accel\sub{L}}, the @PArray@ constructor is our internal version of @[::]@ which only appears in vectorised code. A value of @(PArray a)@ contains elements of type @a@, which are stored in a type-dependent manner. For example, we store an array of pairs of integers as two arrays of unboxed integers. This ``unzipped'' representation avoids the intermediate pointers that would otherwise be required in a completely boxed representation. Similarly, we store an array of @MassPoint@ as five separate arrays: an array of masses, two arrays for the $x$ and $y$ components of their locations, and two arrays for the $x$ and $y$ components of their velocities. We can see this in the above code, where we add as @s@ suffix to variable names to highlight that they are now array-valued.
+%
+% We can see this in the code above, where the lifted @MP@ constructor \texttt{MP\sub{L}} has the following type:
+% \begin{small}
+% \begin{alltt}
+%    MP\sub{L} :: PData Mass 
+%         -> (PData Float, PData Float) 
+%         -> (PData Float, PData Float)
+%         -> PData MassPoint
+% \end{alltt}
+% \end{small}
+%
+
+Lifting of @accel@ itself is straightforward, as it is one big arithmetic expression without any interesting control flow. The lifted versions of primitive functions are just like their originals, except they operate on arrays of values. For example:
+%
+\begin{small}
+\begin{alltt}
+  (*\sub{L}) :: PArray Float -> PArray Float -> PArray Float
+\end{alltt}
+\end{small}
+
+Pairwise multiplication operates as \texttt{(*\sub{L}) = zipWithP (*)} and is provided by the back-end DPH libraries, along with other lifted primitives.
+
+Returning to the definition of \texttt{accel\sub{L}} we see the problem with intermediate values. Whereas the variables @rsqr@, @r@, @dx@, @dy@ and so on were scalar values in the source code, in the lifted version they have become array values. Without array fusion, each of these intermediate arrays will be reified in memory, whereas with the unvectorised program they would exist only transiently in scalar registers. 
+
+As the original @accel@ function does not use nested parallelism, branching, or anything else that justifies an elaborate transformation, we might have hoped for simpler code. Actually, we would like the vectoriser to produce the following instead:
+% Strictly speaking, the lifted code generated by higher-order vectorisation is more involved. However, as the example makes no use of higher-order features, after some simplifcations, the code is as above. It highlights the core of the problem that we strive to solve in the present paper: several intermediate parallel arrays are created (by the lifted arithmetic operations) and, for example in the case of @dxs@ and @dys@, traversed multiple times. Inlining and fusion could eliminate some of that, but not all. Since we can see that there is no nested parallelism or anything else that justifies an elaborate transformation, we might have hoped for simpler code. %
+%
+\begin{small}
+\begin{alltt}
+  accel\sub{L} epss (MP\sub{L} _ (xs1,ys1) _) (MP\sub{L} ms (xs2,ys2) _)
+   = let f eps x1 y1 x2 y2 m
+           = let dx   = ...; dy = ...; 
+                 rsqr = ...; r  = ...; aabs = ...
+                 \(\ldots\langle\textrm{as in original definition of \texttt{accel}}\rangle\ldots\)
+             in  (aabs * dx / r , aabs * dy / r)
+     in  zipWithPar6 f epss xs1 ys1 xs2 ys2 ms
+\end{alltt}
+\end{small}
+Here, @zipWithPar6@ is a 6-ary parallel-array variant of @zipWith@. This simpler version of \texttt{accel\sub{L}} performs just one single simultaneous traversal of all six input arrays, without producing any unnecessary array-valued intermediates. 
+
+Importantly, we can create this simpler version of \texttt{accel\sub{L}} only because the original version \emph{does not directly nor indirectly call any parallel functions}. This property ensures that the use of @zipWithPar6@ does not introduce any nested parallelism itself. If the original @accel@ used a data-parallel function, then it would need to be called for each pair of points --- and this is precisely what flattening is supposed to eliminate.
+
+\eject
+So the question is this: can we identify \emph{purely-sequential sub-computations} (such as @accel@) that will not benefit from vectorisation?  If so, we can generate simple, efficient @zipWith@-style loops for these computations, instead of applying the general vectorisation transformation and hoping that fusion then eliminates the intermediate arrays it introduces. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Maximal sequential subexpressions}
+\label{sec:maximal-seq}
+
+The situation in the previous section was the ideal case. With @accel@ we were able to avoid vectorising its entire body because it did not use any data parallel functions. This made @accel@ completely sequential. Usually we are not that lucky, and the function we want to vectorise contains parallel subexpressions as well as sequential ones. In general, to perform vectorisation avoidance we need to identify \emph{maximal sequential subexpressions}, which are sequential subexpressions that encompass as many operations as possible.
+
+To illustrate this idea, consider a variant of @accel@, where the smoothing factor is not passed as an argument, but instead determined by a parallel computation that references @dx@ and @dy@:
+%
+\begin{small}
+\begin{alltt}
+  accel' (MP _ (x1, y1) _) (MP m (x2, y2) _)
+   = let dx   = x1 - x2 
+         dy   = y1 - y2 
+         eps  = \(\langle\textrm{a data-parallel computation with dx and dy}\rangle\)
+         rsqr = dx * dx + dy * dy + eps * eps
+         r    = sqrt rsqr 
+         aabs = m / rsqr 
+     in  (aabs * dx / r , aabs * dy / r)
+\end{alltt}
+\end{small}
+
+This time we cannot lift @accel'@ by wrapping the entire body in a parallel zip, as this would yield a nested parallel computation. Instead, we proceed as follows: (1) identify all maximal sequential subexpressions; (2) lambda lift each of them, and (3) use @zipWithPar@$n$ to apply each lambda lifted function element-wise to its lifted (vectorised) free variables. Doing this to the above function yields:
+
+% \begin{small}
+% \begin{alltt}
+% accel'\sub{L} (MP\sub{L} _ (xs1, ys1) _) (MP\sub{L} ms (xs2, ys2) _)
+%  = let dxs   = zipWithPar  (\(\lambda\)x1 x2. x1 - x2)   xs1 xs2 
+%        dys   = zipWithPar  (\(\lambda\)y1 y2. y1 - y2)   ys1 ys2
+%        epss  = \(\langle\textrm{lifted data-parallel computation}\rangle\) 
+%        rsqrs = zipWithPar3 (\(\lambda\)dx dy eps. 
+%                  dx * dx + dy * dy + eps * eps) 
+%                  dxs dys epss
+%        rs    = mapPar      (\(\lambda\)rsqr. sqrt rsqr)  rsqrs 
+%        aabss = zipWithPar  (\(\lambda\)m rsqr. m / rsqr) ms rsqrs
+%    in  zipWithPar4 (\(\lambda\)aabs dx dy r. 
+%          (aabs *  dx / r, aabs * dy / r))  
+%          aabss dxs dys rs
+% 
+% \end{alltt}
+% \end{small}
+
+\begin{small}
+\begin{alltt}
+ accel'\sub{L} (MP\sub{L} _ (xs1, ys1) _) (MP\sub{L} ms (xs2, ys2) _)
+   = let dxs   = zipWithPar (\(\lambda\)x1 x2. x1 - x2) xs1 xs2 
+         dys   = zipWithPar (\(\lambda\)y1 y2. y1 - y2) ys1 ys2
+         epss  = \(\langle\textrm{lifted data-parallel computation with dxs and dys}\rangle\) 
+     in  zipWithPar4 (\(\lambda\)m dx dy eps. 
+           let rsqr = dx * dx + dy * dy + eps * eps
+               r    = sqrt rsqr
+               aabs = m / rsqr
+           in  (aabs * dx / r, aabs * dy / r))
+           ms dxs dys epss
+\end{alltt}
+\end{small}
+%
+The resulting lifted function \texttt{accel'\sub{L}} contains three parallel array traversals, whereas \texttt{accel\sub{L}} only had one. Nevertheless, that is still much better than the 13 traversals that would be in the vectorised code without vectorisation avoidance.
+
+We were able to \emph{encapsulate} the bindings for @rsqr@, @r@, and @aabs@ by the final traversal because after the @eps@ binding, there are no more parallel functions. In general, we get the best results when intermediate sequential bindings are floated close to their use sites, as this makes them more likely to be encapsulated along with their consumers.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Conditionals and recursive functions}
+\label{sec:conditionals}
+
+The function @accel@ didn't have any control flow constructs. For an example with a conditional, consider a division function that tests for a zero divisor:
+%
+\begin{small}
+\begin{alltt}
+  divz :: Float -> Float -> Float
+  divz x y = if (y == 0)
+              then 0   
+              else x `div` y
+\end{alltt}
+\end{small}
+%
+To vectorise a conditional we first compute an array of flags indicating which branch to take for each iteration. We use these flags to split the array valued free variables into the elements for each branch, and apply the lifted version of each branch to just those elements associated with it. Finally, we re-combine the results of each branch using the original array of flags. Without vectorisation avoidance, the lifted version of @divz@ is as follows:
+%
+\begin{small}
+\begin{alltt}
+  divz\sub{L} :: PArray Float -> PArray Float -> PArray Float
+  divz\sub{L} xs ys 
+   = let n               = lengthPA ys
+         flags           = (ys ==\sub{L} (replicatePA n 0))
+         (xs\sub{then}, xs\sub{else}) = splitPA flags xs
+         (ys\sub{then}, ys\sub{else}) = splitPA flags ys
+     in  combinePA flags (replicatePA (countPA flags) 0)
+                         (xs\sub{else} `div`\sub{L} ys\sub{else})
+\end{alltt}
+\end{small}
+%
+Using these extra intermediate arrays lets us guarantee that the parallel execution of divz\sub{L} will be load-balanced. To see this, suppose that performing a division on our parallel machine is more expensive than simply returning a constant 0. If we were to evaluate multiple calls to @divz@ in parallel without using our @splitP/combineP@ technique, there is a chance that one processor would need to evaluate more divisions than another, leading to work imbalance. However, in the code above we split the input arrays (@xs@ and @ys@) into the elements corresponding to each branch, and use \emph{all} processors to compute the results for both branches. As all processors are used to evaluate both branches, we can be sure the computation is perfectly balanced.
+ 
+Unfortunately, both @splitP@ and @combineP@ are expensive operations. If we were to execute the unvectorised version of @divz@ then the arguments for @x@ and @y@ would be passed in scalar registers. The flag indicating which branch to take would also be computed in a register. Once again, when we vectorise @divz@ these intermediate values are converted to arrays, which reifies them in memory. On current hardware, the extra memory traffic introduced \emph{for this example} will far exceed the gain from improved load balancing. For this example it is better to avoid vectorising the conditional entirely and instead generate:
+%
+\begin{small}
+\begin{alltt}
+  divz\sub{L} xs ys 
+   = zipWithPar2 (\(\lambda\)x y.
+       if (y == 0) then 0 else x `div` y) 
+       xs ys
+\end{alltt}
+\end{small}
+%
+The situation becomes even more interesting when recursion is involved, such as in this familiar function:
+%
+\begin{small}
+\begin{alltt}
+  fac :: Int -> Int -> Int
+  fac acc n 
+   = if n == 0 then acc
+               else fac (n * acc) (n - 1)
+\end{alltt}
+\end{small}
+%
+Lifting this function without vectorisation avoidance will use @splitP@ and @combineP@ to flatten the conditional, and the recursive call will be to the lifted version. The consequence is excessive data movement for each recursion and an inability to use the tail recursion optimisation.
+
+In contrast, using vectorisation avoidance we can confine the recursive call to the sequential portion of the function:
+%
+\begin{small}
+\begin{alltt}
+  fac\sub{L} :: PArray Int -> PArray Int -> PArray Int
+  fac\sub{L} accs ns
+   = let f acc n 
+          = if n == 0 then acc
+                       else f (n * acc) (n - 1)
+     in  zipWithPar2 f xs ys
+\end{alltt}
+\end{small}
+%
+This code risks severe load imbalance if the depth of the recursion varies widely among the instances computed on each processor. At the same time, it also avoids the high overheads of the fully vectorised version. Which is the lesser evil?
+
+In our experience so far, using vectorisation avoidance for purely sequential recursive functions has always produced faster code. We intend to provide a pragma to override this default approach in exceptional cases.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Vectorisation avoidance in a nutshell}
+
+In summary, vectorisation avoidance consists of three steps. First, we identify the maximal sequential subexpressions. Second, we lambda lift those subexpressions. Third, we use @zipWithPar@$n$ to apply each lambda-lifted function (in parallel) to each valuation of its free variables. As a result we generate fewer array traversals and fewer intermediate arrays, though we may sacrifice some load balancing by doing so.
+
+As we will see in the next section, the most tricksy step of vectorisation avoidance is the first --- identification of the maximal sequential subexpressions. Once this information has been computed, it is reasonably straightforward to use it in the vectorisation transform itself. We will formalise this process in Section~\ref{Section:NewTrafo}.
+

@@ -1,0 +1,369 @@
+\section{Vectorisation Revisited}
+\label{Section:Vectorisation}
+
+This section discusses the features of vectorisation that are central to adding vectorisation avoidance. For a complete description of vectorisation, see our previous work~\cite{Jones08harnessingthe}.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Parallel arrays, maps, and the \texttt{Scalar} type class}
+\label{sec:flattening-arrays}
+\label{Subsection:Scalar}
+
+As mentioned in Section~\ref{Subsection:liftedFunctions}, in vectorised code we store parallel array data in a type-dependent manner, so the representation of @PArray a@ depends on the element type @a@. Haskell, we realise this using type families~\cite{chak-etal:ATs,chak-etal:at-syns} like so:
+%
+\begin{small}
+\begin{alltt}
+data family   PArray a
+data instance PArray Int        = PInt (Vector Int)
+data instance PArray (a, b)     = P2 (PArray a) (PArray b)
+data instance PArray (PArray a) = PNested VSegd (PDatas a)
+... more instances ...
+\end{alltt}
+\end{small}
+
+For arrays of primitive values such as @Int@ and @Float@ we use an unboxed representation; specifically, the unboxed arrays from the @vector@ package.\footnote{\url{http://hackage.haskell.org/package/vector}} Using unboxed arrays improves absolute performance over standard boxed arrays, and admits a simple load balancing strategy when consuming them. For structured data we hoist the structure to top-level: representing an array of structured values as a tree with with unboxed arrays of scalars at its leaves. The instance for pairs is shown above. 
+
+The @PArray@ type family also supports flattening of nested arrays, and arrays of sum types~\cite{chak-etal:status-report, Jones08harnessingthe, lippmeier:work-efficient}. A partial definition of nested arrays shown above, but we leave discussion of the @VSegd@ segment descriptor and @PDatas@ data blocks to \cite{lippmeier:work-efficient}. 
+
+For vectorisation avoidance, the important point is that we can only bail out to a sequential function if the elements that function consumes can be extracted from their arrays in constant time. As discussed in \cite{lippmeier:work-efficient}, it is not possible to extract a nested array from a larger one in constant time, due to time required to cull unused segments from the resulting segment descriptor. Now, consider the \texttt{accel\sub{L}} function back in Section \ref{Subsection:liftedFunctions}. The body of its sequential part @f@ \emph{does} run in constant time, so @zipWithPar6@ can't take any longer than this to extract its arguments --- otherwise we will worsen the asymptotic complexity of the overall program.
+
+We step around this complexity problem by restricting vectorisation avoidance to subexpressions that process scalar values only. These are the primitive types such as @Int@ and @Float@, as well as tuples of primitive types, and enumerations such as @Bool@ and @Ordering@. We collect these types into the @Scalar@ type class, which is the class of types that support constant time indexing. When we determine  maximal subexpressions as per Section~\ref{sec:maximal-seq}, all free variables, along with the result, must be @Scalar@.
+
+\eject
+Now that we have the @Scalar@ class, we can write down the full types of the $n$-ary parallel mapping functions we met back in Section~\ref{Subsection:liftedFunctions}.
+%
+\begin{small}
+\begin{alltt}
+  mapPar
+    :: (Scalar a, Scalar b)
+    => (a -> b) -> PArray a -> PArray b
+
+  zipWithPar2
+    :: (Scalar a, Scalar b, Scalar c) 
+    => (a -> b -> c) 
+    -> PArray a -> PArray b -> PArray c
+
+  zipWithPar3 
+    :: (Scalar a, Scalar b, Scalar c, Scalar d) 
+    => (a -> b -> c -> d) 
+    -> PArray a -> PArray b -> PArray c -> PArray d
+  \(\langle\textrm{and so on}\rangle\)
+\end{alltt}
+\end{small}
+%
+These \emph{scalar mapping functions} apply their worker \mbox{element-wise}, and in parallel to their argument arrays.  They are provided by the DPH back-end library.
+
+\emph{The key goal of vectorisation avoidance is to maximise the work done by these mapping functions per corresponding tuple of array elements.} The sequential subexpressions from Section~\ref{sec:maximal-seq} are subexpressions that can be mapped by the scalar mapping functions, and we maximise the work performed by finding subexpressions that are as big as possible. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Vectorising higher-order functions}
+\label{sec:vect-trafo}
+
+\begin{figure*}
+$$\begin{array}{c}
+\mbox{$\TT{\tau}:: \mathit{Type} \to \mathit{Type}$ 
+is the vectorisation transformation on types} \\[2mm]
+\begin{array}{rcll}
+\TT{\tau_1 @->@ \tau_2} & = & \TT{\tau_1}~ @:->@~\TT{\tau_2}  & \mbox{Functions} \\
+\TT{@[:@\tau@:]@}    & = & \TTL{\tau} & \mbox{Parallel arrays} \\
+\TT{@Int@} & = & @Int@  & \mbox{Primitive scalar types}\\
+\TT{@Float@} & = & @Float@ \\
+\TT{T~\tau_1 \ldots \tau_n} & = & \VV{T}~\TT{\tau_1}\ldots \TT{\tau_n} & \mbox{Algebraic data types (e.g. lists)}
+\\ \\
+\TTL{\tau} & = & \pa{\TT{\tau}} 
+\end{array} \\ \\[-2mm]
+\hline \\[-2mm]
+\mbox{$\VT{e}::\mathit{Expr} \to \mathit{Expr}$ 
+is the full vectorisation transformation on terms} \\
+\mbox{Invariant: if $\tup{x_i : \sigma_i} \vdash e:\tau$ then 
+      $\tup{x_i:\TT{\sigma_i}} \vdash \VT{e}:\TT{\tau}$}\\[1em]
+\begin{array}{rll}
+\VT{k}       & = k & \mbox{$k$ is a literal} \\       
+\VT{f}       & = \VV{f} & \mbox{$f$ is bound at top level} \\
+\VT{x}       & = x     & \mbox{$x$ is locally bound (lambda, let, etc)} \\
+\VT{C}       & = \VV{C}     & \mbox{$C$ is data constructor with $ C :: \tau$ and $\VV{C} :: \VT{\tau}$} \\
+\VT{e_1 \; e_2} & = \VT{e_1} ~\capp~ \VT{e_2} \\
+\VT{\lambda{x}.e} 
+  & \multicolumn{2}{l}{= @Clo@\begin{array}[t]{l} 
+              \{ @env@ = (y_1,\dots,y_k) \\
+              , @clo@_s = \lambda env\,x.\,
+                 @case@\,e\,@of@\;(y_1,\dots,y_k) \to \VT{e} \\
+              , @clo@_l = \lambda env\,x.\,
+                 @case@\, e\, @of@\; @ATup@_k\; n\; y_1 \dots y_k \to \LT{n}{e} \}
+           \end{array}} \\
+ & \multicolumn{2}{l}{\mbox{where} \{y_1, \ldots, y_k\} = \mbox{free variables of $\lambda x.e$}} \\
+\VT{@if@\,e_1  @then@ \,e_2 @else@ \, e_3} & 
+\multicolumn{2}{l}{= @if@\,\VT{e_1}\,@then@\,\VT{e_2}\,@else@\,\VT{e_3}} \\
+\VT{@let@\, x @=@ \,e_1  @in@ \,e_2} & 
+\multicolumn{2}{l}{= @let@\, x @=@ \,\VT{e_1}\,@in@\,\VT{e_2}} \\
+\VT{@case@\,e_1 \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,e_2} & 
+\multicolumn{2}{l}{= @case@\, \VT{e_1}\, @of@\, \VV{C} \,x_1 \ldots x_k\, \rightarrow \,\VT{e_2}} \\
+\end{array} \\ \\[-2mm]
+ \hline \\[-2mm]
+\mbox{$ \LT{n}{e}:: \mathit{Expr} \to \mathit{Expr} \to \mathit{Expr}$
+is the lifting transformation on terms} \\
+\mbox{Invariant:} \begin{array}[t]{l}
+  \mbox{if $\tup{x_i : \sigma_i} \vdash e : \tau$ 
+        then $\tup{x_i : \TTL{\sigma_i}} \vdash \LT{n}{e}: \TTL{\tau}$} \\
+  \mbox{where $n$ is the length of the result array}
+  \end{array} \\[2em]
+\begin{array}{rll}
+\LT{n}{k} & = @replicatePA@~ n~ k & \mbox{$k$ is a literal} \\
+\LT{n}{f} & = @replicatePA@~ n~ \VV{f} & \mbox{$f$ is bound at top level} \\
+\LT{n}{x} & = x  & \mbox{$x$ is locally bound (lambda, let, etc)} \\
+\LT{n}{e_1\; e_2} & = \LT{n}{e_1}~~ \LV{\capp}~~ \LT{n}{e_2} \\
+\LT{n}{C} & = @replicatePA@~ n~ \VV{C}  & \mbox{$C$ is a data constructor} \\
+\LT{n}{\lambda{x}.e} & \multicolumn{2}{l}{= @AClo@ \begin{array}[t]{l}
+        \{ @aenv@ = @ATup@_k\; n\; y_1 \dots y_k, \\
+        , @aclo@_s = \lambda env\,x.\,
+           @case@\,env\,@of@\; (y_1,\dots,y_k) \to \VT{e} \\
+        , @aclo@_l = \lambda env\,x.\,
+           @case@\,env\,@of@\; @ATup@_k\; n'\; y_1 \dots y_k \to \LT{n'}{e} \}
+     \end{array}} \\
+ & \multicolumn{2}{l}{\mbox{where} \{y_1, \ldots, y_k\} = \mbox{free variables of $\lambda x.e$}} \\
+\raisebox{0pt}[0.9\height][0.2\depth]{\LT{n}{@if@\,e_1
+      @then@\,e_2 @else@\, e_3}} & = @combinePA@~~e_1'~~e_2'~~e_3' \\
+& \multicolumn{2}{l}{\mbox{where}\begin{array}[t]{l}
+ e_1' = \LT{n}{e_1} \\
+ e_2' = @case@ ~\mathit{ys_2}~@of@ \; @ATup@_k\; n_2\; y_1 \dots y_k \to \LTprime{n_2}{e_2} \\
+ e_3' = @case@ ~\mathit{ys_3}~@of@ \; @ATup@_k\; n_3\; y_1 \dots y_k \to \LTprime{n_3}{e_3} \\
+ (\mathit{ys_2},\mathit{ys_3}) = @splitPA@~e_1'~ (@ATup@_k\; n\; y_1 \dots y_k) \\
+ \{y_1, \ldots, y_k\} = \mbox{free variables of $e_2, e_3$} \\
+ \end{array}}\\
+\LTprime{n}{e} & \multicolumn{2}{l}{= ~ @if@~n@==@0~@then@~~@emptyPA@~~@else@~~\LT{n}{e}} \\
+%
+\LT{n}{@let@\, x @=@ \,e_1  @in@ \,e_2} & 
+\multicolumn{2}{l}{= @let@\, x @=@ \,\LT{n}{e_1}\,@in@\,\LT{n}{e_2}} \\
+%
+\LT{n}{@case@\,e_1 \, @of@ \,C\,x_1 \ldots x_k \, \rightarrow \,e_2} & 
+{= \begin{array}[t]{l}
+    @let@\, v\, @=@ \LT{n}{e_1}\\
+    @in case cast@\, v' \, @of@\, @_@ \,x_1 \ldots x_k\, \rightarrow \,\LT{n}{e_2}
+    \end{array}
+    } &\mbox{scrutiniser cast to representation type}
+\end{array} \\
+\end{array}$$
+\caption{The vectorisation transformation without avoidance} 
+\label{fig:vect}
+\end{figure*}
+%
+Vectorisation computes a \emph{lifted} version of every function that is involved in a parallel computation, which we saw in back in Section \ref{Subsection:liftedFunctions}. Previously, we simplified the discussion by statically replacing expressions of the form @mapP f xs@  (alternately @[:f x| x <- xs:]@) by \texttt{f\sub{L} xs} --- an application of the lifted version of @f@. This static code rewriting is not sufficient for a higher-order language. Statically, we can't even determine which worker function will be passed to @mapP@, and hence need a lifted version. Instead, we must closure-convert lambda abstractions and dynamically dispatch between the original and lifted versions of a function.
+
+In GHC, the vectorisation transformation itself operates on the Core intermediate language, which is an extension of System~ F~\cite{sulzmann-et-al:fc}.
+
+Figure~\ref{fig:vect} displays the transformation on a slightly cut-down version of Core, which contains all elements that are relevant to our discussion of vectorisation avoidance. The central idea is that given a top-level function definition $f::\tau = e$, the \emph{full vectorisation transformation} produces a definition for
+the \emph{fully vectorised} version of \var{f} named $\VV{\var{f}}$:
+\[
+\VV{\var{f}} :: \TT{\tau} = \VT{\var{e}}
+\]
+We vectorise types with $\TT{\cdot}$ and values with \VT{\cdot}.  In general, if
+$e::\var \tau$, then $\VT{\var e}::\TT{\var \tau}$. The vectorisation of types and values goes hand in hand.
+
+
+% -----------------------------------------------------------------------------
+\subsubsection{Vectorising types}
+
+To vectorise types with  $\TT{\cdot}$, we replace each function arrow @(->)@ by a \emph{vectorised closure} @(:->)@. We also replace each parallel array @[::]@ by the type-dependent array representation @PArray@ from Section~\ref{sec:flattening-arrays}. For example: 
+%
+\[
+\begin{array}{l}
+\TT{@Int -> [:Float:] -> Float@} \\
+\quad {}={} @Int :-> PArray Float :-> Float@
+\end{array}
+\]
+Figure~\ref{fig:vect} also shows vectorisation of data types, which we use for the arrays of tuples described in Section~ \ref{sec:flattening-arrays}.
+
+
+\eject
+% -----------------------------------------------------------------------------
+\subsubsection{Vectorised closures}
+\label{sec:vect-closures}
+
+In general, in a higher-order language it is not possible to statically determine which functions may end up as @f@ in a specific data-parallel application @mapP f xs@. Therefore, all values of function type must include both a scalar as well as a lifted version of the original function. To make matters worse, functions may be put into arrays --- indeed, the vectorisation transformation must do this itself when lifting higher-order functions. 
+
+The trouble with arrays of functions is that (a) we \emph{do} want to use standard array operations, such as @filterP@, but (b) do \emph{not} want to represent @PArray (a -> b)@ as a boxed array of function pointers. If we were to use a boxed array of function pointers then we would sacrifice much data parallelism, as we explained in our previous work~\cite{Jones08harnessingthe}. With this in mind, we represent single vectorised functions as explicit closures, containing the following:
+
+\begin{enumerate}
+\item the scalar version of the function,
+\item the parallel (lifted) version of the function, and
+\item an environment record of the free variables of the function.
+\end{enumerate}
+
+As we will see in Section~\ref{sec:arrays-of-functions}, arrays of functions are represented similarly, by using an array for the environment instead of a single record.
+
+\eject
+\noindent
+Concretely, we use the following data type for vectorised closures:
+%
+\begin{alltt}
+ data (a :-> b) = forall e. \pacls e => 
+    Clo \{ env  :: e
+        , clo\sub{s} :: e -> a -> b                      
+        , clo\sub{l} :: \pa{e} -> \pa{a} -> \pa{b} \}
+\end{alltt}
+%
+The two fields \ccode{clo\sub{s}} and \ccode{clo\sub{l}} contain the scalar and lifted version of the function respectively. The field @env@ has the existentially quantified type @e@, and is the environment of the closure. We bundle up useful operators on arrays of type @PArray e@ into the existential @PA e@ type class, so that consumers can process the environment of a deconstructed @Clo@. During vectorisation, all lambdas in the source code are closure converted~\cite{appel-jim:CPS-CPS} to this form.
+
+In Figure~\ref{fig:vect}, we see closure conversion in action, where \VT{\cdot} replaces lambda abstractions in the original program by explicit closures. Consequently, it also replaces function application by closure application, which is defined as:
+%
+\begin{quote}
+\begin{alltt}
+(\capp) :: (a :-> b) -> a -> b
+(\capp) (Clo env fs fl) arg = fs env arg
+\end{alltt}
+\end{quote}
+%
+Closure application extracts the scalar version of the function (@fs@) and applies it to the environment and function argument. 
+The lifted version of the function (@fl@) is produced by the lifting transformation \(\LT\cdot\cdot\) from Figure~\ref{fig:vect}. It is used to handle nested parallelism when a vectorised closure happens to be the @f@ in @mapP f@ --- though we need to cover more ground before we can discuss the implementation.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Arrays of functions}
+\label{sec:arrays-of-functions}
+
+Vectorisation turns functions into explicit closures, so type vectorisation gives us \(\TT{@[:a -> b:]@} = @PArray (a :-> b)@\). The corresponding @PArray@ instance is given below. Arrays of functions are represented as a slightly different form of plain closures, which we call \emph{array closures}:
+%
+\begin{alltt}
+ data instance PArray (a :-> b) = forall e. \pacls e => 
+   AClo \{ aenv  :: \pa e
+        , aclo\sub{s} :: e -> a -> b
+        , aclo\sub{l} :: \pa{e} -> \pa{a} -> \pa{b} \}
+\end{alltt}
+%
+The difference between plain closures and array closures is that with the latter, the environment is array valued. As with plain closures, array closures come with a matching application operator:
+%
+\begin{quote}
+\begin{alltt}
+(\LV{\capp}) :: \pa{(a:->b)} -> \pa{a} -> \pa{b}
+(\LV{\capp}) (AClo env fs fl) = fl env
+\end{alltt}
+\end{quote}
+%
+This lifted function application operator is used to implement application in the lifting transformation \(\LT\cdot\cdot\) from Figure~\ref{fig:vect}.
+
+
+% -----------------------------------------------------------------------------
+\subsection{A simple example}
+
+Before we get into any more detail, lets run through the vectorisation of a simple example:
+%
+\begin{quote}
+\begin{alltt}
+inc :: Float -> Float
+inc = \hslam{}x. x + 1
+\end{alltt}
+\end{quote}
+%
+Applying the full vectorisation transformation in Figure~\ref{fig:vect} yields:
+%
+\begin{quote}
+\begin{alltt}
+\VV{inc} :: Float :-> Float
+\VV{inc} = Clo () inc\sub{S} inc\sub{L}
+
+inc\sub{S} :: () -> Float -> Float
+inc\sub{S} = \hslam{}e x. case e of () -> \VV{(+)} \$: x \$: 1 
+
+inc\sub{L} :: \pa{()} -> \pa{Float} -> \pa{Float}
+inc\sub{L} = \hslam{}e x. case e of 
+  ATup\sub{0} n -> \VV{(+)} \LV{\$:} x \LV{\$:} (replicatePA n 1)
+\end{alltt}
+\end{quote}
+%
+To aid explanation we have named \ccode{inc\sub{S}} and \ccode{inc\sub{L}}, but otherwise simply applied Figure~\ref{fig:vect} blindly. Notice the way we have systematically transformed @inc@'s type, replacing @(->)@ by @(:->)@.  Notice too that this transformation neatly embodies the idea that we need two versions of every top-level function @inc@, a \emph{scalar version} \ccode{inc\sub{S}} and a \emph{lifted version} \ccode{inc\sub{L}}.  These two versions paired together form the \emph{fully vectorised version} \VV{@inc@}.
+
+The vectorised code makes use of vectorised addition \ccode{(+)\sub{V}}, which is provided by a fixed, hand-written library of vectorised primitives:
+%
+\begin{alltt}
+  \VV{(+)} :: Float :-> Float :-> Float
+  \VV{(+)} = Clo () (+)\sub{S} (+)\sub{L}
+
+  (+)\sub{S} :: () -> Float -> Float :-> Float
+  (+)\sub{S} = \hslam{}e x. Clo x addFloat\sub{S} addFloat\sub{L}
+
+  (+)\sub{L} :: \pa{()} 
+       -> \pa{Float} -> \pa{(Float :-> Float)}
+  (+)\sub{L} = \hslam{}e xs. AClo xs addFloat\sub{S} addFloat\sub{L}
+
+  addFloat\sub{S} :: Float -> Float -> Float
+  addFloat\sub{S} = Prelude.(+)
+
+  addFloat\sub{L} :: \pa{Float} -> \pa{Float} 
+            -> \pa{Float}
+  addFloat\sub{L} = zipWithPar2 Prelude.(+)
+\end{alltt}
+%
+The intermediate functions \ccode{(+)\sub{S}} and \ccode{(+)\sub{L}} handle partial applications of @(+)@.  Finally we reach ground truth: invocations of \ccode{addFloat\sub{S}} and \ccode{addFloat\sub{L}}, implemented by the DPH back-end library. The former is ordinary floating point addition; the latter is  defined in terms of \texttt{zipWithPar2} from Section~\ref{sec:flattening-arrays}.
+
+This is important! It is only here at the bottom of a pile of nested closures that the old, full vectorisation transformation finally uses the scalar mapping functions. Considering how trivial the original function @inc@ was, the result of vectorisation looks grotesquely inefficient. Most of this clutter is introduced to account for the \emph{possibility} of higher order programming, and in many cases, it can be removed by subsequent optimisations.
+
+However, even when GHC's optimiser can remove all the clutter, it still has a real cost: compile time. With vectorisation avoidance, we can completely avoid vectorising @inc@ and save all of this overhead.
+
+% 
+% For example, consider the sub-term \ccode{\VV{(+)} \capp{}~x \capp{}~1} in the definition of \ccode{inc\sub{S}}. We can simplify it in the following way:
+% $$
+% \begin{array}{rl}
+%  & \ccode{\VV{(+)} \capp{}~x \capp{}~1} \\
+% \mbox{(Inline \ccode{\VV{(+)}})} & \implies 
+%   \ccode{(Clo () (+)\sub{S} (+)\sub{L}) \capp{}~x \capp{}~1} \\
+% \mbox{(Definition of \ccode{\capp})} & \implies 
+%   \ccode{(+)\sub{S} () x  \capp{}~1}  \\
+% \mbox{(Inline \ccode{(+)\sub{S}})} & \implies 
+%   \ccode{(Clo x addFloat\sub{S} addFloat\sub{L})  \capp{}~1} \\
+% \mbox{(Definition of \ccode{\capp})} & \implies 
+%   \ccode{addFloat\sub{S} x 1}  \\
+% \mbox{(Inline \ccode{addFloat})} & \implies 
+%   \ccode{Prelude.(+) x 1}  \\
+% \end{array}
+% $$
+% All the intermediate closure data structures are removed.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Using lifted functions}
+
+In Section~\ref{sec:vect-closures}, we asserted that lifted code is ultimately invoked by @mapP@ (and its cousins @zipWithP@, @zipWith3P@, and so on). The code for @mapP@ itself is where nested data parallelism is finally transformed to flat data parallelism:
+%
+\begin{alltt}
+  \VV{mapP} :: (a :-> b) :-> \pa{a} :-> \pa{b}
+  \VV{mapP} = Clo () mapP\sub{1} mapP\sub{2}
+  
+  mapP\sub{1} :: () -> (a :-> b) -> \pa{a} :-> \pa{b}
+  mapP\sub{1} _ f = Clo f mapP\sub{S} mapP\sub{L}
+
+  mapP\sub{2} :: \pa{()} -> \pa{(a :-> b)} 
+        -> \pa{(\pa{a} :-> \pa{b})}
+  mapP\sub{2} _ fs = AClo fs mapP\sub{S} mapP\sub{L}
+
+  mapP\sub{S} :: (a :-> b) -> \pa{a} -> \pa{b}
+  mapP\sub{S} (Clo env fs fl) xss 
+    = fl (replicatePA (lengthPA xss) env) xss
+\end{alltt}
+
+\eject
+\begin{alltt}
+  mapP\sub{L} :: \pa{(a :-> b)} 
+        -> \pa{\paB{a}} -> \pa{\paB{b}}
+  mapP\sub{L} (AClo env _ fl) xss
+    = unconcatPA xss (fl env (concatPA xss))
+        -- xss :: \pa{\paB{a}}
+        -- env :: \pa{e}
+        -- fl  :: \pa{e} -> \pa{a} -> \pa{b}
+\end{alltt}
+%
+The function $@mapP@\sub{L}$ implements a nested map. It uses a well known observation that a nested map produces the same result as a single map, modulo some shape information:
+%
+\begin{quote}
+\begin{code}
+concat . (map (map f)) = (map f) . concat
+\end{code}
+\end{quote}
+%
+The implementation of $@mapP@\sub{L}$ exploits this fact to flatten nested parallel maps. It eliminates one layer of nesting structure using @concatPA@, applies the simply lifted function \texttt{f\sub{L}} to the resulting array, and re-attaches the the nesting structure information using @unconcatPA@. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Conditionals and case expressions}
+
+GHC's Core language includes a case expression with shallow (non-nested) patterns. Conditionals are desugared by using that case expression on a Boolean value. Given the syntactic complexity of case expressions, we have opted for a simplified presentation in Figure~\ref{fig:vect}. We have an explicit conditional @if-then-else@ to capture dynamic control flow, together with a one pattern case construct to capture data constructor decomposition by pattern matching. The lifting of conditionals by \(\LT\cdot\cdot\) proceeds as per the discussion in Section~\ref{sec:conditionals}. 

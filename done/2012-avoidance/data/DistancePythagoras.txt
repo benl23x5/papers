@@ -1,0 +1,15 @@
+10 ^ 8 elements
+
+
+distance
+         1		2		3		4
+v avoid  3420	2590	2100	1720    
+fusion   3620	2780	2220	1970
+
+
+pythagoras
+
+v avoid 1880	1090	930	    830
+fucion 	2250	1280	1130	1050
+
+

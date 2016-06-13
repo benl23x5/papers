@@ -1,0 +1,261 @@
+\section{Vectorisation Avoidance Overview}
+
+\subsection{Vectorising Simple Functions}
+On every architecture, part or all of the implementation of \icode@mapP@ consists of
+a loop over the input array. 
+According to the rules in Figure~\ref{fig:vect}, the parallel computation
+\begin{alltt}
+  mapP (x  -> 2 * x * x + x + 1) xs
+\end{alltt}
+vectorises to 
+\begin{alltt}
+  TODO
+  mapP (x  -> 2 * x * x + x + 1) xs
+\end{alltt}
+and we can see, that, would we leave the code as it is after the simplification, we would end up with
+three traversals of the input array, which is obviously not what we want. In practice, it wouldn't be
+a big problem in this example, as the sequential traversals, which are part of the implementation, are based on streams and stream fusion would eliminate them in this case. But even for this easily 
+optimised example, it seems overly complicated to first generate such complicated code, only to have
+various optimisations to clean it up afterwards. And as soon as we look at slightly more complicated
+examples, fusion is not able to repair the damage done by vectorisation as the definition of \icode@y@ is not inlined since it is used multiple times
+\begin{alltt}
+  TODO - find a proper example
+  mapP f xs
+  where
+     f x = let y = 2 * x
+               z = y + 1
+           in 2 * y + z
+\end{alltt}
+  The code could be rewritten in a form which would allow inlining and therefore fusion to fire, but
+  most programmers would probably not know, what the exact criteria are for inlining in a concrete 
+  compiler, let alone how they interact with the implementation of DPH and the way fusion works, and
+  they should not have to. Moreover, in many cases it is not easily possible to rewrite the code to
+  avoid sharing without compromising on efficiency. Therefore, it is quite clear that we would like a
+  better and more reliable option than fusion here and one option is to identify suitable subexpressions in the program, for which we already know that  for all possible arguments x,
+  \begin{alltt}
+   lifted (e) x = mapP e x
+\end{alltt}
+   as in our previous example. Looking at our vectorisation rules, we can show that this is the case
+   if e
+   \begin{itemize}
+    \item does not contain any parallel subcomputations
+    \item does not contain any free variables
+    \item does not contain conditionals or case expressions
+    \item only contains calls to functions which fulfill condition (1) to (4)
+    \item accepts a scalar value as argument, and returns a scalar value
+\end{itemize}
+    We can actually generalise the rule slightly to cover a broader range of function, namely sequential, scalar functions which accept an arbitrary number $n$ of scalar values as argument:
+  \begin{alltt}
+   lifted (e) x1 ... xn = zipWithP_n e x1 ... xn
+\end{alltt}
+    where \icode@zipWithP_1 = mapP@, \icode@zipWithP_2@ the binary zipwith, and so on. 
+
+ 
+
+    Even with these fairly restrictive rules, we can generate better code than with the original 
+    vectorisation rules combined with fusion, as sharing is not a problem. 
+\begin{alltt}
+TODO: example
+\end{alltt}
+
+
+    Recursion is also not
+    explicitly excluded, but since every recursive function needs a conditional somewhere to terminate, it effectively is not possible.
+
+    \begin{alltt}
+TODO: show why the two sides of the equation are indeed the same
+\end{alltt}
+
+  Why did we exclude conditionals? If we look at the vectorisation rules, we can see that they introduce to operations, \icode@splitPA@ and \icode@combinePA@, whose purpose is to maintain, 
+  on one hand, a strictly data parallel execution model, and on the other hand, load balancing, as
+  the different branches in generally won't take the same time to execute. They achieve this by
+  first splitting the input data into values for which the condition holds, redistributing the 
+  data if necessary, and applying the consequent to each data item, similarly for all the data elements for which   the condition evaluates to false, before applying the alternative and combining the results.  However, neither of the two reasons necessarily justify applying these fairly complicated and expensive operations. On most of the target architectures, it is actually not necessary to have a Single Instruction, Multiple Data model, a Single Program, Multiple Data model can be executed just as efficiently. Achieving load balancing by copying the data and 
+  potentially redistributing it is, for even complex sequential operations, in general an order of
+  magnitude more expensive than tolerating the load imbalance. However, since we can now have recursive functions which might have exponential or worse work complexity, the imbalance can, in
+  theory, get arbitrarily bad. Even though, as we can see in Section~\ref{section:benchmarks},
+  vectorisation avoidance is still the better option even for a large range of recursive functions, 
+  it can also lead to effectively sequentialising the program. Automatic decision strategies to 
+  choose between vectorisation avoidance  won't work as it depends on two factors: firstly, we would need to know the work complexity of the recursive function, which is in general not decidable, and
+  even though there are algorithms to determine the complexity of a large range of programs, it
+  would probably be an overkill to include those into the vectoriser. Secondly, the degree of 
+  load imbalance also critically depends on the data distribution of the input array, something
+  which, in general, also can't be determined statically. However, the programmer usually has 
+  a fairly good idea of both criteria and should therefore have the possibility to force or prevent
+  vectorisation avoidance, for example via a suitable pragma. If the imbalance is caused by 
+  the distribution of the data, as for example in the following code snippet where a function 
+  \icode@f@ with  work complexity O(n*n)
+
+  \begin{alltt}
+     mapP f (enumFromTo 1 10000000)
+\end{alltt}
+   it would be a much better solution to randomize the order of the input elements and apply the
+   non-vectorised $f$ in parallel to all data elements than to redistribute after each parallel 
+   step.
+
+  \begin{alltt}
+    TODO: benchmarks for this
+    \end{alltt}
+
+
+\subsection{Scalar Subcomputations in Parallel Functions}
+
+    Now we are ready to address the next issue: what about functions which do contain parallel computations, but also subcomputations scalar, sequential subcomputations, as in the following
+    excerpt from the Barnes-Hut algorithm:
+\begin{code}
+-- | Build the Barnes-Hut quadtree tree.
+buildTree :: BoundingBox -> [: MassPoint :] -> BHTree
+buildTree bb particles
+ | lengthP particles I.<= 1 = BHT s x y m emptyP
+ | otherwise                = BHT s x y m subTrees
+ where  
+   (MP x y m)          = calcCentroid particles
+   (boxes, splitPnts)  = splitPoints bb particles 
+   subTrees            = [:buildTree bb' ps | 
+     (bb', ps) <- zipP boxes splitPnts:]
+  
+   (Box llx lly rux ruy) = bb
+   sx                    = rux - llx
+   sy                    = ruy - lly
+   s                     = if sx < sy then sx else sy
+\end{code} 
+The calculation of \icode@sx@, \icode@sy@, and \icode@s@ are all simple, scalar computations, but they will be vectorised as they are part of a parallel function. If we rewrite the code as
+follows
+\begin{alltt}
+        sx = (\ rux llx -> rux - llx) rux llx
+        sy = (\ ruy lly -> ruy - lly) ruy lly
+        s  = (\ sx sy -> if sx < sy then sx else sy) sx sy
+\end{alltt}
+the computations are wrapped in a scalar function and (at least assuming a optimising compiler does
+not simplify those applications before vectorisation takes place) would not be vectorised. Of course,
+it is not a solution to expect the programmer to write such seemingly inefficient code, but that is 
+not a problem. We can identify these subexpression during the transformation, and automatically wrap 
+them in lambda-abstractions. 
+
+
+\subsection{Handling Complex Argument Types}
+
+This transformation also helps to soften the impact of restricting the types of the arguments of a 
+function to scalar types. Consider the following example - it does not use pattern matching to deconstruct the tuple, as this is just syntactic sugar which is not present at the stage we apply
+vectorisation:
+\begin{code}
+isFar   :: MassPoint    -- point being accelerated
+        -> Double       -- size of region
+        -> Double       -- position of center of mass of cell
+        -> Double       -- position of center of mass of cell
+        -> Bool
+
+isFar mp s x2 y2 = 
+  case mp of
+      (MP x1 y1 m) ->    
+        let  dx      = x2 - x1
+             dy      = y2 - y1
+             dist    = sqrt (dx * dx + dy * dy)
+        in   (s / dist) < 1
+\end{code}
+ It would be completely vectorised without the encapsulation we just discussed, but we can rewrite it
+ to read
+\begin{code}
+isFar mp s x2 y2 = 
+  case mp of
+      (MP x1 y1 m) -> (\ x1 y1 m x2 y2 ->   
+        let  dx      = x2 - x1
+             dy      = y2 - y1
+             dist    = sqrt (dx * dx + dy * dy)
+        in   (s / dist) < 1) x1 y1 m x2 y2
+\end{code}
+So all the code apart from the case distinction now is wrapped inside the application of a scalar function which does not need to be vectorised, assuming the we know that the external function 
+\icode@sqrt@ is scalar as well. Fortunately, this is information we already  have: for the vectorisation transformation, we need to keep track of which of the imported functions are parallel
+or sequential, so this is not a problem. Scalar local identifiers are also included in this set. So
+we just have to think about how we deal with recursive bindings. 
+
+
+\subsection{Recursive Bindings}
+We assume that recursive binding groups are minimal, that is, only definitions which actually do
+depend on other definitions in the group are present. Our strategy is optimistic: we first assume
+that non of the bindings are parallel, and include all of the variables into the set of scalars
+we maintain. If we find a parallel subcomputation during the traversal, it fails and the transformation of the recursive let-binding is done, this time without any of the bound identifiers
+included in the set of scalars.
+
+
+
+\subsection{Handling Complex Result Types}
+
+\begin{alltt}
+
+TODO: describe the zip/unzip combinations, inserting the lifted constructors
+
+\end{alltt}
+\subsection{Granularity}
+
+So far, we haven't talked about the overhead of introducing these extra lambda-abstractions and applications. 
+\begin{alltt}
+
+\end{alltt}
+
+
+\begin{code}
+data MassPoint
+        = MP    Double          -- pos X
+                Double          -- pos Y
+                Double          -- mass
+
+
+isFar   :: MassPoint    -- point being accelerated
+        -> Double       -- size of region
+        -> Double       -- position of center of mass of cell
+        -> Double       -- position of center of mass of cell
+        -> Bool
+
+isFar (MP x1 y1 m) s x2 y2 
+ = let  dx      = x2 - x1
+        dy      = y2 - y1
+        dist    = sqrt (dx * dx + dy * dy)
+   in   (s / dist) < 1
+\end{code}
+   
+
+
+
+
+
+
+
+
+
+\subsection{Lambda-Lifting with Beta-Expansion}
+
+
+
+\subsection{Tree Labeling}
+
+As a first step, we traverse the program attaching a label to every node depending on whether it is a sequential computation of primitive type, a
+sequential computation of complex type, or a computation which may contain
+a parallel subcomputation. 
+
+
+
+
+\subsection{New Vectorisation Rules}
+
+\begin{itemize}
+	\item Identify maximal scalar chunks
+	\item encapsulate them using beta expansion
+	\item when vectorising encapsulated lambda expressions, vectorise body a parallel map
+\end{itemize}
+
+
+To identify all subexpression we do not need to vectorise, we need to look for expressions 
+\begin{itemize}
+\item which do not contain any parallel computations
+\item which do not contain calls to functions which may trigger parallel computations
+\item and 
+  \begin{itemize}	
+	\item are either function bodies, or
+	\item whose parent expression does contain parallel computations
+  \end{itemize}	
+ \end{itemize}
+
+
+\subsection{The Typeclass Scalar}
+\label{Subsection:AlgScalar}

@@ -1,0 +1,15 @@
+Distance and Pythagoras with sumP - generator fusion
+
+10 ^ 8 elements
+
+
+distance
+         1		2		3		4
+v avoid  391   240 	   150	   130    
+fusion   7300  4120	   2870   2610
+
+
+pythagoras
+
+v avoid 1000	520		340	   280
+fucion 	3520	2200	1870   1730

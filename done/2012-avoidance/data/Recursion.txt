@@ -1,0 +1,7 @@
+SimpleRec (n^2 algorithm)
+10^5 
+
+VA  non-randomised 	1083	817	612	485 
+    randomised     	1087	613	427	328
+
+for non-vectorised, more than a factor of 100 slower
