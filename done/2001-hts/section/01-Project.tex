@@ -1,0 +1,16 @@
+%!TEX root = ../Main.tex
+\section{Project Overview}
+The compact array operates on four main observing bands:
+
+\begin{itemize}
+\item	1250-1760 MHz (20cm - L-Band)
+\item	2200-2500 MHz (13cm - S-Band)
+\item	4400-6860 MHz (6cm  - C-Band)
+\item	8000-9200 MHz (3cm  - X-Band)
+\end{itemize}
+
+All four of these bands are suffering increasing levels of interference from terrestrial and orbital sources due to the proliferation of radio communication systems and RFI emitting equipment. Specific sources of interference include microwave ovens, cell phones, computer equipment, navigation satellites (GPS, GLONASS), microwave point to point links and the microwave multipoint distribution systems (MDS) used for pay-TV. These problems are compounded by the fact that the signal levels of interest to astronomers are many orders of magnitude less than even the higher harmonics of terrestrial transmissions.
+
+In 1996, a MDS network servicing Narrabri and the surrounding region began operating between 2300 and 2400MHz, which falls in the middle of the 13cm band. This service is a broadcast system transmitting from a tower located about 55 km away on nearby mount Kaputar. Although the service is transmitting within their allocated band, the ATNF astronomers wish to observe close the 2300MHz band edge, as this frequency is close to the lower limit of the Tidbinbilla 70m S-band maser amplifier which is used for Very Long Baseline Interferometry (VLBI) observations. Unfortunately, the existing telescope receivers have limited preselect-filtering, so by the time the MDS signal has been amplified and down converted, its bottom edge is still of sufficient magnitude to saturate the samplers and noise temperature measurement system.
+
+My project was to produce a preselect filter to allow observations right next to the lower edge of the MDS band. After corresponding with the staff at Narrabri, it was decided that a clear 64MHz pass band centered on 2260 (range from 2228 to 2292 MHz) would be a vast improvement over their current arrangement. The target was 20dB attenuation at 2300MHz and as much possible over the MDS band.
