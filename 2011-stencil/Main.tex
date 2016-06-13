@@ -1,0 +1,65 @@
+\documentclass[preprint]{sigplanconf}
+\usepackage{version}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{style/utils}
+\usepackage{style/code}
+
+
+% -----------------------------------------------------------------------------
+\begin{document}
+\conferenceinfo{Haskell'11,} {September 22, 2011, Tokyo, Japan.}
+\CopyrightYear{2011}
+\copyrightdata{978-1-4503-0860-1/11/09}
+
+\title	{Efficient Parallel Stencil Convolution in Haskell}
+
+\authorinfo
+	{Ben Lippmeier \quad \quad Gabriele Keller}
+	{School of Computer Science and Engineering \\
+	 University of New South Wales, Australia}
+	{\texttt{\{benl, keller\}@cse.unsw.edu.au}}
+
+\maketitle
+\makeatactive
+
+
+% -----------------------------------------------------------------------------
+\begin{abstract}
+Stencil convolution is a fundamental building block of many scientific and image processing algorithms. We present a declarative approach to writing such convolutions in Haskell that is both efficient at runtime and implicitly parallel. To achieve this we extend our prior work on the Repa array library with two new features: partitioned and cursored arrays. Combined with careful management of the interaction between GHC and its back-end code generator LLVM, we achieve performance comparable to the standard OpenCV library.
+\end{abstract}
+
+\category
+	{D.3.3}
+	{Programming Languages}
+	{Language Constructs and Features---Concurrent programming structures; Polymorphism; Abstract data types}
+
+\terms
+	Languages, Performance
+
+\keywords
+	Arrays, Data parallelism, Haskell
+
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction}
+\input{section/02-Laplace}
+\input{section/03-Repa}
+\input{section/04-Stencils}
+\input{section/05-Sharing}
+\input{section/06-Benchmarks}
+\input{section/07-FutureWork}
+\input{section/08-RelatedWork}
+
+
+% -----------------------------------------------------------------------------
+\paragraph{Acknowledgements}
+Thanks to Rami Mukhtar and Ben Lever for writing the original Canny Edge Detection code, Roman Leshchinskiy for suggesting the use of cursored arrays, and Simon Peyton Jones for describing the behaviour of the GHC simplifier.
+This work was supported in part by the Australian Research Council under grant number LP0989507.
+
+\bibliographystyle{abbrvnat}
+\bibliography{Main}
+
+\end{document}
+

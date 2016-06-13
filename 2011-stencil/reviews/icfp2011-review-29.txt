@@ -1,0 +1,509 @@
+===========================================================================
+                           ICFP 2011 Review #29A
+                 Updated Friday 22 Apr 2011 20:15:43 CEST
+---------------------------------------------------------------------------
+       Paper #29: Efficient Parallel Stencil Convolution in Haskell
+---------------------------------------------------------------------------
+
+                      Overall merit: 1. Reject
+                 Reviewer expertise: 3. Knowledgeable
+
+                         ===== Paper summary =====
+
+The paper describes implementing parallel stencil convolutions in
+Haskell using the authors' previous Repa array library.  The library
+is extended with two key new features: partitioned and cursored
+arrays.  The paper describes how to use these extensions to address
+some of the performance issues.  Performance numbers are presented for
+some uses of stencils.
+
+                      ===== Comments for author =====
+
+Pros:
+* Good description of how the library reduces performances issues and
+of the extensions to the Repa array library.
+
+Cons:
+* Unimpressive performance results.  After all that work, the code is
+still a factor worse than C in many cases.  In some cases there are no
+parallel speedups.
+* Arrays bounds checking is turned off.  If you want a safe language
+then the right thing to do is implement array-bounds-checking
+elimination optimizations.  These are well known and well described
+and work reasonably well for Java.  They need to be implemented in
+Haskell.  I also noticed a use of unsafePerformIO in Fig 18.
+
+Other comments:
+
+Fig 1: 3 argument types, 4 actual arugments.  This occurs in other
+example code fragments too.
+
+Fig 13 & 15: Why a log scale for runtimes?  This is highly unusual and
+makes it hard to figure the performance slow down between the various
+versions.
+
+6.3, penultimate para: So is this a limitation of your library or a
+limitation of the declarative Haskell approach?
+
+7.1: While one can in theory get a 4x speedup from 4-wide SIMD, in
+practice one will only see 2-3x.
+
+7.5, DPJ: DPJ is not a first-order language.  It is based on Java,
+Java object types include methods and methods can take other objects
+as arguments - thus it is higher-order.  Java even allows annoymous
+classes to be nested inside expressions, providing (a syntactically
+very heavy weight) equivalent to nested functions.  Whether DPJ allows
+this nesting, or whether its effect annotations (which are key to what
+it does) work well with higher-order methods I don't know.
+
+
+===========================================================================
+                           ICFP 2011 Review #29B
+                 Updated Tuesday 3 May 2011 19:57:58 CEST
+---------------------------------------------------------------------------
+       Paper #29: Efficient Parallel Stencil Convolution in Haskell
+---------------------------------------------------------------------------
+
+                      Overall merit: 3. Weak accept
+                 Reviewer expertise: 3. Knowledgeable
+
+                         ===== Paper summary =====
+
+This paper furthers the work on Repa, a framework/library for
+regular parallel array programming in Haskell, focussing in this paper
+on the efficient implementation of convolution-based algorithms.
+The focus on stencils/convolutions is warranted since convolution is a
+ubiquitous operation in image processing, scientific computing, and
+graphics-oriented programs. The well-known Canny edge detection
+algorithm is used as a motivating example along with the discrete
+Laplace operator.
+
+"Partitioned" and "cursored" array representations are introduced, as
+well as a representation for stencils, permitting efficient
+implementations of convolutions.
+
+Partitioned arrays separate into regions the elements near the array
+boundaries, where application of a convolution indexes elements
+outside of the array, from those in the inner area of the
+array. Costly bounds checking on array indexing can be eliminated in
+the inner regions, which as the author's argue well, can be a
+significant overhead.
+
+Cursored arrays improve performance by exposing common
+sub-expressions involved in index calculation. Cursored arrays are
+indexed by an abstract representation of their indices, for which
+a shifting operation calculates indices relative to the current index.
+
+A stencil representation is introduced which prevents random
+array-indexing, instead restricting the programmer to relative
+array-indexing. 
+
+I enjoyed the paper. The work is well motivated and it is nice to see
+practical, real-world examples being used. The authors have made a good
+effort at thinking about how to improve array performance for
+convolutions and have positive, encouraging results.
+
+Although I think the research is good, I feel the discussion is
+lacking in places.
+
+In particular, we never see how the stencil is applied at the
+boundary regions. Figure 9 on page 7 shows what I believe to be
+the relevant code, although the parts pertaining to application of
+stencils at the boundaries is omitted. I would have thought this would
+be particularly interesting since the boundary varies depending on the
+extent of the stencil. More is needed on the interaction between
+boundary/regions and the stencil representation.
+
+Also, the paper lacks discussion of how to generalise the code seen
+throughout e.g. for rank-n arrays, for arbitrary stencil sizes in
+mapStencil2, and for arbitrarily sized unroll-jamming blocks.  
+
+I think this paper should be accpeted, although I would have more
+confidence if the discussion of boundary regions was fleshed
+out further and if there was more discussion of generalisation.
+
+                      ===== Comments for author =====
+
+Here are a number of thoughts, minor corrections, and errors:
+
+On the first page, talking about Chapel, "which stresses the need to
+define the value of each array declaratively". Do you mean the value
+of each array element? 
+
+It might be worth mentioning for the sake of those who are less
+accustomed to convolution, that it is a general technique found in
+many applications, not just image processing. 
+
+The discrete Laplace operator is used as an example,
+although I'm not sure if it is correctly specified. As I recall (and
+confirmed by a peek at Wikipedia) discrete Laplacian in 2D has the kernel:
+
+0  1  0 
+1 -4  1
+0  1  0
+
+In the paper a slightly different kernel is used. I am not an expert
+in image processing, so perhaps the definition you use is standard in
+image processing as an approximation or as a special case of the
+mathematically derived discrete Laplace operator. If the approach
+is standard, perhaps a citation could be given? Otherwise, an
+explanation could be included. This is not a particularly big problem
+though, the actual coefficients are not relevant to the approach after
+all.
+
+In Figure 1, is the implication that arrBoundValue is 0 for all
+elements that are not boundaries, and some other value for the
+elements that are outside of the bound? 
+
+"Replacing the use of (!) in the definition of traverse with an ..." -
+We don't know that (!) is used in traverse, so perhaps you should say
+this first, then say that instead unsafe indexing operations could be
+used.
+
+"In Figure 2, note that the code that checks for the border is
+"further up", so the pres...." You mean it is not shown because it has
+been lifted during code transformation; "further up" is too vague: I
+started looking at the top of the code block to find it.
+
+(pg 4) "In contrast, RangeRects is used..." Do you mean
+"rangeRects" (lower case)?
+
+You mention that regions are pemitted to overlap. Can you give an
+example when this happens?
+
+We are referred to 5.3 for a discussion of per-region specialisation,
+but in 5.3 I don't see such discussion. Did you mean 5.2? However, in
+5.2 there is barely any discussion of the specialisation to the
+different regions (see my above major point).
+
+"When tried adding it..." -> "We tried adding it ..."?
+
+Shouldn't makeStencil in Figure 6 have a "Num a => " constraint
+arising from the use of 0? (or was that omitted on purpose?).
+
+I liked the Template Haskell specification of a kernel. This seems like
+a nice idea but little is said about it.
+
+"Returning to the issue of bounds checking, with ..." You might want
+to start this sentence as a new paragraph.
+
+(pg6) "\texttt{load*}" Perhaps "\texttt{load}*" might be better- I was
+momentarily confused about some function called load* (this
+appears again later I think). 
+
+"Computation of the inner array elements is performed by by the" -
+double "by".
+
+In the mapStencil2 function (figure 9) shouldn't the pattern match
+"(Stencil sExtent _ _)" be "stencil@(Stencil sExtend _ _)"? 
+
+Do you plan on having multiple cases in unsafeAppStencil2 for m*n
+stencils? Or will they all be square? You talk about not having a
+general way to create map functions for rank-n arrays, perhaps a macro
+system could be used to generated rank-n arrays and to generate the
+(unrolled) stencils?
+
+At the top of column 2 pg 8, "Although the conversion to and from the
+linear index...". It took me a while to understand what you meant as I
+thought you were referring to the calculation of the cursor, now I see
+that you are referring to the ixLinear value which comes in from
+somewhere else that we can't see and is converted back into (x, y)
+indices. Be careful about referencing code we can't see, especially
+if it sounds like some other code that we can see. Perhaps a bit of a
+rewrite of this sentence will help. 
+
+"..need to evaluated several in one go.." too vague/informal.
+
+Why is a block size of 4 chosen, as opposed to say 2, 6, or 8 or n?
+More discussion! 
+
+"low level" -> "low-level"
+
+There isn't much discussion of how the parallelism is acheived by
+"force". I presume it performs 1D decomposition of the array into
+n-blocks for the n-processors? A little on this would be good.
+
+Why is Laplace applied at a size of 300x300 and not at a more standard
+size that is a power of two, like you did for Sobel and Canny
+(512x512, etc)?
+
+"note the lack of overlap in four Laplace stencils placed
+side-by-side" I do not see this. For four Laplace
+stencils side-by-side there are 16 necessary accesses (i.e. non-zero
+co-efficients), two of which overlap. There is some overlap, though not
+much, as you said in the previous sentence. Note, there is no overlap
+for *two* stencils side-by-side.
+
+(pg 11, bottom of col1) "Figure. 18" -> "Figure 18"
+
+Some discussion of how to generalise the code seen throughout would be
+a good idea e.g. for rank-n arrays, for arbitrary stencil sizes in
+mapStencil2, and for arbitrarily sized unroll-jamming blocks. On this
+last one, some discussion of how to chose the optimal number of
+iterations to unroll by would be good (for instance, I presume number
+of registers is an important factor but also sizes of proximal caches). 
+
+(pg 12, top of col1) "Recent representatives based on ..." this
+sentences doesn't follow from the previous.
+
+"PASTHA [18], whose implementation is based around IOUArray. It
+supports..." Sentence fragment.
+
+Can your techniques be extended to other types of stencil computations
+that are not convolutions (e.g. the game of life?)
+
+
+===========================================================================
+                           ICFP 2011 Review #29C
+                  Updated Sunday 8 May 2011 11:57:57 CEST
+---------------------------------------------------------------------------
+       Paper #29: Efficient Parallel Stencil Convolution in Haskell
+---------------------------------------------------------------------------
+
+                      Overall merit: 3. Weak accept
+                 Reviewer expertise: 3. Knowledgeable
+
+                         ===== Paper summary =====
+
+The paper describes the changes made to the Repa library for parallel arrays
+in Haskell in order to support efficient stencil-convolution operations. It
+explains how the representation of arrays was adapted so that both library and
+client code can distinguish between various regions of interest in an array.
+Furthermore, it explains a zipper-like representation of an array's contents
+that allows, to some extent, for memoisation of array lookups. The paper
+discusses the results of a set of benchmarks that were performed on a dual-core
+machine.
+
+                      ===== Comments for author =====
+
+There is no doubt that this is a good paper: it is well-written and it conveys
+a sufficient amount of detail, while still being to-the-point. However, I have
+to admit that I am not very enthusiastic about it: even though the authors
+make clear that they have done a very good job improving on the performance of
+their library on convolutions, it is not at all obvious to me why this work is
+important for the functional-programming community.
+
+Two-dimensional convolution is an operation important enough in image
+processing to come with special support in a parallel-array library and
+extending Repa with such support---or, actually, overhauling it---surely seems
+the right thing to do; but that by itself does, in my opinion, not merit a
+publication. These are my main concerns:
+
+1. What lessons are there to learn for other library implementors?
+
+   o The partitioned representation of arrays solves the problem of repeated
+     border checks, but the paper does not make clear whether it poses a
+     trade-off with respect to other aspects of working with parallel arrays.
+     Note: I am not claiming that such a trade-off exists; it's just that the
+     paper does not convincingly argue that there isn't. As Repa is not
+     intended for convolution computations exclusively, I would have expected,
+     in addition to the stencil benchmarks, for some previous benchmarks to be
+     repeated: what is the impact of the changes to the library to other
+     applications than convolution?
+
+   o The cursored traversal over arrays that is supported by the new
+     representation of arrays deserves a more in-depth treatment. How does it
+     relate to Huet's zipper? It seems that for traversals to take advantage
+     of memoisation, they should follow a very regular pattern. Can the
+     implementation of cursors be adapted, perhaps even dynamically, to
+     less-regular traversals?
+
+2. The paper, by its title, claims to be about efficient convolution
+   *in Haskell*, but I would argue that it's really about efficient convolution
+   with GHC and in conjunction with its LLVM-back end. Some of the
+   nitty-gritty design choices seem to be tailored to the particular choice of
+   back end. This is defendable, as GHC is de facto the only weapon of choice
+   for those who wish to write efficient Haskell code. Nevertheless, I wonder
+   how stable your choices are with respect to changes in GHC's back end
+   implementation. Once LLVM supports autovectorisation, does the library need
+   another overhaul to take advantage of it? At least, if one addresses the
+   functional-programming community as a whole, I would expect these issues to
+   be discussed more extensively.
+
+3. The parallelisation aspect is a bit underdeveloped in the paper. How to
+   the design decisions work out with respect to distributing array-processing
+   code over multiple cores? Is it sufficient to run the benchmarks on a
+   dual-core machine only?
+
+Here are some comments at a lower level:
+
+o Section 1: Introduction
+
+  page 1, column 1: "in our research group".
+    Which group is this? The authors are from different institutions. Moreover,
+    the paper referred to is co-written by Keller and Chakravarty (who was a
+    coauthor of the Repa paper...)
+
+o Section 2: The Laplace Equation, Reloaded
+
+  What is the purpose of this section? Make it explicit.
+
+  p.2, c.1: "We will reuse our example from ..."
+    Make this part more self-contained by providing some more context.
+
+  p.2, c.1: "u'(i,j) = ..."
+    This is set in Computer Modern Roman, while SIGPLAN style prescribes
+    Times. Use the mathptmx package.
+
+  p.2, c.1: "The boundary conditions are specified by ..."
+    Explain the role of these conditions better.
+
+  p.2, c.1: "Parallelising the potential random access of ..."
+    It was not clear to me what is meant here.
+
+  p.2, c.1: "... we present part of Core IR ..."
+    Explain what Core IR is.
+
+  p.2, c.1: "... peforming a large number of code transformations."
+    At this point, it is not at all clear whether these transformations are
+    performed automatically or manually.
+
+  p.2, c.2: Figure 1.
+    To make the paper more self-contained, a better explanation of the code
+    is required.
+
+  p.3, c.2: Figure 3.
+    Font.
+
+  p.3, c.2: "... Sobel_X ...", "... Roberts_X ...", etc.
+    Font.
+
+o Section 4: Stencils, Borders and Partitioned Arrays
+
+  p.4, c.1: "All stencils reuse values for the coefficients."
+    I did not understand this point.
+
+  p.4, c.1: "(ex ...)" (twice)
+    Write out.
+
+  p.4, c.1: "... Binominal_7X ..." etc.
+    Font.
+
+  p.4, c.1: "Points 1 & 2 ..." etc.
+    Don't use "&", just write "and".
+
+  p.4, c.1: "... we usually want the second option, but note that ... only
+            0.8% of the pixels are in the border region."
+    What opposition is signaled by "but"? Restructure; there are two aspects
+    here: 1. how to handle the border case, 2. how to distinguish the border
+    case from the internal case. Make these two aspects more explicit.
+
+  p.4, c.1: "In the rank 2 case ..."
+    Explain that the rank of an array is just its dimension.
+
+  p.4, c.1: Figure 4.
+    This picture is not very clear to me. Perhaps you could leave out the
+    border, so that it is clear that parts of the stencil fall outside of the
+    array? It's confusing that the index of the top-left element is (1,1)
+    rather than (0,0).
+
+  p.4, c.2: Figure 5.
+    With respect to the Vector-argument of the GenManifest-constructor: how
+    are the elements of the vector related to the positions in the array
+    region?
+
+  The explanation of co-stencils and how they relate to co-recursive
+  functions over streams and co-monadic grid computation is far from clear to
+  me. Please, make this subsection more self-contained.
+
+  p.5, c.2: "Although some coefficients in a stencil are often zero, ..."
+    What opposition is signaled by "although"?
+
+  p.5, c.2: "Never the less ..."
+    "Nevertheless".
+
+o Section 5: Sharing and Cursored Arrays
+
+  p.6, c.1: "4 x 9 = 36"
+    Font.
+
+  Invest in explaining the intuition behind cursored arrays before you delve
+  into the details of the code that implements them.
+
+  p.8, c.2: "Sobel_X"
+    Font.
+
+o Section 6: Benchmarks
+
+  p.9, c.1: Figure 12: "... Sobel_X ..."
+    Font.
+
+  p.10, c.1: "... Sobel_XY ..." (twice)
+    Font.
+
+
+===========================================================================
+                           ICFP 2011 Review #29D
+                Updated Thursday 12 May 2011 02:40:54 CEST
+---------------------------------------------------------------------------
+       Paper #29: Efficient Parallel Stencil Convolution in Haskell
+---------------------------------------------------------------------------
+
+                      Overall merit: 2. Weak reject
+                 Reviewer expertise: 2. Some familiarity
+
+                         ===== Paper summary =====
+
+The paper describes how a particular class of matrix manipulation
+programs (so-called stencil convolutions) can be implemented in GHC so
+the resulting code runs with performance comparable to C.  The authors
+analyze the source of inefficiencies and extend a previously
+constructed GHC library (Repa) by new features, so that the compiler
+can eliminate these inefficiencies.
+
+                      ===== Comments for author =====
+
+At a high level, this reviewer can appreciate the challenged posed and
+the solutions: partitioned arrays and cursored arrays.  Particularly
+useful is the description on page 5: rather than giving untrusted code
+direct access to the array (which would necessitate bounds checking,
+in general), the trusted library itself feeds the elements to the
+client.
+
+This reviewer can also appreciate the end-to-end results in terms
+of the overall performance of the library, which exploits a number
+of techniques in GHC combined with the LLVM's low-level optimizations.
+
+Beyond that, however, the whole construction seems incredibly brittle;
+baling wire and duct tape come to mind.  Small changes in the LLVM or
+the internals of GHC could have dramatic effects, and in fact they
+already do.  What is the general scientific advance?  Can I adapt this
+to other functional languages or environments?  And, while stencil
+convolution is important, I feel like there should be some
+generalizable lesson somewhere in here.  If so, I fear it is lost in
+the current presentation.
+
+
+===========================================================================
+                           ICFP 2011 Review #29E
+                 Updated Friday 13 May 2011 17:06:17 CEST
+---------------------------------------------------------------------------
+       Paper #29: Efficient Parallel Stencil Convolution in Haskell
+---------------------------------------------------------------------------
+
+                      Overall merit: 3. Weak accept
+                 Reviewer expertise: 2. Some familiarity
+
+                         ===== Paper summary =====
+
+The paper descibes a number of design decisions/tactics which enable the
+GHC/LLVM conglomerate to receive good efficiency. In the absence of
+supercompilation several issues have be dealt with explcitly. The paper is
+well written, achieves good results 9although comparison with other
+approaches is not possible since their numbers are absent).
+
+Aside from using Haskell and GHC the paper is low on very specific FP content;
+the absence of side-effect definitely helps though in implementing the EDSL.
+On the other hand, given the specific properties of the GHc which are involved,
+and the way haskell is used to convey information through the stages, I think
+ICFP is probably the most likely venue for this paper.
+
+The paper is pleasant to read, explains things carefully, and I learned
+from it.
+
+                      ===== Comments for author =====
+
+Comments were made by my subreviewer.
+
+
+

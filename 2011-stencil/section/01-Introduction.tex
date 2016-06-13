@@ -1,0 +1,26 @@
+
+\section{Introduction}
+
+This paper addresses an implicit challenge put to us by Rami Mukhtar of NICTA (the Australian equivalent of INRIA). At the time, Rami was starting a project on writing image processing algorithms in declarative languages. Having read our previous work on the Repa library for parallel arrays \cite{Keller:repa}, he took it to heart, and promptly implemented the Canny edge detection algorithm \cite{Canny:finding-edges-and-lines} as a benchmark. Unfortunately, he then informed us that the Repa version was more than 10x slower than the equivalent implementation in OpenCV \cite{bradski:opencv}, an industry standard library of computer vision algorithms. Due to this, he instead based his project around the Accelerate EDSL \cite{Chakravarty:accelerate} for writing parallel array codes on \mbox{GPGPUs}, produced by a competing (but friendly) faction in our research group. Clearly, we could not let this stand.
+
+Simply put, our aim is to implement parallel image processing algorithms that run as fast (faster!) than the highly optimised ones for imperative languages. We also want to write this code directly in Haskell and use the GHC runtime system, instead of, say, implementing an EDSL that produces LLVM or CUDA code. Using Haskell directly gives us access to GHC's powerful inliner and simplifier, which we use to convert declarative code into the tight loops we rely on for performance. The GHC runtime provides the primitives we use to implement parallelism in a portable way.
+
+At the core of many image processing algorithms is the 2D convolution operator $*$, whose definition is as follows:
+$$(A * K) (x, y) = \sum_i \sum_j ~ A(x + i, y + j) ~ K(i, j)$$
+Here, $A$ is the image being processed, and $K$ is the \emph{convolution kernel} or \emph{stencil}. The \emph{stencil} is a small matrix, with typical dimensions 3x3 or 1x5, that defines a transformation on the image. Typical transformations include the Gaussian blur, and the Sobel differentiation operator, both of which are used in the Canny edge detection algorithm. For this paper we focus on the efficient parallel implementation of stencil convolution, though we will return to the larger Canny algorithm near the end. As we are primarily interested in image processing we also focus on arrays of rank 2, though our techniques are equally applicable to arrays of higher rank.
+
+Our contributions are as follows:
+\begin{itemize}
+\item	An array fusion approach to writing stencil functions in Haskell that yields performance comparable to the industry standard OpenCV library. 
+
+\item	To achieve this we extend our previous approach \cite{Keller:repa} with two new features: partitioned and cursored arrays. These features allow us to optimise array programs that use different functions to construct the various regions of the array, and to share subcomputations of adjacent elements.
+
+\item	A declarative API that allows us to write cache-friendly programs that access data in a block-wise manner, while cleanly separating the evaluation code from the specification of the array elements.
+
+\item	As array fusion is sometimes perceived as ``brittle'' due to its dependency on poorly understood code transformations, we seek to mitigate this problem by summarising the main details that must be accounted for to repeatably generate efficient object programs. This includes the staging of inliner phases, and the interaction between GHC and its back-end code generator, LLVM.
+
+\item	Finally, with the ultimate aim of writing declarative code that runs as fast as competing libraries, we discuss the current challenges to array fusion and suggest directions for future research.
+\end{itemize}
+
+The Ypnos \cite{Orchard:ypnos} and PASTHA \cite{Lesniak:pastha} libraries also address stencil convolution in Haskell, though \cite{Orchard:ypnos} presents no performance figures and \cite{Lesniak:pastha} lacks absolute numbers. On the other hand, Ypnos deals elegantly with arrays of higher rank, and PASTHA also has support for managing convergence conditions for iterative convolution, which we don't address here. Our philosophy of array programming is also shared by the Chapel language \cite{Barrett:finite-difference-chapel}, in that the value of an array should be defined declaratively, using bulk operations. This specification is then mapped onto physical processors in separate, orthogonal code.
+

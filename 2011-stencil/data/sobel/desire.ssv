@@ -1,0 +1,10 @@
+# Sobel Runtime Lena 512x512 image, 100 iterations -qg
+# THREADS, Runtime(ms) doubles, Runtime (ms) float
+1 451 399
+2 244 228
+3 190 168
+4 195 196
+5 168 165
+6 140 135
+7 121 119
+8 116 109

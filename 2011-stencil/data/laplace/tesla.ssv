@@ -1,0 +1,10 @@
+# Laplace on tesla, 300x300 image. Numbers with high threads have high variance, should redo.
+# Threads, SafeGet, UnsafeGet, UnsafeUnrolledGet, SafeUnrolledStencil, CProgram
+1 	4038	2986	1519	769	394
+2 	2057	1532	1024	667	394
+3 	1405	1050	 806	574	394
+4 	1075	 911	 685	593	394
+5 	 936	 781	 633	616	394
+6 	 815	 700 	 681	615	394
+7	 732	 672	 563	722	394
+8	 642	 600	 803	822	394

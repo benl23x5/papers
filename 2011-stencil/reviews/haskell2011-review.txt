@@ -1,0 +1,217 @@
+----------------------- REVIEW 1 ---------------------
+PAPER: 8
+TITLE: Efficient Parallel Stencil Convolution in Haskell
+AUTHORS: Ben Lippmeier and Gabriele Keller
+
+OVERALL RATING: 3 (strong accept)
+REVIEWER'S CONFIDENCE: 2 (medium)
+
+Summary: 
+
+This paper presents an implementation of a library for fast parallel
+stencil convolution in Haskell.  Stencil convolution is a kind of
+image processing technique that is used for operations like smoothing
+or edge detection; it is an embarassingly parallel problem because
+values of the target image can be computed independently of one
+another.
+
+This paper shows how to implement stencil convolution in Haskell in
+such a way as to achieve performance comparable to an
+industry-standard library (OpenCV).  One big idea of this paper is to
+use a representation of arrays that expose different block "regions"
+such that operations over these regions can be specialized by the
+compiler to eliminate redundant computation (such as unecessary bounds
+checks).  Another big idea of this paper is to use a "cursor"
+representation for accessing array elements -- this allows the program
+to efficiently share subcomputations for related elements.
+
+The paper describes the implementation of the library, shows examples
+of its use, and gives performance measurements that demonstrate
+significant performance increases: on one test, the GHC implementation
+with 8 threads approaches the performance of OpenCV as the size of the
+image gets larger.  The paper also discusses how the interaction
+between GHC and its LLVM backend can be (carefully!) exploited to get
+good performance.
+
+Review:
+
+This is a great paper.  It is well written and the ideas are explained
+in a very understandable way.  As someone not working the in the realm
+of high-performance computing, I found this paper to be a very good
+read.  I particularly liked the explanation of cursored arrays and the
+idea of "inverting" the relationship between the code that generates
+array indices and the code that consumes array values; that idea was
+new to me, and it was nicely explained.
+
+Overall I give this paper a "strong accept"
+
+Comments:
+
+- I wonder to what extent cursored arrays and your block
+ representation are useful in other contexts beyond this kind of
+ stencil convolution.
+
+
+----------------------- REVIEW 2 ---------------------
+PAPER: 8
+TITLE: Efficient Parallel Stencil Convolution in Haskell
+AUTHORS: Ben Lippmeier and Gabriele Keller
+
+OVERALL RATING: 2 (accept)
+REVIEWER'S CONFIDENCE: 3 (high)
+
+This paper updates last year's Repa paper with two new techniques for
+improving performance of convolutions. "Partitioning" allows
+representating an array by a collection of subarrays ("regions"), with
+each one having a specialized representation. For instance, borders
+require special treatment and cover a relatively small part of an array.
+With partitioning, the larger region can be computed more efficiently,
+leaving the more expensive computations to the (relatively small) borders.
+The second new technique is "cursored arrays", which allow some sharing of
+indexing computation, as well as some incremental calculation when
+accumulating information from nearby array elements. The techniques are
+shown to yield significant speed-ups.
+
+The paper also draws attention to some subtleties in achieving and
+measuring parallel performance.
+
+Overall, I like the style and design choices presented in the paper.
+
+Some specific comments:
+
++ Page 3, definition of map on arrays. There is more commonality to be
+ shown in the cases for Manifest and Delayed. Both results have the form
+ 'Delayed (f . h)' and differ only in the choice of h. I'd rewrite the
+ code accordingly. Also fix the sentence "Both cases of map produce a
+ Delayed array, and the second corresponds to the following familiar
+ identity: ...", since *both* cases correspond to that functor law.
+
++ Page 3, last paragraph of section 3, about explicit calls to 'force':
+ "the programmer is responsible for inserting calls to force in the
+ appropriate place in their code. Forcing the array at different points
+ has implications for sharing and data layout, though in practice we have
+ found there are usually only a small number of places where forcing
+ would “make sense”, so the choice presents no difficulty." This
+ explicitness is a shame, especially given the last sentence. Have you
+ explored automating the points of reifying delayed arrays into manifest
+ ones? Have you tried to articulate the issues involved in either manual
+ or automatic placement?
+
++ Page 5, figure 6, definition of makeStencil. The code uses 0 and (+).
+ Did you omit a Num constraint on the type parameter 'a'?
+
++ Section 4.3, "Nevertheless, in the literature stencils are ...". Add a
+ comma after "literature". Otherwise reads like a remark on "literature
+ stencils".
+
++ Section 5.2, first paragraph, "... have been elided to save space, so
+ have the inInternal and inBorder predicates, though they are
+ straightforward." Replace the comma after the word "space" with a
+ semicolon or period (probably the former) for a cleaner break, or keep
+ the comma and replace "so have" with "as have".
+
++ Page 7, figure 9, definition of mapStencil2. The definitions of make and
+ shift are very similar. Perhaps instead, define cursor addition and use
+ to define as something like "shift du = (^+^ mkCursor aWidth du)". Or
+ maybe not.
+
++ Section 5.3, first paragraph, "who's inner fragment ...". Replace
+ "who's" with "whose."
+
++ Throughout: Many uses of "this" and a few of "these" with missing or
+ unclear referents. Adding a clear & succinct noun or noun phrase for
+ every one of these instances will improve clarity and specificity in your
+ writing and maybe in your thinking. (It does so for me.) This exercise
+ takes some time and effort, and I find that the more difficult the
+ exercise, the more muddled my thinking was (without my realizing) and
+ hence the more worthwhile. I'd rather you made that effort than leaving
+ the work to your readers. As E.B. White (I think) said, "Hard writing is
+ easy reading; easy writing is hard reading." So if you expect (or hope
+ for) for your paper to have more readers than writers, my math says
+ write hard/clearly.
+
+
+----------------------- REVIEW 3 ---------------------
+PAPER: 8
+TITLE: Efficient Parallel Stencil Convolution in Haskell
+AUTHORS: Ben Lippmeier and Gabriele Keller
+
+OVERALL RATING: 3 (strong accept)
+REVIEWER'S CONFIDENCE: 3 (high)
+
+I liked this paper. This is a challenge-response paper, where
+a specific library was not performing competitively in a specific
+space, and these were the steps taking to make it efficient on
+the candidate example. This is a good fit for the Haskell Symposium.
+
+Specifically, this paper discusses the optimization of convolution
+operators. The outcome is that they claw back to parity with other
+techniques, and in doing so enhance the range of computation methods
+that can be expresses using Repa.
+
+The paper is extremely well written, contains a detailed technical
+of the execution of specific ideas, including reasonable performance
+measurements and analysis of the measurements. Above the specifics,
+this paper is part of an over-arching effort to raise the use of
+Haskell abstractions, yet get highly efficient code, a goal we all
+support. The paper closes with insightful discussions about the
+rational behind their use of unsafePerformIO internally, and the
+pervasive use of the INLINE pragma, which frustrates the authors.
+It is this level of discussion that convinces me that this is
+a great candidate for the symposium.
+
+
+I have no specific issues, but two general comments
+* Figure 5 could do with an extra diagram, to explain the 
+partitioning into regions.
+* Technically, I am uneasy about recovery of sharing, as used. 
+  It feels an especially brittle part of the transformation chain.
+  See for example the comment on pp 8, middle of right column.
+
+
+----------------------- REVIEW 4 ---------------------
+PAPER: 8
+TITLE: Efficient Parallel Stencil Convolution in Haskell
+AUTHORS: Ben Lippmeier and Gabriele Keller
+
+OVERALL RATING: 2 (accept)
+REVIEWER'S CONFIDENCE: 2 (medium)
+
+The authors describe the work of optimising their parallel Array-library "Repa" 
+for performing stencil convolution. It is their intent to achieve a good 
+performance in comparison to programs using the fast C-library OpenCV.  
+
+After the introduction the authors first identify algorithmic optimizations that 
+possibly enhance the performance of the existing algorithm. To be able to follow 
+the changes to the library deduced from these observations, the reader gets a 
+quick introduction to the former version of repa in the following section. The 
+first optimization is the avoidance of unnecessary operations such as bound 
+checks. This issue is addressed by inversion of control and a new array 
+representation that partitions the array into parts that need to be treated 
+differently. Having addressed these higher-level optimizations the compiler and 
+its optimisers are focused. To benefit from a maximal amount of sharing, the 
+arrays are accessed via newly-defined cursors that make a special sharing 
+optimization possible for the LLVM-Backend of the GHC. The authors verify the 
+effectiveness of their approach by shortly examining the generated core IR and 
+the disassembled executable. A benchmark section compares versions with 
+different optimizations with each other as well as with C / OpenCV versions of 
+applications of three concrete stencils. A summary section identifies key 
+challenges in the context of the stencil convolution application and raises 
+questions for further research. The paper ends with a related works section.
+
+The paper is very well structured. Optimisation considerations are at the 
+beginning at a more abstract level (where a normal Haskell feels very 
+comfortable) and later descends into the lower levels of compiler backends and 
+examining assembly code. It gives a good hint at what performance might be 
+achievable for Haskell programs as well as how much pain it is for the 
+programmer to get there. Apart from its obvious contributions (showing 
+optimising techniques, introducing a new concept for optimization-friendly 
+representation of arrays,...) it may as well serve as a base for interesting 
+discussions about how far a Haskell programmer might want or should have to go 
+to get his code running at top speed... which, it seems, can only be done by 
+taking off the abstraction-glasses he normally wears with pleasure.
+
+Throughout the paper they always give reasons for their design decisions, even 
+down to which structural constructs to use or to avoid such that compiler 
+optimisations can (will) be triggered.
+

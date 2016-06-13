@@ -1,0 +1,12 @@
+# Canny lena.bmp 512x512, 100 iterations, threshold 100, elapsed time in ms. Used -qg from -N3
+# N, toGreyScale, blurX, blurY, diffX, diffY, magnitude, orientation, suppress
+1 499 134 443 159 140 101 574 473
+2 262  97 269  99  88  60 344 260
+3 199  86 223  77  67  49 268 206
+4 174  78 202  70  63  45 235 164
+5 132 100 172  70  62  42 227 141
+6 119  80 153  75  69  41 191 122
+7 104  69 143  65  63  37 179 112
+8 121  87 127  76  73  51 178 105
+
+

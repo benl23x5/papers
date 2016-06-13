@@ -1,0 +1,91 @@
+
+\section{Challenges of Array Fusion}
+In this section we summarise the main challenges we have encountered with this work, and suggest avenues for future research.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Lack of Support for SIMD Operations}
+At face value, using 4-way SIMD instructions such as available in the SSE or MMX set has the potential to improve the performance of certain algorithms 4-fold. This assumes that our application isn't memory bound, though note that even a 1024x1024 image of 32bit floats sits comfortably in the 12MB cache of our test machine. Of course, the fact we are using a super-scalar architecture implies that we won't necessarily get a 4-fold speedup on a linear instruction stream, though we note that using SIMD also effectively increases the size of the register set. Expanding the register set would help to avoid the aliasing issues discussed in \S\ref{sec:SharingAndCursoredArrays}. Whether it's better to introduce SIMD instructions in Haskell code, or have the LLVM compiler reconstruct them is an open question. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Manual Unwinding of Recursive Functions}
+\label{sec:ManualUnwinding}
+As mentioned in \S\ref{sec:ApplyingTheStencil} we must manually unfold loops over regions and rectangles as GHC avoids inlining the definitions of recursive functions. The nice way to fix this would be some form of supercompilation \cite{Bolingbroke:supercompilation, Mitchell:supercompilation}. Support for supercompilation in GHC is currently being developed, though still in an early stage. Failing that, we could perhaps add a new form of the @INLINE@ pragma that unfolded recursive functions indiscriminately, or a fixed number of times. The downside of the first is potential divergence at compile time, the downside of the second is lack of generality.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Unboxing Outside of Loops}
+\label{sec:UnboxingOutsideOfLoops}
+As mentioned in \S\ref{sec:CoStencils} we currently need to add some boilerplate code to functions such as @solveLaplace@ to ensure that arrays are unboxed outside of loops, instead of once per iteration. This code has the following form, and is applied to each input array:
+
+\begin{small}
+\begin{code}
+  f arr@(Array _ [RangeAll (GenManifest _)]) 
+   = arr `deepSeqArray` ...
+\end{code}
+\end{small}
+
+The @deepSeqArray@ function places a demand on every boxed object in @arr@ before returning its second argument. The pattern match is added to functions that we know will only ever be passed forced arrays, and ensures that indexing operations in the body of the function are specialised for this case. The root problem is that unboxing operations are represented as case matches, but while let-bindings can be floated out of loops, case matches cannot. We hope to fix this particular infelicity in the near future.
+
+
+% -----------------------------------------------------------------------------
+\subsection{\texttt{INLINE}s and Whole Program Compilation}
+\label{sec:MultiStage}
+
+As almost every function definition in the Repa library has an @INLINE@ pragma, we are essentially doing whole program computation, at least for the array part. In a syntactic sense, the @INLINEs@ do clutter up the code, and we have spent hours hunting performance problems that were due to a lack of an @INLINE@. In a deeper sense, we feel uneasy about the fact that performance depends so heavily on the syntactic structure of the code, but we don't have a general solution for this. In \S\ref{sec:ApplyingTheStencil} we mentioned the need to write the @make@, @shift@ and @load@ functions as separate function bindings, and attach @INLINE@ pragmas. The need to write separate bindings is simply driven by the need to add @INLINE@s, as in GHC this information is attached to the name of the function binding to be inlined.
+
+Although we could imagine adding a desugaring pass that converted the source code to the desired form, in practice we also want to manually attach inlining stage numbers to many of the bindings. Stage numbers are used to ensure that some bindings are inlined and specialised before others. This can avoid the need for the compiler to optimise large swathes of code only to discard it due to case specialisation later in the compilation.
+
+
+
+% -----------------------------------------------------------------------------
+\subsection{Promises of Purity}
+\begin{figure}
+\begin{small}
+\begin{code}
+force :: Array sh a -> Array sh a
+force arr
+ = unsafePerformIO
+ $ do (sh, vec) <- forceIO arr
+       return $ sh `seq` vec `seq` 
+         Array sh [Region RangeAll (GenManifest vec)]
+
+ where forceIO arr'
+        = case arr' of
+           Array sh [Region RangeAll (GenManifest vec)]
+            -> return (sh, vec)
+           Array sh regions
+            -> do mvec <- new (size sh)
+                  mapM_ (fillRegionP mvec sh) regions
+                  vec  <- unsafeFreeze mvec
+                  return (sh, vec)
+\end{code}
+\end{small}
+\caption{The interface between pure and monadic code}
+\label{fig:TheForce}
+\end{figure}
+
+
+Figure \ref{fig:TheForce} shows the code for the @force@ function that produces a manifest array from a delayed one. This function also has the distinction of being the interface between the IO code that fills the array using concurrent threads, and our pure Repa API. Constructing the pure interface consists of two aspects, which are embodied by the following functions:
+\par
+\begin{small}
+\begin{code}
+ unsafePerformIO :: IO a -> a
+ unsafeFreeze    :: MVector IO a -> IO (Vector a)
+\end{code}
+\end{small}
+\par
+The @unsafePerformIO@ function breaks the monadic encapsulation of an IO action. Remembering that we're using a lazy language, this is effectively a promise by the programmer that the result can be evaluated at any time without affecting its final value. Similarly, @unsafeFreeze@ coerces a mutable vector (@MVector@) to an immutable one (@Vector@), and serves as a promise that after that point in time, the underlying data will not be mutated further. Importantly, failing to respect the two promises results in undefined behaviour at runtime, and neither of the promises can be statically checked by the compiler. Due to this, we would prefer if such promises were enforced by someone else. Actually, the @Data.Vector@ library \emph{almost} provides what we want:
+\par
+\begin{small}
+\begin{code}
+create :: (forall s. ST s (MVector (ST s) a)) -> Vector a
+\end{code}
+\end{small}
+\par
+This function takes an @ST@ action that produces a mutable vector, evaluates it, then coerces the result to an immutable one. The soundness of the coercion is guaranteed by the @ST@ state variable (@s@), which ensures that no references to the mutable vector can escape from the scope of the action that produced it \cite{Launchbury:state-threads}. Unfortunately, there is no equivalent version of @create@ for the @IO@ monad, and we need @IO@ because the primitive functions we use to implement parallelism produce @IO@ actions. 
+
+More specifically, the @readMVar@ and @putMVar@ functions operate on mutex variables, and the result of the first can depend on the order in which concurrent threads are scheduled. Note that it is concurrency, not destructive update that is the essential problem here, as destructive update by itself can be safely encapsulated in @ST@. In related work, the type system of Deterministic Parallel Java (DPJ) \cite{adve:type-system-dpj} can express that concurrent writes to non-overlapping partitions of an array do not interfere. However, the published version of DPJ does not support parametric polymorphism of value or effect expressions. This lack of polymorphism makes it impractical to work with the higher order functions we use in Repa. Until a more fine-grained control over effects makes it into a higher-order system, it seems that we are forced to use primitives like @unsafePerformIO@ and subvert the guarantees of our purely functional language. 
+
+On a happy note, although we can't statically check the soundness of our purifying coercions, at least they are confined to a single place in the code -- the @force@ function. This function is also the logical place for such coercions, as it converts the ``abstract'' delayed array into a concrete, manifest one.

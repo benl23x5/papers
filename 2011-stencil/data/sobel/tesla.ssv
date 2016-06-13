@@ -1,0 +1,16 @@
+# Sobel on Tesla 100 iterations
+#
+# Single threaded OpenCV 
+#        151ms for  512x512
+#        418ms for  768x768
+#       1001ms for 1024x1024
+#
+# Threads, runtime(ms) 512x512 image, runtime(ms) 768x768 image, runtime(ms) 1024x1024 image
+1 303 647 1223
+2 199 388  758 
+3 161 285  600
+4 157 227  539
+5 145 215  561
+6 169 255  588
+7 169 231  590
+8 212 253  586

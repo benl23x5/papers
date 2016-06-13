@@ -1,0 +1,52 @@
+
+\section{Delayed Arrays in Repa}
+\label{sec:Repa}
+In this section we give a quick summary of Repa's original array representation, which we will improve over in the next. The main features of Repa are:
+
+\begin{itemize}
+\item \emph{shape polymorphism}: functions can be written that operate on arrays of arbitrary rank.
+
+\item \emph{implicit data parallelism}: functions written with Repa can be run in parallel without any extra work by the programmer.
+
+\item \emph{array fusion}: we write array functions in a compositional style, using ``virtual'' intermediate arrays, but the need to actually create the intermediate arrays is eliminated during compilation. 
+\end{itemize}
+
+In this paper, as we are dealing with stencils of a fixed rank, shape polymorphism is not of particular help so we will not consider it further. What is of interest is parallelism and fusion. Repa achieves this by using the following representation for arrays, which we will extend in \S\ref{sec:PartitionedArrays}.
+
+\begin{code}
+  data Array sh a
+        = Manifest (Vector a)
+        | Delayed  (sh -> a)
+\end{code}
+
+Our array type is polymorphic over @sh@ (shape), which is the type used for the indices, and @a@, which is the type of the elements contained. A manifest array is one represented by real data, that is held in flat unboxed array provided by the @Data.Vector@ library. A delayed array is represented by an \emph{element function} that takes an array index and produces the corresponding element. Delayed arrays are the key to Repa's approach to array fusion. For example, the @map@ function for arrays is defined as follows:
+
+\begin{code}
+ {-# INLINE map #-}
+ map :: (Shape sh, Elt a, Elt b)
+     => (a -> b) -> Array sh a -> Array sh b
+ map f arr
+  = case arr of
+     Manifest vec  -> Delayed (f . (vec !))
+     Delayed  g    -> Delayed (f . g)
+\end{code}
+
+Here, @Shape@ is the class of types that can be used as indices, and @Elt@ the class of types that can be used as array elements. Both cases of @map@ produce a @Delayed@ array, and the second corresponds to the following familiar identity:
+
+\begin{code}
+       map f (map g xs) = map (f . g) xs
+\end{code}
+
+Similar traversal functions such as @zipWith@ are defined in the same way. We also support reductions such as @sum@ and @foldl@, but do \emph{not} support general filtering operations as the resulting array is not necessarily rectangular. Fusion is achieved via the judicious use of @INLINE@ pragmas, and the magic of the GHC simplifier. During compilation, the outer structure of functions such as @map@ is eliminated, leaving code that applies the worker function directly to each element of the array. Parallelism is introduced by using the @force@ function:
+\begin{code}
+  force :: (Shape sh, Elt a) 
+        => Array sh a -> Array sh a
+\end{code}
+
+For @Manifest@ arrays, @force@ is the identity. For @Delayed@ arrays, @force@ allocates a fresh mutable @Vector@, and then forks off several concurrent threads. Each thread is responsible for calling the element function for a subset of array indices, and updating the array with the results. Finally, the array is \emph{frozen}, treating it as constant from then on. This freezing operation is a type-cast only, and does not incur any copying overhead. Importantly, although we use destructive update in the implementation of @force@, as this function allocates the resulting vector itself, it is given a pure interface. 
+
+In our implementation, we also include @INLINE@ pragmas on the definition of @force@. During compilation, GHC creates a fresh unfolding at each use. In most cases we are left with intermediate code consisting of a loop that computes and updates each value of the array directly, without any intermediate function calls, or boxing/unboxing of numeric values.
+
+Finally, note that the programmer is responsible for inserting calls to @force@ in the appropriate place in their code. Forcing the array at different points has implications for sharing and data layout, though in practice we have found there are usually only a small number of places where forcing would ``make sense'', so the choice presents no difficulty. 
+
+

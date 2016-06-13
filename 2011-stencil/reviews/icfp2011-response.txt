@@ -1,0 +1,35 @@
+We would like to thank the reviewers very much for their helpful comments. We have tried to address the main points as follows:
+
+Major Points:
+
+Reviewer C and D: "What general lessons can we learn?"
+That the described approach to array fusion works in practice. The user specifies the computation to be performed at a high level (Sections 3-4), this specification is fused with library provided driver code (Section 5), and provided we're mindful of some low level details, the performance is comparable with domain specific libraries (Sections 6-7). As stated in the introduction, we did *not* need to implement a DSL to generate raw C or LLVM code, we did this all directly in a standard functional language. It is partial evaluation achieved via the GHC simplifier.
+
+
+Reviewer D: "... the whole construction seems incredibly brittle ..."
+As with similar approaches, the programmer will need some high level understanding of the compilation process to achieve optimal performance. While we agree that code transformation based optimisation can appear brittle at times, our experience has been that this is mainly due to a lack of understanding of the various transforms, and how they interact. In sections 5.3 and 7-7.4 we discuss the main issues: how to control let-floating, the need to manually unwind recursive functions, placement of pragmas, aliasing concerns etc. These issues are not specific to stencil convolution, rather they can arise with any code transformation based system. One of our stated contributions is to summarise these issues, and suggest what might be done to alleviate them.
+
+
+Reviewer C and D: "Can I adapt this to other functional languages and environments [rather than GHC and LLVM]?"
+The system described in the paper depends on cross-module inlining and code transformations performed on the compiler's intermediate representation. These are general purpose transformations, many of which have been implemented by other compilers, though we have targeted GHC specifically in this paper.
+
+With regards to LLVM, if LLVM implements autovectorisation then we shouldn't need to overhaul our library or approach. As discussed in Section 5.3, we use cursored arrays to expose the sharing inherent in the problem. If improvements to LLVM allow it to exploit this sharing more fully then all the better. Once again, although we have targeted LLVM in this work, the exposure of sharing or common sub-expressions to follow-on transformations is a general technique.
+
+
+Reviewer C: "The paper discusses results ... performed on a dual-core machine."
+It was an eight-core machine, not a dual-core machine. Section 6 states that "All measurements were taken on a 2GHz 2xQuadCore Intel E5405 Harpertown server". This means two processor packages of four cores each, for a total of eight cores. Figures 13 and 15 show "threads (on 8 PEs)". PE = Processing Element = Core.
+
+
+Minor Points:
+
+Reviewer B: "Can your techniques be extended to other types of stencil computations that are not convolutions?"
+Yes. Near the end of Section 4.2 we state that "... we define stencils in terms of a general fold operation. This leaves the door open for other stencil-like operations ...". The game of life can be expressed as a fold over the neighbours of each cell, counting how many are live.
+
+
+Reviewer B: "The discrete Laplace operator is used as an example, although I'm unsure if it's correctly specified".
+The stencil given in the paper solves the Laplace equation (del^2)u=0. The stencil mentioned in the review is the discrete Laplace operator. These are related, but different. Pierre-Simon Laplace has many things named after him.
+
+
+Reviewer A: "Why a log scale for runtimes?"
+A log-log graph makes it easy to compare benchmarks that have the same scalability but different absolute runtimes, which is the main figure we're interested in. Consistent scaling yields a straight line on a log-log graph. I can add some more labels to make the runtimes easier to read off.
+

@@ -1,0 +1,11 @@
+
+\section{Related Work}
+Stencil computations are central to a wide range of algorithms in scientific computing.  Recent implementations based on the imperative or object oriented paradigm include the Fortran CAPTools toolkit~\cite{Ierotheou:1996:CAP:226107.226109}, which is designed to automate the process of parallelising sequential Fortan 77 code as much as possible; Co-array Fortran~\cite{DBLP:journals/tjs/Numrich10}, an extension to Fortran 95 which includes explicit notation for data decomposition; and the parallel Java dialect Titanium~\cite{Hilfinger:2001:TLR:894131}. 
+
+From the declarative language community, the work on Single Assignment C (SAC)~\cite{scholz:SaC} has exerted the most influence on our work on Repa. However, SAC does not have specific support for stencil computations, as far as we know. ZPL~\cite{zpl}, a predecessor of Chapel \cite{Barrett:finite-difference-chapel} is a parallel array language with Modula-2 like syntax. Both languages define array values in a declarative fashion, similarly to our own approach.
+
+There are two other Haskell libraries targeting parallel stencil computations: Ypnos \cite{Orchard:ypnos}, which in contrast to Repa, provides a special stencil pattern matching syntax for one and two dimensional stencils. Ypnos also supports historic stencils, meaning that the stencil can reference arrays computed in previous iterations. The paper does not provide any performance figures, so we cannot compare this aspect to Repa. It would be interesting to investigate whether Repa would be a suitable backend for Ypnos. PASTHA~\cite{Lesniak:pastha}, whose implementation is based around @IOUArray@, supports historic stencils and includes the specification of the convergence condition as part of the stencil problem definition. In the paper, only relative speedup numbers are provided, so we were not able to compare PASTHA's performance to Repa.
+
+Accelerate~\cite{Chakravarty:accelerate} is a high-level embedded language for multidimensional array computations. In contrast to Repa, it has at its core an online code generator which targets NVIDIA's CUDA GPGPU programming framework. Accelerate recently gained support for stencil generation as well, but follows a rather different approach, due is its embedded nature.
+
+

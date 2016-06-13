@@ -1,0 +1,82 @@
+
+% Laplace ---------------------------------------------------------------------
+Intuitively, a solution of the Laplace equation at a particular point is obtained by averaging the values at surrounding points. The Laplace equation has applications in physics, where for example a solution may represent the electric potential at a point due to a number of surrounding charges (the boundary conditions). 
+
+
+% Stencils --------------------------------------------------------------------
+Similarly, $Binomial_{7X}$ performs low pass filtering in the X direction, and the coefficients are 7 in number and are exactly those elements of the 7th row of Pascal's triangle \cite{aubury:binomial-filters}. Related kernels are obtained by rotating the kernel or choosing a different row of the triangle. Rotating it permits filtering along the Y axis, and choosing a different row changes its size and the amount of ``blurriness'' achieved by applying it to the image.
+
+\begin{enumerate}
+\item	Take the result array to consist of the internal region only, so that the application of a 3x3 stencil will produce an output array which has a height and breadth two pixels less than the source.
+
+\item	Take the result to be the same size as the source, and fill the border region in the result with a constant value.
+
+\item	Take the result to be the same size as the source, and compute the border region by applying the stencil while taking out-of-bounds elements in the source to have a fixed, constant value.
+
+\item	As above, but take the out of bounds elements to have the same value as the closest defined element in the source.
+
+\item	As above, but take the out of bounds elements to be a mirror image of defined region of the source. This yields the same result as using FFT to compute the convolution, as the source is assumed to periodically repeat throughout the entire input plane. \CITE.
+
+\item	\TODO{Could copy source data into a larger array, and set a border of elements around the ``real'' ones appropriately. Problem is that originating libraries, like video capture and image file loading, don't produce data in this format, so we need a copy}.
+\end{enumerate}
+
+As we will see in \REF, we handle the distinction between the border and internal cases by defining our arrays to represent these regions directly. This allows us to write fast code for the internal case, while keeping it separate for the more complicated, and configurable border case.
+
+extent    :: Array sh a -> sh
+traverse  :: Array sh a
+          -> (sh  -> sh') -> ((sh -> a) -> sh' -> b)
+          -> Array sh' b
+	
+traverse arr newExtent newElem
+ = Array (newExtent (extent arr))
+         [Region RangeAll (GenDelayed (newElem (arr !))]
+
+The main benefit of partitioning the array like this is that we can define one region for the border for the internal part of the array, each using separate element functions. \TODO{define ``element function'' back in Repa intro section}. In effect this ``lifts'' the decision of which region a pixel is in out of the inner loop, resulting in faster code. 
+
+
+% -- Benchmarks ---------------------------------------------------------------
+
+The failure of fusion sometimes even \emph{improves} the speedup graph, even though the absolute performance of the benchmark remains atrocious. The reason is that increasing the number of cores increases the numerical capacity of the machine, as well as its effective memory bandwith. If intermediate data structures do not fuse, then this tends to increase the number of memory operations required. In this case, adding more cores can be a greater win compared to the case where there is little memory traffic, and numerical operations dominate. For this reason we make the point of presenting absolute runtimes for our benchmarks, and comparing them against industry standard libraries. 
+
+
+% -- Future Work --------------------------------------------------------------
+\subsection{Repeated Coefficients}
+
+\begin{itemize}
+\item 	Exploit inverse distribution law. GHC doesn't (yet) have a full computer algebra system baked into its simplifier, so we have to do this manually. It's not something we can expect to do with RULES because the position of the terms in the expression to be commoned up aren't in statically known positions.
+
+\item	This is easier to express with Ypnos because you can write an arbitrary expression based on the array elements, do you coefficient factoring manually. 
+\end{itemize}
+
+
+\begin{figure}
+\begin{code}           
+  laplace (X*Y):| _ a _  | = (a+b+d+e)*0.25 
+                | b @_ d |
+                | _ e _  | 
+
+  g’ = iterateInplace laplace 
+          (ntimes 1000) (defaults g 0.0)	
+\end{code}
+
+\label{fig:LaplaceYpnos}
+\caption{Laplace solver implemented in Ypnos \cite{Orchard:ypnos}}
+\end{figure}
+
+
+
+Finally, note that in the @Data.Vector@ library @unsafeFreeze@ is actually polymorphic over the constructor used for the state monad, but here we have instantiated it to @IO@ for clarity.
+
+
+The types for three of these are shown below: 
+
+\begin{code}
+  forkOnIO :: Int -> IO () -> IO ThreadId
+
+  readMVar :: MVar a -> IO a
+  putMVar  :: MVar a -> a -> IO ()
+\end{code}
+
+The first of these forks a new thread on a specified processor, and the latter two read and write mutex variables that are used for communication between the threads. The question is then how we might replace the use of these @IO@ primitives with equivalent primitives in @ST@. This would allow us to use the @create@ function above. Unfortunately, an essential problem with mutex variables is that the result of @readMVar@ depends on the order in which concurrent threads are evaluated, and this is behaviour is not directly expressible as an @ST@ action. We wonder whether some form of binary channel would be a better choice, but do not have a complete solution.
+
+Failing this, we need a new encapsulation mechanism that allows us to destructively initialise a mutable array in parallel, while presenting a pure and constant interface.

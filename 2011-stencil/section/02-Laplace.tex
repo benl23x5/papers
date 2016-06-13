@@ -1,0 +1,115 @@
+
+\pagebreak{}
+\section{The Laplace Equation, Reloaded}
+\label{sec:Laplace}
+Although we have found the general principle of Repa's array representation to work well, when applied to the problem of stencil convolution we now have enough experience with it to point out several infelicities. We will reuse our example from \cite{Keller:repa} of the numerical solution of the Laplace equation. The overall structure of this example is similar to the code in the original Canny implementation which we are trying to improve.
+
+The @solveLaplace@ function in Figure \ref{fig:LaplaceIndex} solves the Laplace equation $\nabla^2u=0$ in a 2D grid, with constant value boundary conditions. Numerically, the equation can be solved by applying the following update function to every point in a grid until we reach a fixed point: 
+$$
+u'(i,j) = (u(i - 1, j) + u(i + 1, j) + u(i, j - 1) + u(i, j + 1)) / 4
+$$ 
+
+This process has the same effect as convolving the input image with the Laplace stencil shown in Figure~\ref{Fig:ExampleKernels}, and then dividing every element in the result by four. Although in practice we would iterate the above function to a fixed point, for benchmarking we simply iterate it a fixed number of times, hence the @steps@ parameter to @solveLaplace@. The boundary conditions are specified by two arrays, @arrBoundValue@ and @arrBoundMask@. The first gives the value to use at a particular point, while the second contains 0 where the boundary applies and 1 otherwise. If we are too close to the border of the array to apply the update function, then we return the original value. The @traverse@ function used in @relaxLaplace@ produces a new array by calling @elemFn@ for every index in the result. The @elemFn@ worker is passed a lookup function @get@, which it can use to get values from the source array. The type of @traverse@ is given in the same figure. The expression @(Z :.i :.j)@ is an array index to row @i@ and column @j@. See \cite{Keller:repa} for further details.
+
+Although @solveLaplace@ gives the correct answer, it has several runtime performance problems:
+
+\begin{enumerate}
+\item	We test for the border at every iteration (the call to @isBorder@ in @elemFn@), even though in the vast majority of iterations we are far from it. We will discuss border handling further in \S\ref{sec:BordersAndPartitionedArrays}.
+
+\item	Every lookup of the source array must be bounds checked by the library implementation. 
+Concretely, the user-defined @elemFn@ might apply @get@ to an out-of-bounds index (if, say,
+@isBorder@ was not implemented correctly), so @get@ must conservatively check bounds before
+indexing the array.
+
+\item	As potentially arbitrary array indices could be passed to @get@, the library performs computations of the form @x + y*width@ to gain the flat indices into the underlying buffer. However, in Figure \ref{fig:LaplaceIndex} the flat indices needed by @get@ could be computed by simple addition once the flat index of the center point is known.
+\end{enumerate}
+
+We will return to these problems in later sections, but for now note that the bounds checking overhead is the easiest to mitigate, as we can simply disable it. Replacing the use of @(!)@ in the definition of @traverse@ with an ``unsafe'' indexing operator removes the overhead, but this is clearly unsatisfying. Far better would be to write the code so that it is correct by construction. Nevertheless, in Figure~\ref{fig:LaplaceIndexCore} we present part of GHC's Core Intermediate Representation (IR) for the inner loop of an unsafe version of our @solveLaplace@ function. This is the code resulting from array fusion, after GHC has unfolded all of the library functions, inlined the user defined functions into them, and performed a large number of code transformations. The presented code loads the surrounding elements from the source array, applies the stencil kernel and boundary conditions, and updates the destination. The actual loop construct is defined in the library, as a part of the @force@ function used in @solveLaplace@.
+
+In the Core IR, infix operators like @+#@ and @*#@ (one hash) work on integers, while operators like @+##@ and @/##@ (two hashes) work on floats.\footnote{In GHC proper, @+\#\#@ and @*\#\#@ actually work on doubles, but we're using them for floats for clarity.} Hashes imply that these operators work on native, unboxed values. There is no overhead due to boxing, unboxing, or laziness, and each unboxed operator essentially corresponds to a single machine operation. The fact that our (unsafe) inner loop is already so ``clean'' gives us heart that we may reach the proverbial ``C-like performance''. Of course, it would be better if the code was fast \emph{and} safe, instead of just fast.
+
+% ----------------- FIG
+\begin{figure}
+\begin{small}
+\begin{code}
+type DIM2  = Z :. Int :. Int
+type Image = Array DIM2 Float
+	
+solveLaplace :: Int -> Image -> Image -> Image -> Image
+solveLaplace steps arrBoundMask arrBoundValue arrInit
+ = go steps arrInit
+ where  go 0 arr = arr
+        go n arr 
+          = let arr' = force 
+                     $ zipWith (+) arrBoundValue 
+                     $ zipWith (*) arrBoundMask
+                     $ relaxLaplace arr
+            in  arr' `seq` go (i - 1) arr'
+
+{-# INLINE relaxLaplace #-}
+relaxLaplace :: Image -> Image
+relaxLaplace arr
+ = traverse arr id elemFn
+ where  _ :. height :. width = extent arr
+
+        {-# INLINE elemFn #-}
+        elemFn get d@(Z :. i :. j)
+         = if isBorder i j
+            then  get d
+            else (get (Z :. (i-1) :. j)
+              +   get (Z :. i     :. (j-1))
+              +   get (Z :. (i+1) :. j)
+              +   get (Z :. i     :. (j+1))) / 4
+
+        {-# INLINE isBorder #-}
+        isBorder i j
+         =  (i == 0) || (i >= width  - 1) 
+         || (j == 0) || (j >= height - 1) 
+
+{-# INLINE traverse #-}           {- LIBRARY CODE -}
+traverse  :: Array sh a
+          -> (sh  -> sh') -> ((sh -> a) -> sh' -> b)
+          -> Array sh' b
+
+traverse arr newExtent newElem
+ = Delayed (newExtent (extent arr)) (newElem (arr !))
+\end{code}
+\end{small}
+
+\caption{Old implementation of Laplace using indexing}
+\label{fig:LaplaceIndex}
+\end{figure}
+
+
+
+% ----------------- FIG
+\begin{figure}
+\begin{small}
+\begin{code}
+case quotInt# ixLinear width of { iX ->
+case remInt#  ixLinear width of { iY -> 
+ writeFloatArray# world arrDest ixLinear
+  (+##  (indexFloatArray# arrBV
+          (+# arrBV_start (+# (*# arrBV_width iY) iX)))
+   (*## (indexFloatArray# arrBM 
+          (+# arrBM_start (+# (*# arrBM_width iY) iX)))
+    (/## (+## (+## (+##
+        (indexFloatArray# arrSrc
+         (+# arrSrc_start (+# (*# (-# width 1) iY) iX)))
+        (indexFloatArray# arrSrc
+         (+# arrSrc_start (+# (*# width iY) (-# iX 1)))))
+        (indexFloatArray# arrSrc
+         (+# arrSrc_start (+# (*# (+# width 1) iY) iX))))
+        (indexFloatArray# arrSrc
+         (+# arrSrc_start (+# (*# width iY) (+# iX 1)))))
+     4.0))) 
+ }}
+\end{code}
+
+\caption{Old core IR for \texttt{solveLaplace} using unsafe indexing}
+\label{fig:LaplaceIndexCore}
+\end{small}
+\end{figure}
+
+
+
