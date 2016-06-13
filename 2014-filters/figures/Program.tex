@@ -1,0 +1,41 @@
+%!TEX root = ../Main.tex
+\begin{figure}
+\begin{tabbing}
+MMMM        \= MM \= MMMMMMMMM \= \kill
+$\scalar$    \> $\to$ \> (scalar variable) \\
+$\arrayz$     \> $\to$ \> (array variable)  \\
+$f$         \> $\to$ \> (worker function) \\
+$\fun$       \> $\to$ \> $f~\scalar\ldots$
+\\[2ex]
+$\bind$      \> @::=@ \> $\scalar$ \> $=~\sbind$ \\
+            \> $~|$  \> $\arrayz$  \> $=~\abind$ \\
+            \> $~|$  \> $\scalar\ldots,\arrayz\ldots$ \> $=~@external@~\scalar\ldots~\arrayz\ldots$
+\end{tabbing}
+
+\begin{tabbing}
+MMMM        \= MM \= MMMMM \= MMMMMM \= M \= MMMM \= MMMMMM \= \kill
+$\sbind$     \> @::=@ \> $@fold@$     \> $\fun~~ \arrayz$
+\\[1ex]
+
+$\abind$     \> @::=@ \> $@map@_n$    \> $\fun~~ \arrayz^n$ 
+            \> $~|$  \> $@filter@$   \> $\fun~~ \arrayz$   \\
+            \> $~|$  \> $@generate@$ \> $\scalar~~ \fun$  
+            \> $~|$  \> $@gather@$   \> $\arrayz~~ \arrayz$ \\
+            \> $~|$  \> $@cross@$    \> $\arrayz~~ \arrayz$
+\\[1ex]
+$\program$  \> @::=@ \> $f~\scalar\ldots~\arrayz\ldots~=$ \\
+            \>          \> $@let@~\bind\ldots$                  \\
+            \>          \> $@in@~(\scalar\ldots,~\arrayz\ldots)$
+\\[3ex]
+$@fold@$     \> $:~ (a \to a \to a) \to @Array@~~ a \to a$     \\
+$@map@_n$    \> $:~ (\{a_i          \to\}^{\;i\; \gets 1 \dots n}~~ b)  \to
+                       \{@Array@~~ a_i \to\}^{\;i\; \gets 1 \dots n}~~ @Array@~~ b$ \\
+$@filter@$   \> $:~ (a \to @Bool@) \to @Array@~~ a \to @Array@~~ a$      \\
+$@generate@$ \> ~~ $:~ @Nat@ \to (@Nat@ \to a) \to @Array@~~ a$          \\
+$@gather@$   \> ~~ $:~ @Array@~~ a \to @Array@~~ @Nat@  \to @Array@~~ a$ \\
+$@cross@$    \> ~~ $:~ @Array@~~ a \to @Array@~~ b ~~~~ \to @Array@~~ (a, b)$
+\end{tabbing}
+\caption{Combinator normal form}
+\label{f:CombinatorNormalForm}
+\end{figure}
+

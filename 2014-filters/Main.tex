@@ -1,0 +1,93 @@
+\documentclass{sigplanconf}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathptmx}
+\usepackage{stmaryrd}
+\usepackage{hyperref}
+\usepackage{alltt}
+\usepackage{url}
+\usepackage{float}
+\usepackage{style/utils}
+\usepackage{style/code}
+\usepackage{style/proof}
+\usepackage{style/judgements}
+
+% -----------------------------------------------------------------------------
+\begin{document}
+
+\exclusivelicense
+\conferenceinfo{FHPC~'14}{September 4, 2014, Gothenburg, Sweden}
+\copyrightyear{2014}
+\copyrightdata{978-1-4503-3040-4/14/09}
+\doi{2636228.2636235}
+ \pagenumbering{gobble} 
+
+% ACM 978-1-4503-3040-4/14/09 $15.00.
+% http://dx.doi.org/10.1145/2636228.2636235 
+
+\title{Fusing Filters with Integer Linear Programming}
+
+\authorinfo{ 
+  Amos Robinson$^\dagger$ 
+  \and Ben Lippmeier$^\dagger$
+  \and Gabriele Keller$^\dagger$ 
+}{
+  \vspace{5pt}
+  \shortstack{
+    $^\dagger$Computer Science and Engineering \\
+    University of New South Wales, Australia \\[2pt]
+    \textsf{\{amosr,benl,keller\}@cse.unsw.edu.au}
+  }
+}
+
+\maketitle
+\makeatactive
+
+\begin{abstract}
+The key to compiling functional, collection oriented array programs into efficient code is to minimise memory traffic.
+Simply fusing subsequent array operations into a single computation is not sufficient; we also need to cluster \emph{separate} traversals of the same array into a single traversal.
+Previous work demonstrated how Integer Linear Programming (ILP) can be used to cluster the operators in a general data-flow graph into subgraphs, which can be individually fused.
+However, these approaches can only handle operations which preserve the size of the array, thereby missing out on some optimisation opportunities.
+This paper addresses this shortcoming by extending the ILP approach with support for size-changing operations, using an external ILP solver to find good clusterings.
+\end{abstract}
+
+
+\category
+	{D.3.4}
+	{Programming Languages}
+	{Processors---Compilers; Optimization}
+
+\terms
+	Languages, Performance
+
+\keywords
+	Arrays; Fusion; Haskell
+
+\input{section/01-Introduction.tex}
+\input{section/02-CNF.tex}
+\input{section/03-SizeInference.tex}
+\input{section/04-ILP.tex}
+\input{section/05-Benchmarks.tex}
+\input{section/06-Related.tex}
+
+
+\section*{Acknowledgements}
+Many thanks are due to
+Manuel Chakravarty,
+Robert Clifton-Everest,
+Erik de Castro Lopo,
+Kai Engelhardt,
+Bill Kroon,
+Frederik M.\ Madsen,
+Abdallah Saffidine,
+Carter Schonwald,
+and Jingling Xue
+for enlightening discussions relating to this work.
+
+\bibliographystyle{plain}
+\bibliography{Main}
+
+\end{document}
+
+
