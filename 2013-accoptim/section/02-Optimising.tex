@@ -1,0 +1,132 @@
+%!TEX root = ../acc-optim.tex
+\section{Optimising embedded array code} % (fold)
+\label{sec:example}
+
+\emph{Accelerate} is a \emph{domain specific} language, consisting of a carefully selected set of array operators that we can produce efficient GPU code for. Accelerate is \emph{embedded} in Haskell, meaning that we write Accelerate programs using Haskell syntax, but do not compile arbitrary Haskell programs to GPU machine code. Accelerate is stratified into \emph{array computations}, wrapped in a type constructor @Acc@, and \emph{scalar expressions}, represented by terms of type @Exp t@, where @t@ is the type of value produced by the expression. This stratification is necessary due to the hardware architecture of GPUs and their reliance on SIMD parallelism, as we discussed in our previous work~\cite{Chakravarty:Accelerate}.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Too many kernels}
+\label{code:dotp}
+
+For example, to compute a dot product, we use:
+%
+\begin{quote}
+\begin{code}
+dotp :: Vector Float -> Vector Float 
+     -> Acc (Scalar Float)
+dotp xs ys = let xs' = use xs
+                 ys' = use ys
+             in  fold (+) 0 (zipWith (*) xs' ys')
+\end{code}
+\end{quote}
+%
+The function @dotp@ consumes two one-dimensional arrays (@Vector@) of floating-point values and produces a single (@Scalar@) floating-point result. From the return type @Acc (Scalar Float)@, we see that @dotp@ is an embedded Accelerate computation, rather than vanilla Haskell code.
+
+The functions @zipWith@ and @fold@ are defined in our library @Data.Array.Accelerate@, and have \emph{massively parallel} GPU implementations with the following type signatures:
+%
+\begin{quote}
+\begin{code}
+zipWith :: (Shape sh, Elt a, Elt b, Elt c)
+        => (Exp a -> Exp b -> Exp c)
+        -> Acc (Array sh a) 
+        -> Acc (Array sh b) 
+        -> Acc (Array sh c)
+
+fold    :: (Shape ix, Elt a)
+        => (Exp a -> Exp a -> Exp a)
+        -> Exp a
+        -> Acc (Array (ix:.Int) a)
+        -> Acc (Array ix a)
+\end{code}
+\end{quote}
+%
+The type classes @Elt@ and @Shape@ indicate that a type is admissible as an array element and array shape, respectively. Array shapes are denoted by type-level lists formed from @Z@ and @(:.)@ --- for example, @Z:.Int:.Int@ is the shape of a two-dimensional array (see \cite{Keller:Repa,Chakravarty:Accelerate} for details). The type signatures of @zipWith@ and @fold@ clearly show the stratification into scalar computations using the @Exp@ type constructor, and array computations wrapped in @Acc@.
+
+The arguments to @dotp@ are of plain Haskell type @Vector Float@. To make these arguments available to the Accelerate computation they must be embedded with the @use@ function:
+%
+\begin{quote}
+\begin{code}
+use :: Arrays arrays => arrays -> Acc arrays
+\end{code}
+\end{quote}
+%
+This function is overloaded so that it can accept entire tuples of @arrays@. Operationally, @use@ copies array data from main memory to GPU memory, in preparation for processing by the GPU.
+
+The above Haskell version of the GPU-accelerated dot product is certainly more compact than the corresponding CUDA C code. However, when compiled with the skeleton-based approach we described in previous work~\cite{Chakravarty:Accelerate}, it is also significantly slower. The CUDA C version executes in about half the time (see Table~\ref{tab:benchmark-summary}).
+
+The slow-down is due to Accelerate generating one \emph{GPU kernel function} for @zipWith@ and another one for @fold@. In contrast, the CUDA C version only uses a single kernel. The use of two separate kernels requires an intermediate array to be constructed, and in a memory bound benchmark, such as @dotp@, this doubles the runtime. To eliminate this intermediate array we need to \emph{fuse} the adjacent aggregate array computations. Although there is an existing body of work on array fusion, no existing method adequately deals with massively parallel GPU kernels. We present a suitable fusion framework as the first major contribution of this paper.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Too little sharing}
+
+As a second example, consider the pricing of European-style options using the Black-Scholes formula. The Accelerate program is in Figure~\ref{fig:black-scholes}.
+%
+\begin{figure*}
+\hspace*{-2ex}\begin{minipage}{.55\textwidth}
+\begin{code}
+blackscholes :: Vector (Float, Float, Float) 
+             -> Acc (Vector (Float, Float))
+blackscholes = map callput . use
+  where
+  callput x =
+    let (price, strike, years) = unlift x
+        r       = constant riskfree
+        v       = constant volatility
+        v_sqrtT = v * sqrt years
+        d1      = (log (price / strike) + 
+                  (r + 0.5 * v * v) * years) / v_sqrtT
+        d2      = d1 - v_sqrtT
+        cnd d   = let c = cnd' d in d >* 0 ? (1.0 - c, c)
+        cndD1   = cnd d1
+        cndD2   = cnd d2
+        x_expRT = strike * exp (-r * years)
+    in
+    lift ( price * cndD1 - x_expRT * cndD2
+         , x_expRT * (1.0 - cndD2) - price * (1.0 - cndD1))
+\end{code}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\begin{code}
+riskfree, volatility :: Float
+riskfree   = 0.02
+volatility = 0.30
+
+horner :: Num a => [a] -> a -> a
+horner coeff x = x * foldr1 madd coeff
+  where
+    madd a b = a + x*b
+
+cnd' :: Floating a => a -> a
+cnd' d =
+  let poly     = horner coeff
+      coeff    = [0.31938153, -0.356563782, 
+                  1.781477937, -1.821255978, 
+                  1.330274429]
+      rsqrt2pi = 0.39894228040143267793994605993438
+      k        = 1.0 / (1.0 + 0.2316419 * abs d)
+  in
+  rsqrt2pi * exp (-0.5*d*d) * poly k
+\end{code}
+\end{minipage}
+  \caption{Black-Scholes option pricing in Accelerate}
+  \label{fig:black-scholes}
+\end{figure*}
+%
+Given a vector of triples of underlying stock price, strike price, and time to maturity (in years), the Black-Scholes formula computes the price of a call and a put option. The function @callput@ evaluates the Black-Scholes formula for a single triple, and @blackscholes@ maps it over a vector of triples, such that all individual applications of the formula are executed in parallel.
+
+If we compare the performance of the GPU code generated by Accelerate with that of an equivalent implementation in CUDA C, the Accelerate version is almost twenty times slower. As @blackscholes@ includes only one aggregate array computation, the problem can't be a lack of fusion. Instead, as we noted previously~\cite{Chakravarty:Accelerate}, it is due to the embedding of Accelerate in Haskell.
+
+The function @callput@ includes a significant amount of sharing: the helper functions @cnd'@, and hence also @horner@, are used twice ---for @d1@ and @d2@--- and its argument @d@ is used multiple times in the body. Our embedded implementation of Accelerate reifies the abstract syntax of the (deeply) embedded language in Haskell. Consequently, each occurrence of a let-bound variable in the source program creates a separate unfolding of the bound expression in the compiled code.
+
+This is a well known problem that has been solved elegantly by the \emph{sharing recovery} algorithm of \citet{Gill:2009dx}, which makes use of stable names. Unfortunately, Gill's original approach (1) reifies the abstract syntax in \emph{graph} form and (2) it assumes an \emph{untyped} syntax representation. In contrast, Accelerate is based on a typed tree representation using GADTs and type families in conjunction with type-preserving compilation in most phases. In other words, we use Haskell's type checker to statically ensure many core properties of our Accelerate compiler. The fact that the compiler for the \emph{embedded language} is type preserving, means that many bugs in the Accelerate compiler itself are caught by the Haskell compiler during development. This in turn reduces the number of Accelerate compiler bugs that the end-user might be exposed to.
+
+As we require typed trees, where sharing is represented by let bindings rather than untyped graphs, we cannot directly use Gill's approach to sharing recovery. Instead, we have developed a novel sharing recovery algorithm, which like Gill's, uses stable names, but unlike Gill's, operates on typed abstract syntax. Our algorithm produces a typed abstract syntax \emph{tree}, and we are able to recover exactly those let bindings used in the source program. This is the second major contribution of this paper.
+
+
+% -----------------------------------------------------------------------------
+\subsection{Summary}
+In summary, a straightforward skeleton-based implementation of an embedded GPU language suffers from two major inefficiencies: \emph{lack of sharing} and \emph{lack of fusion.} Both sharing recovery in embedded languages, and array fusion in functional languages have received significant prior attention. However, we have found that none of the existing techniques are adequate for a \emph{type-preserving} embedded language compiler targeting \emph{massively parallel SIMD hardware,} such as GPUs.
+
+% section example (end)

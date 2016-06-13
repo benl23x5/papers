@@ -1,0 +1,160 @@
+% Submission Deadline: Thursday, 28 March 2013, 23:59 UTC-11 American Samoa time
+%   = 21:59 PM Friday, 29 March 2013, Sydney
+% Page limit: 12 pages
+
+\documentclass{sigplanconf}
+%\documentclass[preprint]{sigplanconf}
+
+\usepackage{pdf14}
+%\usepackage[british]{babel}
+\usepackage{version}
+\usepackage[pdftex]{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts,amssymb}
+\usepackage{url}
+\usepackage{alltt}
+\usepackage{code}
+\usepackage{listings}
+\usepackage{hyperref}
+%\usepackage{doi}
+\usepackage{haskell}
+\usepackage{rotating}
+
+% \renewcommand{\textfraction}{0.2}
+% \renewcommand{\topfraction}{0.9}
+% \renewcommand{\dbltopfraction}{0.9}
+% \renewcommand{\floatpagefraction}{0.9}
+% \renewcommand{\dblfloatpagefraction}{0.9}
+
+\newcommand{\comm}[1]{$\langle$\textrm{#1}$\rangle$}
+%\newcommand{\hscom}[1]{\textrm{\mbox{--- #1}}}
+
+\newcommand{\note}[2]{\emph{\textbf{#1} #2}}
+
+\newcommand{\app}{\ensuremath{\mathbin{\texttt{\char"40}}}}
+\newcommand{\float}[3]{{#1}\stackrel{#2}{:}{#3}}
+\hscommand{\letin}[2]{\mathtt{let} #1 \mathtt{in} #2}
+ 
+\newcommand{\gck}[1]            {\note{GCK:}{#1}}
+\newcommand{\manuel}[1]         {\note{MMTC:}{#1}}
+\newcommand{\trev}[1]           {\note{TLM:}{#1}}
+\newcommand{\ben}[1]            {\note{BL:}{#1}}
+\newcommand{\TODO}[1]           {\note{TODO:}{#1}}
+\newcommand{\finaltodo}[1]      {\note{TODO FINAL:}{#1}}
+\newcommand{\REF}               {\note{REF}}
+\newcommand{\CITE}              {\note{CITE}}
+
+% listings
+\lstloadlanguages{Haskell,C}
+%\lstnewenvironment{code}[1][]
+%    {\lstset{language=Haskell,#1}\csname lst@SetFirstLabel\endcsname}
+%    {\csname lst@SaveFirstLabel\endcsname}
+%
+%\lstdefinestyle{inline}{frame=none,numbers=none,basicstyle=\footnotesize}
+
+\lstset{
+%    frame=single,
+%    rulecolor={\color[gray]{0.7}},
+%    numbers=left,
+%    numberstyle=\tiny\it, %\color{Gray},
+    commentstyle=\it, %\color{MidnightBlue},
+    captionpos=b,
+    xleftmargin=0.5\parindent,
+    xrightmargin=0.5\parindent,
+    %
+    basicstyle=\ttfamily, %\scriptsize
+    flexiblecolumns=false,
+    basewidth={0.5em,0.45em},
+%    literate=
+%      {+}{{$+$}}1
+%      {/}{{$/$}}1
+%      {*}{{$*$}}1
+%      {=}{{$=$}}1
+%      {>}{{$>$}}1
+%      {<}{{$<$}}1
+%      {\\}{{$\lambda$}}1
+%      {`}{{$\grave{}$}}1
+%      {\\\\}{{\char`\\\char`\\}}1
+%      {->}{{$\rightarrow$}}2
+%      {>=}{{$\geq$}}2
+%      {<-}{{$\leftarrow$}}2
+%      {<=}{{$\leq$}}2
+%      {=>}{{$\Rightarrow$}}2
+%      {\ .}{{$\circ$}}2
+%      {\ .\ }{{$\circ$}}2
+%      {>>}{{>>}}2
+%      {>>=}{{>>=}}2
+%      {|}{{$\mid$}}1
+}
+
+
+% \makeatletter
+% \def \ps@plain {%
+%   \let \@mkboth = \@gobbletwo
+%   \let \@evenhead = \@empty
+%   \def \@evenfoot { \thepage \hfil \scriptsize \textit{\@preprintfooter}\hfil
+%                    \textit{\@formatyear}}%
+%   \let \@oddhead = \@empty
+%   \let \@oddfoot = \@evenfoot}
+% \makeatother
+
+\begin{document}
+
+\preprintfooter{\textbf{--- DRAFT --- DRAFT --- DRAFT --- DRAFT ---}}
+
+\exclusivelicense
+\conferenceinfo{ICFP~'13}{September 25--27, 2013, Boston, MA, USA}
+\copyrightyear{2013}
+\copyrightdata{978-1-4503-2326-0/13/09}
+\doi{2500365.2500595}
+
+\title{Optimising Purely Functional GPU Programs}
+\authorinfo{
+  Trevor L. McDonell \and
+  Manuel M. T. Chakravarty \and
+  Gabriele Keller \and
+  Ben Lippmeier
+  % \shortstack{%
+  % }
+}{
+  University of New South Wales, Australia
+}{
+  \{tmcdonell,chak,keller,benl\}@cse.unsw.edu.au
+}
+\maketitle
+
+\makeatactive
+
+\begin{abstract}
+Purely functional, embedded array programs are a good match for SIMD hardware, such as GPUs. However, the naive compilation of such programs quickly leads to both code explosion and an excessive use of intermediate data structures. The resulting slow-down is not acceptable on target hardware that is usually chosen to achieve high performance.
+  
+In this paper, we discuss two optimisation techniques, \emph{sharing recovery} and \emph{array fusion}, that tackle code explosion and eliminate superfluous intermediate structures. Both techniques are well known from other contexts, but they present unique challenges for an embedded language compiled for execution on a GPU. We present novel methods for implementing sharing recovery and array fusion, and demonstrate their effectiveness on a set of benchmarks.
+\end{abstract}
+
+\category{D.3.2}{Programming Languages}{Language Classification---Applicative (functional) languages; Concurrent, distributed, and parallel languages}
+%\category{D.3.4}{Programming Languages}{Processors---Code generation}
+
+%\terms Languages; Performance
+
+\keywords Arrays; Data parallelism; Embedded language; Dynamic compilation; GPGPU; Haskell; Sharing recovery; Array fusion
+
+
+% -----------------------------------------------------------------------------
+\input{section/01-Introduction.tex}
+\input{section/02-Optimising.tex}
+\input{section/03-Sharing.tex}
+\input{section/04-Fusion.tex}
+\input{section/05-Benchmarks.tex}
+\input{section/06-Related.tex}
+\input{section/07-Conclusion.tex}
+
+\paragraph{Acknowledgements.}
+This work was supported in part by the Australian Research Council under grant number LP0989507.
+
+% ------------------------------------------------------------------------------
+\bibliographystyle{abbrvnat}
+\bibliography{acc-optim}
+
+
+\end{document}
+

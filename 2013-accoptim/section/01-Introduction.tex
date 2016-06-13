@@ -1,0 +1,32 @@
+%!TEX root = ../acc-optim.tex
+\section{Introduction} % (fold)
+\label{sec:Introduction}
+
+% \ben{I think the next paragraph is a good enough intro} Starting with Fortran, array-based code has played a central role in high-performance computing. It has been successful on data-parallel (SIMD) hardware such as vector computers, SIMD-machines (e.g., the CM-2), and modern GPUs (graphical processing units). It has also been successful on control-parallel hardware, such as distributed-memory machines (e.g., the Cray T3E), symmetric multi-processors (SMP), and multicore machines.
+
+Recent work on stream fusion~\cite{Coutts:stream-fusion}, the @vector@ package~\cite{Mainland:stream-fusion}, and the parallel array library Repa~\cite{Keller:Repa,Lippmeier:Stencil,Lippmeier:Guiding} has demonstrated that (1) the performance of purely functional array code in Haskell can be competitive with that of imperative programs and that (2) purely functional array code lends itself to an efficient parallel implementation on control-parallel multicore CPUs.
+
+So far, the use of purely functional languages for programming data parallel SIMD hardware such as GPUs (Graphical Processing Units) has been less successful. Vertigo~\cite{Elliott:Vertigo} was an early Haskell EDSL producing DirectX 9 shader code, though no runtime performance figures were reported. Nikola \cite{Mainland:nikola} produces code competitive with CUDA, but without supporting generative functions like @replicate@ where the result size is not statically fixed. Obsidian \cite{Claessen:obsidian} is additionally restricted to only processing arrays of a fixed, implementation dependent size. Additionally, both Nikola and Obsidian can only generate single GPU kernels at a time, so that in programs consisting of multiple kernels the intermediate data structures must be shuffled back and forth across the CPU-GPU bus. 
+
+We recently presented \emph{Accelerate}, an EDSL and skeleton-based code generator targeting the CUDA GPU development environment~\cite{Chakravarty:Accelerate}. In the present paper, we present novel methods for optimising the code using \emph{sharing recovery} and \emph{array fusion}. 
+
+Sharing recovery for embedded languages recovers the sharing of let-bound expressions that would otherwise be lost due to the embedding. Without sharing recovery, the value of a let-bound expression is recomputed for every use of the bound variable. In contrast to prior work~\cite{Gill:2009dx} that decomposes expression trees into graphs and fails to be type preserving, our novel algorithm preserves both the tree structure and typing of a deeply embedded language. This enables our runtime compiler to be similarly type preserving and simplifies the backend by operating on a tree-based intermediate language.
+
+Array fusion eliminates the intermediate values and additional GPU kernels that would otherwise be needed when successive bulk operators are applied to an array. Existing methods such as @foldr/build@ fusion \cite{Gill:1993de} and stream fusion \cite{Coutts:stream-fusion} are not applicable to our setting as they produce tail-recursive loops, rather than the GPU kernels we need for Accelerate. The NDP2GPU system of \cite{bergstrom:ndp2gpu} \emph{does} produce fused GPU kernels, but is limited to simple map/map fusion. We present a fusion method partly inspired by Repa's \emph{delayed arrays}~\cite{Keller:Repa} that fuses more general producers and consumers, while retaining the combinator based program representation that is essential for GPU code generation using skeletons.
+
+With these techniques, we provide a high-level programming model that supports shape-polymorphic maps, generators, reductions, permutation and stencil-based operations, while maintaining performance that often approaches hand-written CUDA code.
+
+In summary, we make the following contributions:
+%
+\begin{itemize}
+\item We introduce a novel sharing recovery algorithm for type-safe ASTs, preserving the tree structure (Section~\ref{sec:sharing}).
+\item We introduce a novel approach to array fusion for embedded array languages (Section~\ref{sec:fusion}).
+\item We present benchmarks for several applications including Black-Scholes options pricing, Canny edge detection, and a fluid flow simulation, including a comparison with hand-optimised CPU and GPU code (Section~\ref{sec:benchmarks}).
+\end{itemize}
+%
+This paper builds on our previous work on a skeleton-based CUDA code generator for Accelerate~\cite{Chakravarty:Accelerate}. Although we motivate and evaluate our novel approaches to sharing recovery and array fusion in this context, our contribution is not limited to Accelerate. Specifically, our sharing recovery applies to any embedded language based on the typed lambda calculus and our array fusion applies to any dynamic compiler targeting bulk-parallel SIMD hardware.
+
+We discuss related work in detail in Section~\ref{sec:related}. The source code for Accelerate including our benchmark code is available \mbox{from \url{https://github.com/AccelerateHS/accelerate}}.
+
+% section Introduction (end)
+

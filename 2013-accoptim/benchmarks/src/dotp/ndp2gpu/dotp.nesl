@@ -1,0 +1,15 @@
+function dotprod(xs,ys) =
+  sum({x * y: x in xs ; y in ys});
+
+function bench(xs, ys, i, limit, zt, tt) =
+  if (i >= limit) then (zt / float(limit), tt / float(limit) * 1000.0)
+                  else let (zs, ts) = time(dotprod(xs, ys))
+                       in  bench(xs, ys, i+1, limit, zt+zs, tt+ts)$
+
+function run_dotprod(n) =
+let
+  xs = {float(rand(i))  : i in dist(100, n)} ;
+  ys = {float(rand(i))  : i in dist(100, n)}
+in
+  bench(xs, ys, 0, 100, 0.0, 0.0) $
+

@@ -1,0 +1,7 @@
+Accelerate benchmark code, lifted from the 'accelerate-examples' package to be
+run standalone.
+
+To compile all tests, run the script 'build'. It is configured to point to a
+local cabal-dev package installation in the current directory, and assumes the
+real ghc lives in /usr/local/bin.
+

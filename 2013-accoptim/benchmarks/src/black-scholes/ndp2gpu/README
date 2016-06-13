@@ -1,0 +1,75 @@
+The relevant top-level functions, which take as input the number of elements to
+test with:
+
+  blackscholes.nesl     -> run_blackscholes
+  dotp.nesl             -> run_dotp
+
+Begin at the trunk/nesl directory of the ndp2gpu download:
+
+  $ svn co https://smlnj-gforge.cs.uchicago.edu/svn/ndp2gpu/trunk/nesl
+
+First you need to be able to build the CUDA backend to nesl. You will need to
+edit cvl/cuda/Makefile to point to the SDK path. It is known to compile with
+CUDA 4.2 but not 5.0.
+
+  $ make cuda
+
+Begin NESL:
+
+  $ clisp
+
+  clisp> (load "neslsrc/build.lisp")
+  clisp> (nesl)
+
+Load the relevant test file:
+
+  nesl> set arg_check off;
+  nesl> set config cuda;
+  nesl> load "dotp.nesl"
+
+At this point you can execute programs against the CUDA backend. However, to
+utilise the backend with optimisations as described in the paper, you need to do
+some more work. To run with NDP2GPU, first dump the VCODE for a particular
+expression, here the dot_product benchmark for some vector length N (yes, this
+must to be baked in and changed for every test point):
+
+  nesl> dump vcode "dotp.n.vcode" run_dotprod(n)
+
+Now back to the shell, load up the fusion pass in Standard ML of New Jersey
+(http://www.smlnj.org) and run it against the dumped vcode file:
+
+  $ cd fusion
+  $ sml
+
+  sml> CM.make "sources.cm";
+  sml> Main.doFile "../dotp.vcode";
+
+This will create some CUDA code and fused/optimised fcode in the same directory
+as the input.
+
+Now back to the shell again, compile the cuda file output by the fusion pass
+with NVCC. The relevant options are long and in the Makefile in this directory.
+You will again need to edit this to point to the SDK directory so it picks up
+necessary headers.
+
+Still in the shell, you can now finally execute the optimised fcode+compiled
+CUDA object file in the NESL CUDA backend. Make sure that LD_LIBRARY_PATH
+includes the current directory (.) to pick up the shared object file.
+
+  $ ../bin/vinterp.cuda -m 1000000000 -l dotp.so dotp.fcode
+
+Which will pass the relevant options to the CUDA backend of NESL and execute the
+optimised program. The -m argument sets the amount of device memory to use, in
+some unknown units; the value here works for my 4GB card.
+
+This will run the relevant function 100 times and return the average time in
+milliseconds. HOWEVER it appears this is the elapsed *CPU time* not *wall clock
+time*, and so does not cover GPU execution time, where the processor idles. At
+an example, dot product for 20 million elements claims an average execution time
+of 5.5 ms, but the NVIDIA profiler records the kernel execution time without CPU
+overhead at 13.5 ms. So you will need to run the programs under the NVIDIA
+profiler (nvvp or nvprof) and get execution timings that way.
+
+For a realistic measure of performance, also add the time taken to follow all
+these steps. For reference, there are approximately 86,400,000 ms in one day.
+

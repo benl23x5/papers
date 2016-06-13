@@ -1,0 +1,8 @@
+# Nbody on Tesla T10
+# Bodies, Accelerate no fusion or sharing recovery (ms)
+1024 28.70059
+1536 33.73639
+2048 40.75029
+3072 62.13190
+4096 93.23392
+6144 163.7312

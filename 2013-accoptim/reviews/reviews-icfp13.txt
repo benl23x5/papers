@@ -1,0 +1,206 @@
+----------------------- REVIEW 1 ---------------------
+PAPER: 79
+TITLE: Optimising Purely Functional GPU Programs
+AUTHORS: (anonymous)
+
+
+----------- REVIEW -----------
+This paper describes two techniques, sharing recovery and array fusion,
+for efficient compilation for GPUs.  The target of the study is one of
+important topics in functional programming and the work is solid 
+with the library implementation and benchmark results.
+
+The two techniques are not new and have been studied in other contexts
+in functional programming as stated in the paper.  The paper discusses
+some refinements for their compilation to GPUs.  For the sharing 
+recovery, on one hand, the technique seems to have some new points.  
+For the array fusion, on the other hand, the technique is simplified
+and not tied strongly to GPU programming.  GPU-specific optimizations
+such as for shared memory remain future research topics.
+
+I recognize that the target is important and the work is solid.
+However, the advance from the state of arts is not large.
+
+* comments
+- I was not convinced about the second figure from the left in Figure 2.
+ If we apply the procedure we traverse the left edge first from the node @4
+ but the figure shows the result when we do the right edge first.
+ Is my understanding wrong?
+
+- Your array fusion classifies "stencil" as a consumer function and
+ it has less opportunity of fusion.  It is a design issue but
+ I believe that several applications for GPUs are stencil computation
+ and the fusion optimization for stencil computation is worth consideration.
+
+- In table 2, the contenders for "Fluid Flow" and "Radix sort" are Repa and Nikola.
+ I recommend you to use a CUDA or OpenCL program to avoid the missunderstanding
+ of the reader.  You can show the results of them in addition if you want 
+ to show the advance from the previous library, of course.
+
+* misc
+- p. 1, left, l. -13: lends ==> leads? (array code lends itself to)
+[TLM] - p. 3, right, l. -21: occurence ==> occurrence
+- The figures in page 11 have no caption and are not referred in the text.
+ The figures show stable performance of the Accelerate, and it is worth noted.
+
+----------------------- REVIEW 2 ---------------------
+PAPER: 79
+TITLE: Optimising Purely Functional GPU Programs
+AUTHORS: (anonymous)
+
+
+----------- REVIEW -----------
+This paper continues on an approach to write high-performance array
+computations in a functional domain-specific language embedded in Haskell.
+In order to support an efficient compilation into GPUs,
+the authors develop two optimisations that seem useful
+for generating efficient target programs. One optimisation is
+sharing recovery in order to avoid target code explosion.
+The second one is array fusion to eliminate the creation
+of intermediate structures. Although partial solutions for
+both kinds of problems are known, they do not fit in the
+authors' framework. Thus, they develop new specialized optimization
+techniques and demonstrate their usefulness by a number of
+benchmarks.
+
+In principle, this paper seems to contain a solid piece of
+work (although I can't verify it in detail due to their
+use of specialized hardware). It is an interesting demonstration
+how high-level programming techniques can be successfully
+applied and compete with lower-level languages on this
+kind of problems. Therefore, I think this is an interesting
+direction what is needed in the popular area of GPU programming.
+
+On the negative side, the paper and its contents is highly
+specialized. It is useful for experts in parallel programming
+but I don't see what the general ICFP audience can learn
+from this paper. Thus, I think this paper would be more
+appropriate to a specialized workshop or conference like
+DAMP where their previous work was presented.
+Moreover, the authors develop complex program transformations
+without discussing their correctness. For instance,
+it is not stated whether the transformations are
+semantics preserving or how strength they are, i.e.,
+for which classes of programs they reach their target.
+Without such results, the complex transformations for
+sharing recovery are difficult to evaluate and, thus,
+seem rather ad hoc.
+
+----------------------- REVIEW 3 ---------------------
+PAPER: 79
+TITLE: Optimising Purely Functional GPU Programs
+AUTHORS: (anonymous)
+
+
+----------- REVIEW -----------
+In this work the Accelerate embedded language, built on top of GHC, is extended
+with two optimizations to improve the performance of its generated GPU code. The
+first optimization is sharing recovery, which focuses on recovering the sharing
+in the original program to avoid unnecessarily repeating computations, which was
+introduced by the use of an embedded language. The second is array fusion, which
+reduces the generation of temporary variables between individual GPU kernels.
+
+This work provides a reasonable set of convincing examples that show both
+improved performance of their system over their previous implementation and
+their performance against a good baseline (raw CUDA code or tuned CUDA
+libraries). Further, these two techniques are important contributions to systems
+generically compiling embedded languages and targeting GPUs, respectively.
+
+Major concerns:
+The Accelerate language heavily restricts the type of programs one can write
+that target a GPU. Lack of filtering operations and recursion are big
+limitations not present in some of the other systems benchmarked against, but
+they appear as minor comments (a paragraph in the intro to Section 4 and a
+sentence in Section 5.5, respectively). Would these optimizations work for
+implementations with those features?
+
+The two optimizations appear to have different areas of applicability outside
+of this work. Sharing recovery seems to be useful for others writing embedded
+languages in GHC. Array fusion seems likely useful to others compiling array
+languages. Clearly stating where these optimizations can be reused and what
+language restrictions they rely on (e.g., the lack of recursive functions) would
+help change the flavor of this paper from "stuff we did to make our system run
+faster" to "contributions that are usable by others."
+
+Filtering is straightforward to implement on a GPU if you don't mind the space
+cost (e.g., just allocate an output array of the same size as the input array,
+then use the standard trick of a bulk-conditional check, a (segmented) sum,
+and a flag permute). The only trickiness I'm aware of comes in if you are trying
+to provide a space guarantee or are trying to reason about partitioning (e.g.,
+in quicksort, where you really want the compiler to know the lt, eq, and gt
+arrays take up the same space as the original input array).
+
+The example around why producer/consumer pairs could be more clear that it is a
+negative example. You've just introduced the type of array fusions you do and
+then the first example you give is of the one you do *not* do, which threw me
+off. It was also not clear in detail why you do not do that optimization (apart
+from "a lot of work," as noted later) or, more importantly, what types of
+programs will suffer from the lack of that optimization.
+
+In section 4.4, you describe floating let-bound variables in order to open up
+potential optimizations. Can this floating ever result in an increase in the
+live set of variables? Many GPU programs run very close to the physical memory
+limits of the cards, so even small constant factors can limit the problem sizes
+programs can run on.
+
+In section 5, you do not describe the experimental methodology. Did you do
+multiple runs of the benchmarks? Are the performance numbers reported means (if
+so, what was the std. dev.?) or the best result? Many GPU-targeting languages
+have somewhat unreliable performance.
+
+Minor concerns:
+The example of sharing recovery in Figure 2 was oddly easy to re-create by hand
+from your descriptions but very difficult to understand when just reading it. I
+think part of it has to do with the lack of any identifying labels in the first
+picture to tie it back to the example, but then the confusion is compounded by
+the subsequent overloaded uses of numbers in the rest of the figure. Nine can
+mean different or overlapping things depending if it is the word "nine," "9" the
+literal value, "9" in a circle, "9" underlined, or "9" as a superscript.
+
+The paper reads as if there were two separate authors. For example, Author #1
+likes to use citations as nouns, where Author #2 does not. As I read the paper I
+felt like it was a presentation being given by two people trading off after
+every few sections.
+
+In Section 4.2, you mention an "arbitrary loss of sharing" problem that you
+claim is well-known in Repa, but neither describe that problem nor cite a
+location where the interested reader could look it up.
+
+In Section 5, footnote 1, was the driver version of the CUDA card also the same
+as the Nikola version? Performance varies, sometimes substantially, between
+different Nvidia driver versions.
+
+In Section 6, you mention that "representing arrays as functions is folklore."
+I'm not really sure what this statement is trying to say or address, not being
+familiar with the folklore myself.
+
+The plots should be clearer in their labels (and the text) about them all being
+log-log scale.
+
+Nits:
+Section 3 
+[TLM] "to use" -> "the use of"
+The entire second half of the paragraph that starts with "Accelerate's runtime
+compiler..." is awkward and could be tightened to a sentence or so.
+Section 3.1
+[TLM] "It use @" -> "It uses @"
+Section 3.2
+[TLM] "term as superscript" -> "term as a superscript"
+[TLM] "should to be" -> "should be"
+[TLM] "loose" -> "lose"
+Section 3.3
+The "descend" type declaration is not lined up horizontally.
+Section 3.4
+Code spills over the margin in the "body" definition.
+Section 4
+[TLM] "necessary to maintaining" -> "necessary to maintain"
+Section 5.7
+[TLM] "infelicity" -> something else, maybe? I had to look this word up, and most of
+the definitions implied bad luck, as opposed to just being a fundamental
+challenge with the type of problem.
+Section 6
+[TLM] "provide higher combinators" -> "provide higher-order combinators"
+[TLM] "fusion transform itself" -> "fusion transformation itself"
+References
+[TLM] "Nesl" -> "NESL" (and it should have a version number)
+[TLM] The CMU tech reports should have their numbers, CMU-CS-95-170 and CMU-CS-90-190, respectively.

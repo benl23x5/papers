@@ -1,0 +1,60 @@
+#!/bin/bash
+
+set -e
+
+GHC=/usr/bin/ghc
+VER=`$GHC --numeric-version`
+
+mkdir -p bin
+
+# Accelerate -------------------------------------------------------------------
+#
+echo "--- Building accelerate programs ---"
+function compile_acc()
+{
+  NAME=$1
+  EXE=`echo $NAME | tr [:upper:] [:lower:]`
+  shift
+
+  DIST=dist/acc-$EXE
+  mkdir -p $DIST
+
+  $GHC -package-conf cabal-dev/packages-$VER.conf \
+       -odir $DIST -hidir $DIST \
+       --make -O2 -Wall $@ src-accelerate/$NAME -main-is $NAME.main -o bin/$EXE-acc
+}
+
+compile_acc DotP
+compile_acc BlackScholes
+compile_acc Canny
+
+
+# Repa -------------------------------------------------------------------------
+#
+echo ""
+echo "--- Building repa programs ---"
+function compile_repa()
+{
+  NAME=$1
+  EXE=`echo $NAME | tr [:upper:] [:lower:]`
+  shift
+
+  DIST=dist/repa-$EXE
+  mkdir -p $DIST
+
+  $GHC -package-conf cabal-dev/packages-$VER.conf -odir $DIST -hidir $DIST \
+       -Odph -fno-liberate-case -funfolding-use-threshold100 -funfolding-keeness-factor100 \
+       -threaded -rtsopts --make -Wall -fllvm -optlo-O3 \
+       $@ src-repa/$NAME -main-is $NAME.main -o bin/$EXE-repa
+}
+
+compile_repa Canny
+
+
+# CUDA -------------------------------------------------------------------------
+#
+echo ""
+echo "--- Building CUDA programs ---"
+
+nvcc -O2 -lcublas src-cuda/dotp.c -o bin/dotp-cublas
+

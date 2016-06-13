@@ -1,0 +1,78 @@
+--
+-- An N-Body simulation
+--
+
+-- friends
+import Config
+import Common.Body
+import Common.World
+import Random.Vector
+import Random.Position
+import qualified Solver.Naive                   as Naive
+
+import qualified Data.Vector.Unboxed	        as V
+
+-- system
+import Prelude                                  as P
+import Data.Label
+import System.Environment
+import System.Random.MWC                        ( uniformR )
+import Criterion.Main                           ( defaultMainWith, bench, whnf )
+
+
+main :: IO ()
+main
+  = do  (conf, cconf, nops)     <- parseArgs =<< getArgs
+
+        let solver      = case get configSolver conf of
+                            Naive       -> Naive.calcAccels
+                            BarnsHut    -> error "barns-hut: not implemented yet"
+
+            n           = get configBodyCount conf
+            epsilon     = get configEpsilon conf
+--            size        = get configWindowSize conf
+--            fps         = get configRate conf
+
+            -- Generate random particle positions in a disc layout centred at
+            -- the origin. Start the system rotating with particle speed
+            -- proportional to distance from the origin
+            --
+            positions   = randomVectorOf (disc (0,0,0) (get configStartDiscSize conf)) n
+            masses      = randomVectorOf (\_ -> uniformR (1, get configBodyMass conf)) n
+
+            bodies      = V.map (setStartVelOfBody (get configStartSpeed conf))
+                        $ V.zipWith setMassOfBody masses
+                        $ V.map unitBody
+                        $ positions
+
+            -- The initial simulation state
+            --
+--            universe    = initialise world
+            world       = World { worldBodies   = bodies
+                                , worldSteps    = 0
+                                , worldTime     = 0 }
+
+            -- Advancing the simulation
+            --
+            advance     = advanceWorld step
+            step        = advanceBodies (solver epsilon)
+
+        -- Forward unto dawn
+        --
+        if get configBenchmark conf
+           then withArgs nops $ defaultMainWith cconf (return ())
+                  [ bench "n-body" $ whnf (advance 0.1) world ]
+
+           else error "vector-nbody: gloss not enabled"
+
+{--
+           else play
+                  (InWindow "N-Body" (size, size) (10, 10))     -- window size & position
+                  black                                         -- background colour
+                  fps                                           -- number of simulation steps per second
+                  universe                                      -- initial world
+                  (draw conf)                                   -- fn to convert a world into a picture
+                  react                                         -- fn to handle input events
+                  (simulate advance)                            -- fn to advance the world
+--}
+

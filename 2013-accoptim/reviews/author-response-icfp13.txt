@@ -1,0 +1,30 @@
+Generality
+~~~~~~~~~~
+Review 2 suggests a lack of generality of our work and, in particular that it only applies to our system. We motivated and evaluated our methods in the context of a particular embedded language, but the methods are more general. This is explicit in the paper. For example, Section 3 formalises sharing recovery using the standard typed lambda calculus. There is nothing GPU-specific about it. Similarly, our approach to fusion is useful for any dynamic compiler targeting data-parallel hardware. 
+
+Review 3 recognises the generality of our contribution. Review 3 asks whether our methods depend on restrictions of the specific embedded language that we use to motivate and evaluate the methods. No, they do not depend on any language restrictions: both recursion and filtering are orthogonal to the contributions of this paper, and our methods work fine in their presence.
+
+Review 3 suggests that we state this more explicitly in the paper. We completely agree. We should have made that point very clearly up front. We will revise the paper accordingly.
+
+
+Novelty
+~~~~~~~
+The paper operates in a space rich with previous work, where new contributions are likely to be refinements of existing approaches. We believe that our work makes a very significant contribution to the state of the art as it enables the application of sharing recovery and array fusion in areas of strong practical relevance, and much investigative and engineering work was required to find satisfying solutions. These areas are, for sharing recovery, type-preserving compilation and, for array fusion, bulk-parallel SIMD machines.
+
+
+Restricted programs
+~~~~~~~~~~~~~~~~~~~
+The third review suggests that Accelerate is restricted wrt to other GPU frameworks as it does not support filtering and recursion. That is not correct. We do not provide filtering as a primitive, but it is easy to implement filtering using the primitives. In fact, such an implementation is supplied as part of the library: https://github.com/AccelerateHS/accelerate/blob/master/Data/Array/Accelerate/Prelude.hs#L637
+
+Concerning recursion, we do not support it in an embedded array computation, but it can of course be used in the host language. All other GPU frameworks also implement recursion on the CPU side (host), simply as GPUs have a very limited stack and cannot execute general recursive functions. Accelerate exposes the distinction between host computations and GPU kernel computations explicitly, whereas other frameworks attempt to hide it. That doesn't make Accelerate any less expressive.
+
+
+Correctness & stength
+~~~~~~~~~~~~~~~~~~~~~
+Reviewer 2 asks about correctness. We conjecture that the presented transformations are semantics-preserving for purely functional code. However, we have no formal proof for that conjecture. Such a formal proof would be a major piece of work in its own right. We agree that we should explicitly say this in the paper.
+
+Concerning the strength, we again have no formal results. However, we have empirical evidence of the effectiveness of these transformations in the form of the benchmarks in Section 5.
+
+Experimental methodology
+~~~~~~~~~~~~~~~~~~~~~~~~
+Review 3 asks about benchmark details: our benchmarks results are averages of 100 runs.

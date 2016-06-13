@@ -1,0 +1,18 @@
+%!TEX root = ../acc-optim.tex
+\section{Related work} % (fold)
+\label{sec:related}
+Repa \cite{Keller:Repa} is a Haskell library for parallel array programming on shared-memory SMP machines. Repa uses the \mbox{delayed/manifest} representation split on which our @DelayedAcc@ type is based, though the idea of representing arrays as functions is folklore. With Repa the conversion between array representations is done manually and can cause shared expressions to be recomputed rather than stored. Such recomputation can improve runtime performance depending on the algorithm. In Accelerate the conversion is automatic and conservative, so that shared expressions are never recomputed. 
+
+Vertigo~\cite{Elliott:Vertigo}, Nikola \cite{Mainland:nikola} and Obsidian \cite{Claessen:obsidian} are EDSLs in Haskell and were mentioned in Section~\ref{sec:Introduction}. Vertigo is a first-order language for writing shaders, and does not provide higher-order combinators such as @map@ and @fold@. Nikola uses an instance of Gill's approach~\cite{Gill:2009dx} to sharing recovery, is limited to single GPU kernel programs, and performs no fusion. 
+
+Obsidian~\cite{Claessen:obsidian} is a lower level language where more details of the GPU hardware are exposed to the programmer. Recent versions of Obsidian \cite{Claessen:obsidian-expressive} implement Repa-style delayed \emph{pull arrays} as well as \emph{push arrays}. Whereas a pull array represents a general producer, a push array represents a general consumer. Push arrays allow the intermediate program to be written in continuation passing style (CPS), and helps to compile (and fuse) append-like operations.
+
+Baracuda~\cite{Larsen:baracuda} is another Haskell EDSL that produces CUDA GPU kernels, though is intended to be used offline, with the kernels being called directly from C++. The paper~\cite{Larsen:baracuda} mentions a fusion system that appears to be based on pull arrays, though the mechanism is not discussed in detail. Barracuda steps around the sharing problem by requiring let-bindings to be written using the AST node constructor, rather than using Haskell's native let-expressions.
+
+Delite/LMS~\cite{Rompf-etal:Delite} is a parallelisation framework for DSLs in Scala that uses library-based multi-pass staging to specify complex optimisations in a modular manner. Delite supports loop fusion for DSLs targeting GPUs using rewrite rules on a graph-based IR.
+
+NDP2GPU~\cite{bergstrom:ndp2gpu} compiles NESL code down to CUDA. As the source language is not embedded there is no need for sharing recovery. NDP2GPU performs @map@/@map@ fusion but cannot fuse @map@s into reduction combinators.
+
+Sato and Iwasaki~\cite{Sato:Skeletal-fusion} describe a C++ library for GPGPU programming that includes a fusion mechanism based on list homomorphisms~\cite{Meijer:bananas}. The fusion transformation itself is implemented as a source to source translation. SkeTo \cite{Matsuzaki:Skeletal-expression-templates} is a C++ library that provides parallel skeletons for CPUs. SkeTo's use of C++ templates provides a fusion system similar to delayed arrays, which could be equivalently implemented using CUDA templates. The authors of SkeTo note that the lack of type inference in C++ leads them to write their array code as nested expressions --- to avoid intermediate variable bindings and their required type annotations.
+
+% section related (end)
