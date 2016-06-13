@@ -1,0 +1,127 @@
+\begin{figure}[ht]
+% -- Symbol Classes
+\begin{flushleft}
+
+\begin{tabbing}
+MMMMM \= M \= MMMMMMMM
+MM 	\= M \= M \= MMMMMMM \kill
+\textbf{Symbol Classes} \\
+	   $a$, $r$, $e$, $w$ 	\> $\rightarrow$ 	\>  (type variable)  
+	\> $T$			\> $\rightarrow$	\>  (type constructor)
+	\\
+	   $x$			\> $\rightarrow$ 	\>  (value variable)  
+	\> $K$			\> $\rightarrow$	\>  (data constructor)
+\end{tabbing}
+
+
+% -- Kinds
+\begin{tabbing}
+x 	\= Mx \= MMMMMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+\textbf{Kinds} \\
+$\kappa$ 
+	\> $::=$	\> $\kappa \ \varphi \ 
+				| \ \Pi(a : \kappa_1) . \ \kappa_2$ 
+			\> (kinds)
+	\\
+	\> $\ |$	\> $* \ 
+				| \ \% \ 
+				| \ ! \
+				| \ \Diamond$ 
+			\> (base kinds) \\
+	\> $\ |$	\> $\iConst \ 
+				| \ \iMutable \ 
+				| \ \iPure$
+			\> (kind constrs)
+\end{tabbing}
+
+
+% -- Types
+\begin{tabbing}
+x 	\= Mx \= MMMMMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+\textbf{Types} \\
+$\varphi$, $\tau$, $\sigma$, $\delta$, $\Delta$ \\
+	\> $::=$	\> $a \ 
+				| \ \forall (a : \kappa). \ \tau \
+				| \ \varphi_1 \ \varphi_2 \ 
+				| \ (\to) \
+				| \ () \
+				| \ T$
+			\> (types) 
+	\\
+	\> $\ |$	\> $\sigma_1 \lor \sigma_2 \ 
+				| \ \bot \
+				| \ \iRead \ 
+				| \ \iWrite$
+			\> (effects) 
+	\\
+	\> $\ |$ 	\> $\iMkConst \ 
+				| \ \iMkMutable \
+				| \ \iMkPure \ 
+				| \ \iMkPurify \ 
+				| \ \iMkPureJoin$ 
+			\> (witness constrs)
+	\\
+	\> $\ |$	\> $ \ \un{\rho} \
+				| \ \un{\rconst \ \rho} \
+				| \ \un{\rmutable \ \rho} \ 
+				| \ \un{\rpure \ \sigma}$
+			\> (witnesses) 
+\end{tabbing}
+
+% -- Terms
+\begin{tabbing}
+MMM 	\= MM \= MMMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMMMM \kill
+\textbf{Terms} \\
+$t$ 	\> $::=$ 	\> $v \
+				| \ t \ \varphi \
+				| \ t_1 \ t_2 \
+				| \ \kletregion \ r \ \kwith \ \{ \ov{w = \delta} \} \ \kin \ t \
+				| \ K \ \ov{\varphi} \ \ov{t}$
+\\
+	\> $\ |$	\> $\kcase \ t \ \kof \ \ov{K \ \ov{x : \tau} \to t' } \
+				| \ \iupdate_{K,i} \ \ov{\varphi} \ t_1 \ t_2 \
+				| \ \isuspend \ \ov{\varphi} \ t_1 \ t_2$ \\
+	\> $\ |$	\> $\kmask \ \delta \ \kin \ t$
+\\[1ex]
+$v^\circ,u^\circ$ 
+	\> $::=$	\> $v \
+				| \isuspend \ \ov{\varphi} \ v_1^\circ \ v_2^\circ$
+			\> (weak values)
+\\
+$v,u$	\> $::=$	\> $x \ 
+				| \ l \
+				| \ () \
+				| \ \Lambda (a : \kappa). \ t \
+				| \ \lambda (x : \tau). \ t$
+			\> (values)
+\end{tabbing}
+
+
+\begin{tabbing}
+MMMMM	\= MMMMMMMMMMMM \= MMM \kill
+\textbf{Derived Forms} 
+\\
+$\kappa_1 \to \kappa_2$		\> $\equalsdef \ \ \Pi     (\_ : \kappa_1). \ \kappa_2$ 
+\>
+$\klet \ (x : \tau) = t_1 \ \kin \ t_2 \ \equalsdef \ \ (\lambda (x : \tau). \ t_2) \ t_1$
+\\
+$\kappa \ \To \tau$		\> $\equalsdef \ \ \forall (\_ : \kappa).   \ \tau$
+\>
+$\kletregion \ r \ \kin \ t \ \equalsdef \ \kletregion \ r \ \kwith \ \emptyset \ \kin \ t$
+\end{tabbing}
+\begin{tabbing}
+Mx 	\= Mx \= MMMMMMMMMMMMMMMMMMMM \= Mx 
+	\= Mx \= MMMMMMMMMMMMMMMMMMMM \kill
+	\textbf{Store Typing}
+		\> \> \> \textbf{Type Environment} \\
+	$\Sigma$	\> ::= $l : \tau \
+					| \ \un{\rho} \
+					| \ \un{\rconst \ \rho} \
+					| \ \un{\rmutable \ \rho}$
+\>	\> $\Gamma$	\> ::=	$a : \kappa \ | \ x : \tau$
+\end{tabbing}
+
+\end{flushleft}
+\caption{Core Language}
+\label{fig:core-language}
+\end{figure}

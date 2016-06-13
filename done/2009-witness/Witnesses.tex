@@ -1,0 +1,127 @@
+
+% ------------------------------------------------------------------------------
+\section{Witnesses and Witness Construction}
+\label{Witnesses}
+
+The novel aspect of our core language is that it uses dependently kinded witnesses to manage information about purity, constancy and mutability. A witness is a special type that can occur in the term being evaluated, and its occurrence guarantees a particular property of the program. The System-Fc \cite{sulzmann:system-Fc} language uses a similar mechanism to manage information about non-syntactic type equality. Dependent kinds were introduced by the Edinburgh Logical Framework (LF) \cite{avron:edinburgh-lf} which uses them to encode logical rules. 
+
+Note that although our formal operational semantics manipulates witnesses during reduction, in practice they are only used to reason about the program during compilation, and are not needed at runtime. Our compiler erases witnesses before code generation, along with all other type information.
+
+
+% ------------------------------------------------------------------------------
+\subsection{Region Handles}
+We write witnesses with an underline, and the first we discuss are the region allocation witnesses $\un{\rho_n}$. These are also called \emph{region handles} and are introduced into the program with the $\kletregion \ r \ \kin \ t$ expression. Reduction of this expression allocates a fresh handle $\un{\rho}$ and substitutes it for all occurrences of the variable $r$ in $t$. To avoid problems with variable capture we require all bound variables $r$ in the initial program to be distinct. Although region handles are not needed at runtime, we can imagine them to be operational descriptions of physical regions of the store, perhaps incorporating a base address and a range. For example, the following program adds two to its argument, while storing an intermediate value in a region named $r_3$.
+
+\begin{tabbing}	
+MM \= MMMMMx \= MMM \kill
+\>	$\iaddTwo \ ::$ \> $ \forall r_1 \ r_2. \ \iInt \ r_1 \longtoa{\iRead r_1} \iInt \ r_2$ \\
+\>	$\iaddTwo \ =$ 
+		\> $\Lambda r_1 \ r_2. \ \lambda (x : \iInt \: r_1).$ \\
+\>		\> $\kletregion \ r_3 \ \kin \ \isucc \ r_3 \ r_2 \ (\isucc \ r_1 \ r_3 \ x)$
+\end{tabbing}
+This program makes use of the primitive $\isucc$ function that reads its integer argument and produces a new value into a given region:
+\begin{tabbing}	
+MM 	\= MMMMx 	\= MMM \kill
+	\> $\isucc \ :: \ \forall r_1 \ r_2. \ \iInt \ r_1 \longtoa{\iRead r_1} \iInt \ r_2$	
+\end{tabbing}
+
+Note the phase distinction between region variables $r_n$ and region handles $\un{\rho_n}$. Region handles are bound by region variables. As no regions exist in the store before execution, region handles may not occur in the initial program. Also, although the outer call to $\isucc$ reads a value in $r_3$, this effect is not observable by calling functions, so is masked and not included in the type signature of $\iaddTwo$. This is similar to the system of \cite{tofte:mlkit-4.3.0}.
+
+
+% ------------------------------------------------------------------------------
+\subsection{Witnesses of Constancy and Mutability}
+\label{Witnesses:Constancy-and-Mutability}
+The constancy or mutability of values in a particular region is represented by the witnesses $\un{\rconst \ \rho}$ and $\un{\rmutable \ \rho}$. Once again, these witnesses may not occur in the initial program. Instead, they are created with the $\iMkConst$ and $\iMkMutable$ witness type constructors which have the following kinds:
+
+\begin{tabbing}
+MM \= MMMMMM \= MMM \kill
+\> $\iMkConst$   \> $:: \Pi (r : \%). \ \iConst \ r$ \\
+\> $\iMkMutable$ \> $:: \Pi (r : \%). \ \iMutable\ r$ 
+\end{tabbing}
+
+Both constructors take a region handle and produce the appropriate witness. To ensure that both $\un{\rconst \ \rho_n}$ and $\un{\rmutable \ \rho_n}$ for the same $\un{\rho_n}$ cannot be created by a given program, we require the mutability of a region to be set at the point it is introduced. We introduce new regions with $\kletregion$, so extend this construct with an optional witness binding that specifies the desired mutability. If a function accesses values in a given region, and does not possess either a witness of constancy or mutability for that region, then it cannot assume either. For example, the following function computes the length of a list by destructively incrementing a local accumulator, then copying out the final value.
+
+\begin{tabbing}
+MM \= MMM \= M \= MM \= MMMM \= MMMMMMx \= M \= MM \kill
+\> $\ilength$ 	\> $::$	\> $\forall a \ r_1 \ r_2. \ \iList \ r_1 \ a \longtoa{\iRead \ r_1} \iInt \ r_2$ \\
+\> $\ilength$	\> $=$	\> $\Lambda a \ r_1 \ r_2. \ \lambda (\ilist : \iList \ r_1 \ a).$ \\
+\> 		\> 	\> $\kletregion \ r_3 \ \kwith \ \{ w = \iMkMutable \ r_3 \} \ \kin $ \\
+\>		\> 	\> $\klet$ 	\> $(\iacc$ 	\> $ : \iInt \ r_3)$	\> $= 0 \ r_3$ \\
+\>		\>	\>		\> $(\ilength'$	\> $ : ...)$	\\
+\>		\>	\>		\> \quad $= \lambda (\ixx : \iList \ r_1 \ a). $ \\
+\>		\>	\>		\> \> $\kcase \ \ixx \ \kof$ \\
+\>		\>	\>		\> \> \quad $\iNil$			  \> $\to$ \> $\icopyInt \ r_3 \ r_2 \ \iacc$ \\
+\>		\>	\>		\> \> \quad $\iCons \ \_ \ \ixs$ \> $\to$ \> $\klet \ (\_ : ()) = \iincInt \ r_3 \ w \ \iacc$ \\ 
+\>		\>	\>		\> \>					  \>	  \> $\kin \ \ilength' \ixs$ \\
+\>		\> 	\> $\kin$	\> $\ilength' \ \ilist$
+\end{tabbing}
+where
+\begin{tabbing}
+MM \= MMMM \= MMMM \= MMMMMMMMx \= MM \= MMMMM \= MM \kill
+\> $\icopyInt$	\> $:: \forall r_1 \ r_2.$ 
+		\> $\iInt \ r_1 \longtoa{\iRead \ r_1} \iInt \ r_2$ 
+\\
+\> $\iincInt$	\> $:: \forall r_1. \iMutable \ r_1 \To$ 	
+		$\iInt \ r_1 \longtoa{\iRead r_1 \lor \iWrite r_1} ()$ 
+\end{tabbing}
+The set after the $\kwith$ keyword binds an optional witness type variable. If the region variable bound by the $\kletregion$ is $r$, then the right of the witness binding must be either $\iMkConst \ r$ or $\iMkMutable \ r$. The type constructors $\iMkConst$ and $\iMkMutable$ may not occur elsewhere in the program. The $\ilength$ function above makes use of $\iincInt$ which requires its integer argument to be in a mutable region, and we satisfy this constraint by passing it our witness to the fact.
+
+
+% ------------------------------------------------------------------------------
+\subsection{Laziness and Witnesses of Purity}
+\label{Witnesses:Purity}
+Although we use call-by-value evaluation as the default, we can suspend the evaluation of an arbitrary function application with the $\isuspend$ operator:
+\begin{tabbing}
+MM \= MMMM \= MMMMMM \= MMMMM \= MMMM \kill
+	\> $\isuspend$	\> $:: \forall a \ b \ e. \ \iPure \ e \To (a \toa{e} b) \to a \to b$
+\end{tabbing}
+$\isuspend$ takes a parameter function of type $a \toa{e} b$, its argument of type $a$, and defers the application by building a thunk at runtime. When the value of the thunk is demanded, the contained function will be applied to its argument, yielding a result of type $b$. As per \cite{launchbury:lazy}, values are demanded when they are used as the function in an application, or are inspected by a case-expression or primitive operator such as $\iupdate$. The constraint $\iPure \ e$ indicates that we must also provide a witness that the application to be suspended is observably pure. Witnesses of purity are written $\un{\rpure \ \sigma}$ where $\sigma$ is some effect. They can be created with the $\iMkPurify$ witness type constructor. For example, the following function computes the successor of its argument, but only when the result is demanded:
+\begin{tabbing}
+MM \= MMM \= M \= MMMM \= MMMMMMx \= M \= MM \kill
+	\> $\isuccL$	\> $::$	\> $\forall r_1 \ r_2. \ \iConst \ r_1 \To \iInt \ r_1 \longtoa{\iRead \ r_1} \iInt \ r_2$ \\
+	\> $\isuccL$ 	\> $=$	\> $\Lambda r_1 \ r_2 \ (w : \iConst \ r_1). \ \lambda (x : \iInt \ r_1). $ \\	
+	\>		\> 	\> $\isuspend$ 	\> $(\iInt \ r_1) \ (\iInt \ r_2) \ (\iRead \ r_1) \ (\iMkPurify \ r_1 \ w)$ \\
+	\> 		\>	\>		\> $(\isucc \ r_1 \ r_2) \ x$
+\end{tabbing}
+$\iMkPurify$ takes a witness that a particular region is constant, and produces a witness proving that a read from that region is pure. It has the following kind:
+\begin{tabbing}
+MM \= MMMMM \= MMM \kill
+\> $\iMkPurify$	\> $:: \Pi (r : \%). \ \iConst \ r \rightarrow \ \iPure \ (\iRead \ r)$ 
+\end{tabbing}
+Reads of constant regions are pure because it does not matter when the read takes place, the same value will be returned each time. Note that in our system there are several ways of writing the effect of a pure function. As mentioned in \S\ref{Update:UpdatingIntegers} the effect term $\bot$ is manifestly pure. However, we can also treat any other effect as pure if we can produce a witness of the appropriate kind. For example, $\iRead \ r_5$ is pure if we can produce a witness of kind $\iPure \ (\iRead \ r_5)$.
+
+
+% ------------------------------------------------------------------------------
+\subsection{Witness Joining and Explicit Effect Masking}
+Purity constraints extend naturally to higher order functions. Here is the definition of a lazy map function, $\imapL$, which constructs the first list element when called, but only constructs subsequent elements when they are demanded:
+\begin{tabbing}
+MM \= MMM \= M \= MMMMM \kill
+	\> $\imapL$	\> $::$ \> $\forall a \ b \ r_1 \ r_2 \ e.$ \\
+	\>		\> 	\> $\iConst \ r_1 \To \iPure \ e \To (a \toa{e} b) \to \iList \ r_1 \ a  \to \iList \ r_2 \ b$ 
+\end{tabbing}
+\begin{tabbing}
+MM \= Mx \= Mx \= MMMMMx \= MMMM \= MMMxx \= MMMMMM \kill
+	\> $\imapL$ \\
+	\> \ $=$	\> $\Lambda a \ b \ r_1 \ r_2 \ e \ (w_1 : \iConst \ r_1) \ (w_2 : \iPure \ e).$ \\
+	\>		\> $\lambda (f : a \toa{e} b) \ (\ilist : \iList \ r_1 \ a).$ \\
+	\>		\> $\kmask \ (\iMkPureJoin \ (\iRead \ r_1) \ e \ (\iMkPurify \ r_1 \ w_1) \ w_2) \ \kin$ \\
+	\> 		\> $\kcase \ \ilist \ \kof$ \\
+	\> 		\> \> $\iNil$			\> $\to \iNil \ r_2 \ b$ \\
+	\> 		\> \> $\iCons \ x \ \ixs$	
+				\> $\to \iCons$ 
+					\> $r_2 \ b \ (f \ x)$ \\
+	\>		\> \>   \>	\> $(\isuspend$ \> $(\iList \ r_1 \ a) \ (\iList \ r_2 \ b) \ \bot \ \iMkPure$ \\
+	\>		\> \>	\>	\>		\> $(\imapL \ a \ b \ r_1 \ r_2 \ e \ w_1 \ w_2 \ f) \ \ixs)$ 
+\end{tabbing}
+The inner case-expression in this function has the effect $\iRead \ r_1 \lor e$. The first part is due to inspecting the list constructors, and the second is due to the application of the argument function $f$ to the list element $x$. However, as the recursive call to $\imapL$ is suspended, $\imapL$ itself must be pure. One way to satisfy this constraint would be to pass a witness showing that $\iRead \ r_1 \lor e$ is pure directly to $\isuspend$. This works, but leaves $\imapL$ with a type that contains this (provably pure) effect term. Instead, we have chosen to explicitly mask this effect in the body of $\imapL$. This gives $\imapL$ a manifestly pure type, and allows us to pass a trivial witness to $\isuspend$ to show that the recursive call is pure.
+
+The masking is achieved with the $\kmask \ \delta \ \kin \ t$ expression, which contains a witness of purity $\delta$ and a body $t$. The type and value of this expression is the same as for $t$, but its effect is the effect of $t$ minus the terms which $\delta$ proves are pure. In our $\imapL$ example we prove that $\iRead \ r_1 \ \lor \ e$ is pure by combining two other witnesses, $w_1$ which proves that the list cells are in a constant region, and $w_2$ which proves that the argument function itself is pure. They are combined with the $\iMkPureJoin$ witness type constructor which has the following kind:
+
+\begin{tabbing}
+MM \= MMM \kill
+	\> $\iMkPureJoin$ $:: \Pi (e_1 : \ !). \ \Pi (e_2 : \ !). $ 
+		$\iPure \ e_1 \to \iPure \ e_2 \to \ \iPure{(e_1 \lor e_2)}$ 
+\end{tabbing}
+
+Our $\imapL$ example also uses $\iMkPure$, which introduces a witness that the effect $\bot$ is pure. Note that our type for $\imapL$ now contains exactly the constraints that are \emph{implicit} in a lazy language such as Haskell. In Haskell, all algebraic data is constant, and all functions are pure. In our language, we can suspend function applications as desired, but doing so requires the functions and data involved to satisfy the usual constraints of lazy evaluation.
+

@@ -1,0 +1,40 @@
+\documentclass{llncs}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{textpos}
+\usepackage{graphicx}
+
+\usepackage{style/utils}
+\usepackage{style/names}
+
+% -----------------------------------------------------------------------------
+\begin{document}
+
+\title		{Witnessing Purity, Constancy and Mutability}
+\author		{Ben Lippmeier}
+\institute	{School of Computer Science \\ 
+		 Australian National University \\
+		 \email{Ben.Lippmeier@anu.edu.au}}
+\maketitle
+
+
+% -- Abstract -----------------------------------------------------------------
+\begin{abstract}
+Restricting destructive update to values of a distinguished reference type prevents functions from being polymorphic in the mutability of their arguments. This restriction makes it easier to reason about program behaviour during transformation, but the lack of polymorphism reduces the expressiveness of the language. We present a System-F style core language that uses dependently kinded proof witnesses to encode information about the mutability of values and the purity of computations. We support mixed strict and lazy evaluation, and use our type system to ensure that only computations without visible side effects are suspended.
+
+\end{abstract}
+\input{Intro}
+\input{Update}
+\input{Witnesses}
+\input{Language}
+\input{Comparisons}
+\input{Conclusion}
+
+\clearpage{}
+\bibliography{Main.bib}
+\bibliographystyle{plain}
+
+\end{document}
+
+

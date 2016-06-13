@@ -1,0 +1,85 @@
+
+% -------------------------------------
+\section{Regions, Effects and Mutability Constraints}
+In Haskell and ML, references and arrays are distinguished values, and are the only ones capable of being destructively updated. This means that the structure of mutable data is necessarily different from the structure of constant data, which makes it difficult to write polymorphic functions that act on both. For example, if we use $\iIORef \iInt$ as the type of a mutable integer and $\iInt$ as the type of a constant integer, then we would need $\ireadIORef$ to access the first, but not the second. On the other hand, if we were to treat all data as mutable, then every function would exhibit a side effect. This would prevent us from using code-motion style optimisations that depend on purity.
+
+Instead, we give integers the type $\iInt \ r$, where $r$ is a region variable, and constrain $r$ to be mutable or constant as needed. Our use of region variables is similar to that by Talpin and Jouvelot \cite{talpin:type-and-effect-discipline}, where the variable $r$ is a name for a set of locations in the store where a run-time object may lie. We do not use regions for controlling allocation as per \cite{tofte:mlkit-4.3.0}, due to the difficulty of statically determining when objects referenced by suspended computations can be safely deallocated. We define region variables to have kind $\%$, and use this symbol because pictorially it is two circles separated by a line, a mnemonic for ``this, or that''. The kind of value types is *, so the $\iInt$ type constructor has kind $\iInt :: \% \to *$. The type of a literal integer such as `5' is:
+\begin{tabbing}
+MM	\= M \= M \= MMMM \kill
+	\> 5	\> :: \> $\forall (r : \%). \iInt \ r$
+\end{tabbing}
+In our System-F style language, type application corresponds to instantiation, and `5' is the name of a function that allocates a new integer object into a given region. Note that unlike \cite{talpin:type-and-effect-discipline} we do not use allocation effects. This prevents us from optimising away some forms of duplicated computation, such as described in \S7 of \cite{benton:relational-semantics-effect-transformations}, but also simplifies our type system. For the rest of this paper we will elide explicit kind annotations on binders when they are clear from context.
+
+
+% -------------------------------------
+\subsection{Updating Integers}
+\label{Update:UpdatingIntegers}
+
+To update an integer we use the $\iupdateInt$ function which has type:
+\begin{tabbing}
+MM \= MMMMM \= MMMMMM \= MMMMM \= MMMM \kill
+	\> $\iupdateInt$ \> $:: \forall r_1 \ r_2. 
+				\iMutable \ r_1 
+				\To \iInt \ r_1 \to \iInt \ r_2 
+				\longtoa{\iRead r_2 \ \lor \ \iWrite r_1} ()$
+\end{tabbing}
+This function reads the value of its second integer argument, and uses this to overwrite the value of the first. As in \cite{talpin:type-and-effect-discipline} we annotate function types with their latent effects. We organise effects as a lattice and collect atomic effects with the $\lor$ operator. We use $\bot$ as the effect of a pure function, and unannotated function arrows are taken to have this effect. We also use a set-like subtraction operator where the effect $\sigma \setminus \sigma'$ contains the atomic effects that appear in $\sigma$ but not $\sigma'$. We use $!$ as the kind of effects, so $\iRead$ has kind $\iRead :: \% \to \ !$. The symbol ! is a mnemonic for ``something's happening!''.
+
+Returning to the type of $\iupdateInt$, $\iMutable \ r_1$ is a \emph{region constraint} that ensures that only mutable integers may be updated. When we call this function we must pass a \emph{witness} to the fact that this constraint is satisfied, a point we will discuss further in \S\ref{Witnesses}.
+
+When the number of atomic effects becomes large, using the above syntax for effects becomes cumbersome. Due to this we sometimes write effect terms after the body of the type instead:
+\begin{tabbing}
+MM \= MMMMM \= M \= MMMMM \= MMMM \kill
+	\> $\iupdateInt$ 
+		\> $::$	 	\> $\forall r_1 \ r_2. \iMutable \ r_1 \To \iInt \ r_1 \to \iInt \ r_2 \longtoa{e_1} ()$ \\
+	\>	\> $\rhd$	\> $e_1$ = $\iRead \ r_2 \lor \iWrite \ r_1$
+\end{tabbing}
+The symbol $\rhd$ is pronounced ``with''. Note that the effect variable $e_1$ is not quantified. It has been introduced for convenience only and is not a parameter of the type. 
+
+
+% -----------------------------------------------------------------------------
+\subsection{Updating Algebraic Data}
+Along with primitive types such as $\iInt$, the definition of an algebraic data type can also contain region variables. For example, we define our lists as follows:
+\begin{tabbing}
+MM \= MMMMM \= M \= MMMMM \= MMMM \kill
+	\> $\kdata \ \iList \ r \ a = \iNil \ | \ \iCons \ a \ (\iList \ r \ a)$
+\end{tabbing}
+This definition is similar to the one from \S\ref{Introduction} except that we have also applied the $\iList$ constructor to a region variable. This variable identifies the region that contains the list cells, and can be constrained to be constant or mutable as needed. The definition also introduces data constructors that have the following types:
+\begin{tabbing}
+MM \= MMM \= M \= MMMMM \= MMMM \kill
+	\> $\iNil$	\> $:: \forall r \ a. \ \iList \ r \ a$ \\
+	\> $\iCons$	\> $:: \forall r \ a. \ a \to \iList \ r \ a \to \iList \ r \ a$  
+\end{tabbing}
+In the type of $\iNil$, the fact that $r$ is quantified indicates that this constructor allocates a new $\iNil$ object. Freshly allocated objects do not alias with existing objects, so they can be taken to be in any region. On the other hand, in the type of $\iCons$, the type of the second argument and return value share the same region variable $r$, which means the new cons-cell is allocated into the same region as the existing cells. For example, evaluation of the following expression produces the store objects shown below.
+
+\begin{tabbing}
+MM	\= MMMMMMM \kill
+	\> $\ilist :: \iList \ r_5 \ (\iInt \ r_6)$ \\
+	\> $\ilist = \iCons \ r_5 \ (\iInt \ r_6) \ (2 \ r_6) \ 
+			(\iCons \ r_5 \ (\iInt \ r_6) \ (3 \ r_6) \ (\iNil \ r_5 \ (\iInt \ r_6)))$
+\end{tabbing}
+
+\begin{center}
+\includegraphics[scale=0.6]{fig/list-regions.eps}
+\end{center}
+
+As the list cells and integer elements are in different regions, we can give them differing mutabilities. If the type of $\ilist$ was constrained as follows, then we would be free to update the integer elements, but not the spine.
+
+\begin{tabbing}
+MM	\= MMMMMMM \kill
+	\> $\ilist :: \iConst \ r_5 \To \iMutable \ r_6 \To \iList \ r_5 \ (\iInt \ r_6)$
+\end{tabbing}
+
+The definition of an algebraic type also introduces a set of update operators, one for each updatable component of the corresponding value. For our list type, as we could usefully update the head and tail pointers in a cons-cell, we get the following operators:
+
+\begin{tabbing}
+MM \= MMMMMMx \= M \= MMMMM \= MMMM \kill
+	\> $\iupdate_{Cons, 0}$	
+		\> $:: \forall r \ a. \ \iMutable \ r \To \iList \ r \ a \to a \longtoa{\iWrite \ r} ()$ 
+\\
+	\> $\iupdate_{Cons, 1}$	
+		\> $:: \forall r \ a. \ \iMutable \ r \To \iList \ r \ a \to \iList \ r \ a \longtoa{\iWrite \ r} ()$
+\end{tabbing}
+
+These operators both take a list and a new value. If the list contains an outer cons-cell, then the appropriate pointer in that cell is updated to point to the new value. If the list is not a cons, then a run-time error is raised.
+

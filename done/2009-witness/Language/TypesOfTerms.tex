@@ -1,0 +1,148 @@
+\begin{figure}[ht!]
+
+% -- Store Typing
+
+\begin{center}
+\fbox{ $\tyJudge {\Gamma} {\Sigma} {t} {\tau} {\sigma}$ } \\
+\end{center}
+\vspace{-1em}
+\begin{gather*}
+	\begin{aligned}
+			\tyJudge {\Gamma, \ x : \tau} {\Sigma&} {x \ } {\tau} {\bot}
+			\trm{\ (TyVar)}
+	\\
+			\tyJudge {\Gamma, \ K : \tau} {\Sigma&} {K} {\tau} {\bot}
+			\trm{\ (TyCtor)}
+	\end{aligned}
+\quad
+	\begin{aligned}
+			\tyJudge{\Gamma} {\Sigma, \ l : \tau } 
+					 {&l \ \:}{\tau}{\bot}
+			\trm{\ (TyLoc)}
+	\\
+			\tyJudgeGS{&()}{()}{\bot}
+			\trm{\ (TyUnit)}
+	\end{aligned}
+\\[0.5ex]
+	\ruleI	{TyAbsT}
+		{ \tyJudge	{\Gamma, \ a : \kappa \: } {\Sigma} {t_2} {\tau_2} {\sigma_2} }
+		{ \tyJudgeGS	{\teLAM{a}{\kappa}{t_2}} {\tyForall{a}{\kappa}{\tau_2}} {\sigma_2} }
+\\[1ex]
+	\ruleI	{TyAppT}
+		{  \tyJudgeGS {t_1} {\tyForall{a}{\kappa_{11}}{\varphi_{12}}} {\sigma_1} 
+		   \qq
+		   \kiJudgeGS {\varphi_2} {\kappa_{11}} 
+		}
+		{ \tyJudgeGS	{t_1 \ \varphi_2} {\varphi_{12}[\varphi_2/a]} {\sigma_1[\varphi_2/a]} 
+		}
+\\[1ex]
+	\ruleI	{TyAbs}
+		{ \tyJudge	{\Gamma, \ x : \tau_1 \: } {\Sigma} {t} {\tau_2} {\sigma} }
+		{ \tyJudgeGS	{\teLam{x}{\tau_1}{t}} {\tau_1 \toa{\sigma} {\tau_2}} {\bot} }
+\\[1ex]
+	\ruleI	{TyApp}	
+		{ \tyJudgeGS	{t_2} {\tau_{11}} {\sigma_2} 
+		  \qq
+		  \tyJudgeGS	{t_1} {\tau_{11} \toa{\sigma} \tau_{12}} {\sigma_1} 
+		}
+		{ \tyJudgeGS	{t_1 \ t_2} {\tau_{12}} {\sigma_1 \lor \sigma_2 \lor \sigma} }
+\\[1ex]
+	\ruleI	{TyLetRegion}
+		{ \ov{\delta_i} \ \trm{well formed}  
+		  \quad r \notin \ifv(\tau)
+		  \quad \ \
+		  \ksJudge	{\Gamma}{& \ \kappa_i}{\Diamond}
+		  \\
+		  \tyJudge	{\Gamma, \ r : \%, \ \ov{w_i : \kappa_i}} {\Sigma} {t} {\tau} {\sigma} 
+		  \quad \ \
+		  \kiJudgeGS	{& \ \delta_i}{\kappa_i}
+		  \quad
+		}
+		{ \tyJudgeGS	{\teLetR{r}{\ov{w_i = \delta_i}}{t}} 
+				{\tau} 
+				{\sigma \setminus (\iRead \ r \lor \iWrite \ r)}
+		}
+\\[1ex]
+	\ruleI	{TyCase}
+		{ \tyJudgeGS	{t}
+				{T \ \varphi \ \ov{\varphi'}}
+				{\sigma}
+		  \quad
+		  \ov{\tyJudgeGS	
+				{p_i \to t_i}
+				{T \ \varphi \ \ov{\varphi'} \to \tau}
+				{\sigma_i'}}^{\: n}
+		}	
+		{ \tyJudgeGS	{ \kcase \ t \ \kof \ \ov{p \to t}}
+				{\tau}
+				{\sigma \lor \iRead \ \varphi 
+					\lor \sigma_0' \lor \sigma_1' ... \lor \sigma_n'}
+		}
+\\[1ex]
+	\ruleI	{TyUpdate}
+		{ \begin{aligned}
+			& \kiJudgeGS	{\delta}{\iMutable \ \varphi}
+			  \hspace{6em} 
+			  \tyJudgeGS	{t'}{\tau_i[\varphi/r][\ov{\varphi'/a}]}{\sigma'} \\
+			& \tyJudgeGS	{t}{T \ \varphi \ \ov{\varphi'}}{\sigma}
+			  \qq
+		  	  K :: \forall(r : \%)(\ov{a : \kappa}). \ov{\tau} \to T \ r \ \ov{a} 
+			 			\in \trm{ctorTypes}(T)
+		  \end{aligned}
+		}
+		{ \tyJudgeGS	{\iupdate_{K,i} \ \varphi \ \ov{\varphi'} \ \delta \ t \ t'}
+				{()}
+				{\sigma \lor \sigma' \lor \iWrite \ \varphi}
+		}
+\\[1ex]
+	\ruleI	{TySuspend}	
+		{ 	\kiJudgeGS	{\delta}{\iPure \ \sigma} 
+			\quad
+			\tyJudgeGS	{t_1}
+					{\tau_{11} \toa{\sigma} \tau_{12}}
+					{\sigma_1}
+			\quad
+			\tyJudgeGS	{t_2}
+					{\tau_{11}}
+					{\sigma_2}
+		}
+		{
+			\tyJudgeGS	{\isuspend \ \tau_{11} \ \tau_{12} \ \sigma \ \delta \ t_1 \ t_2}
+					{\tau_{12}}
+					{\sigma_1 \lor \sigma_2}
+		}
+\\[0.5ex]
+	\frac	{	\tyJudgeGS	{t}{\tau}{\sigma}
+			\quad
+			\kiJudgeGS	{\delta}{\iPure \ \sigma'}
+		}
+		{	\tyJudgeGS	{\kmask \ \delta \ \kin \ t}{\tau}{\sigma \setminus \sigma' } }
+		\tag{TyMaskPure}
+\end{gather*}
+
+\begin{center}
+\fbox{ $\tyJudge {\Gamma} {\Sigma} {p \to t} {\tau \to \tau'} {\sigma}$ } \\
+\end{center}
+\vspace{-2em}
+\begin{gather*}
+	\ruleI	{TyAlt}
+		{ 	\begin{aligned}
+			\theta = [\varphi / r \ \ov{\varphi' / a}]
+			\\
+			K :: \forall (r : \%) (\ov{a : \kappa}). \ov{\tau} \to T \ r \ \ov{a} \in \trm{ctorTypes}(T)
+			\quad
+			\tyJudge	{\Gamma, \ \ov{x : \theta(\tau)}}
+					{\Sigma}
+					{t}
+					{\tau'}
+					{\sigma}
+			\end{aligned}
+		}
+		{ \tyJudgeGS	{ K \ \ov{x} \to t}
+				{ T \ \varphi \ \ov{\varphi'} \to \tau'}
+				{ \sigma }
+		}
+\end{gather*}
+\caption{Types of Terms}
+\label{fig:types-of-terms}
+\end{figure}

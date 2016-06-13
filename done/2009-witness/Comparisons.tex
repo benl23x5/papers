@@ -1,0 +1,13 @@
+
+\clearpage{}
+\section{Related Work}
+
+The inspiration for our work has been to build on the monadic intermediate languages of \cite{tolmach:optimizing-ml}, \cite{benton:monads-effects-transformations} and \cite{peyton-jones:bridging-the-gulf}. Note that for our purposes, the difference between using effect and monadic typing is largely syntactic. We prefer effect typing because it mirrors our operational intuition more closely, but \cite{wadler:marriage-2003} gives a translation between the two.  Our system extends the previous languages with region, effect and mutability polymorphism, which improves the scope of optimisations that can be performed. In \cite{benton:relational-semantics-effect-transformations} and \cite{benton:semantics-effect-analysis}, Benton \emph{et al} present similar monadic languages that include region and effect polymorphism, but do not consider mutability polymorphism or lazy evaluation.
+
+The Capability Calculus \cite{crary:capabilities} provides region based memory management, whereby a capability is associated with each region, and an expression can only access a region when it holds its capability. When the region is deallocated, its associated capability is revoked, ensuring soundness. The capabilities of \cite{crary:capabilities} have similarities to the witnesses of our system, but theirs are not reified in the term being evaluated, and we do not allow ours to be revoked.
+
+The BitC \cite{shapiro:bitc-language-specification} language permits any location, whether on the stack, heap or within data structures to be mutated. Its operational semantics includes an explicit stack as well as a heap, and function arguments are implicitly copied onto the stack during application. BitC includes mutability annotations, but does not use region or effect typing. 
+
+
+
+

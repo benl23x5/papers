@@ -1,0 +1,37 @@
+\begin{figure}[ht!]
+\begin{center}
+\fbox{ $\ksJudge{\Gamma}{\kappa}{\kappa'}$ } 
+\end{center}
+\vspace{-1em}
+\begin{gather*}
+	\ruleIL	{KsRefl}
+		{\kappa \in \{ *, \ \%, \ !, \ \Diamond \}}
+		{\ksJudge{\Gamma}{\kappa}{\kappa}}
+	\quad
+	\ruleIL	{KsApp}
+		{\ksJudge
+			{\Gamma}
+			{\kappa_1}
+			{\kappa_{11} \to \kappa_{12}}
+		 \quad
+		 \ksJudge
+			{\Gamma}
+			{\varphi}
+			{\kappa_{11}}
+		}
+		{\ksJudge
+			{\Gamma}
+		 	{\kappa_1 \ \varphi}
+		 	{\kappa_{12}}
+		}
+\end{gather*}
+
+\begin{tabular}{llllllllllll}
+ 	&	$\Gamma \judgea{K}$ & $\iConst$   	& $:: \% \to \Diamond$ 
+ \qq 	&	$\Gamma \judgea{K}$ & $\iMutable$	& $:: \% \to \Diamond$ 
+ \qq 	&	$\Gamma \judgea{K}$ & $\iPure$		& $:: \ ! \ \to \Diamond$ 
+\end{tabular}
+
+\caption{Kinds of Kinds}
+\label{fig:kinds-of-kinds}
+\end{figure}

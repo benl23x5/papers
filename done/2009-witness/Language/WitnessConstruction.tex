@@ -1,0 +1,42 @@
+\begin{figure}[ht!]
+
+\begin{textblock}{3}(0.5, 0.0)
+$$
+	\frac	{H \ ; \ \delta \lto \delta'}
+		{H \ ; \ E_w[\delta] \lto E_w[\delta']}
+$$
+\end{textblock}
+\begin{textblock}{2}(4,0)
+\begin{tabbing}
+MM  	\= MM		\= MM \= MMMMMMM \= MMMMM \kill
+	\> $E_w$	\> ::=		\> $[\ ] \ | \ \iMkPurify \ \rho \ E_w$ \\
+	\>		\> \ \ $|$ 	\> $\iMkPureJoin \ \sigma_1 \ \sigma_2 \ E_w \ E_w$
+\end{tabbing}
+\end{textblock}
+
+\vspace{3em}
+\begin{gather*}
+	\tag{EwConst}
+	\hspace{-4.9em}
+	{ H[\ \rconst \ \rho \ ] \ ; \iMkConst \un{\rho} \lto \un{\rconst \ \rho} }
+\\
+	\tag{EwMutable}
+	{ H[\ \rmutable \ \rho \ ] \  ; \iMkMutable \un{\rho} \lto \un{\rmutable \ \rho} }
+\\
+	\tag{EwPure}
+	\hspace{0.2em}
+	{ H \ ; \ \iMkPure \lto \un{\rpure \ \bot} }
+\\
+	\hspace{3.2em}
+	\tag{EwPurify}
+	{ 	H \ ; \ \iMkPurify \ \un{\rho} \ \un{\rconst \ \rho} \lto \un{\rpure \ (\iRead \ \rho)}}
+\\
+	\hspace{-2.6em}
+	\tag{EwPureJoin}
+	{ 	H \ ; \ \iMkPureJoin \ \sigma_1 \ \sigma_2 \ \un{\rpure \ \sigma_1} \ \un{\rpure \ \sigma_2}
+	\lto    \un{\rpure \ (\sigma_1 \lor \sigma_2)} }
+\end{gather*}
+\vspace{-1em}
+\caption{Witness Construction}
+\label{fig:witness-construction}
+\end{figure}

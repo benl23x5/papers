@@ -1,0 +1,107 @@
+\medskip
+\begin{figure}[ht!]
+
+% -- Rule ---------------------------------------------------------------------
+\begin{textblock}{3}(0.5, 0.4)
+$$	\frac	{e \longrightarrow e'}
+		{E_v[e] \longrightarrow E_v[e']}
+$$
+\end{textblock}
+
+
+% -- Contexts -----------------------------------------------------------------
+\begin{textblock}{1}(2, 0)
+\begin{tabbing}
+MMMMMM \= MM  	\= MM		\= MMMMMMMMM \= MMMMMMM \= MMMMM \kill
+\> $E_v$ \> ::=		\> $[\ ] \ 
+				| \ E_v \ \varphi \ 
+				| \ E_v \ t_2 \
+				| \ v \ E_v \
+				| \ \kcase \ E_v \ \kof \ \ov{\ialt}$ 
+\\[0.5ex]
+\>	\> \ $|$	\> $K \ \ov{\varphi} \ E_v \ t_1 \ ...$ 
+			\> $| \ K \ \ov{\varphi} \ v_0 \ E_v \ ...$
+			\> $| \ ...$
+\\[0.5ex]
+\>	\> \ $|$	\> $\iupdate_{K,i} \ \ov{\varphi} \ E_v \ t_2$
+			\> $| \ \iupdate_{K,i} \ \ov{\varphi} \ l \ E_v$ 
+\\[0.5ex]
+\>	\> \ $|$	\> $\isuspend \ \ov{\varphi} \ E_v \ t_2$
+			\> $| \ \isuspend \ \ov{\varphi} \ v \ E_v$
+\end{tabbing}
+\end{textblock}
+
+\vspace{6em}
+
+% -- Reductions ---------------------------------------------------------------
+\begin{gather*}
+	\tag{EvTAppAbs}
+		\ H \ ; \ (\Lambda (a :: \kappa). \ t) \ \varphi 
+			\ \eto \
+		H \ ; \ t[\varphi/a] 
+\\[0.5ex]
+	\tag{EvAppAbs}
+		H \ ; \ (\lambda (x :: \tau). \ t) \ v^\circ 
+			\ \eto \
+		H \ ; \ t[v^\circ/x] 
+\\[0.5ex]
+ 	\tag{EvLetRegion}	
+	\frac	{ H, \ \ov{\rpropOf(\Delta_i)} \ ; \ \ov{\delta_i[\un{\rho}/r] \leadsto \Delta_i} 
+		  \qq \rho \ \textrm{fresh}
+		}
+		{ \begin{aligned} 
+	  		 	H \	 ; \ \kletregion \ r \ \kwith \ \{ \ov{w_i = \delta_i} \} \ \kin \ t 
+	  	\ \eto \	 H, \ \rho, \ \ov{\rpropOf(\Delta_i)} \
+	 			 	; \ t[\ov{\Delta_i/w_i}][\un{\rho}/r] 
+	  	\end{aligned}
+		}
+\\[0.5ex]
+	\tag{EvAlloc}			
+	H[\rho] \ ; \ K \ \un{\rho} \ \ov{\varphi} \ \ov{v^\circ}
+		\ \eto \
+	H, \ l \mtoa{\rho} C_K \ \ov{v^\circ} \ ; \ l \qq l \ \trm{fresh}
+\\[0.5ex]
+	\tag{EvCase}
+	H[l \mtoa{\rho} C_K \ \ov{v^\circ}] \ 
+		; \ \kcase \ l \ \kof \ ... K \ \ov{x} \to t ... 
+		\ \eto \  
+	H \ ; \ t[\ov{v^\circ} / \ov{x}] 
+\\[1ex]
+	\ruleI	{EvUpdateW}
+		{H \ ; \ \delta \leadsto \delta'}
+		{H \ ; \ \iupdate \ \ov{\varphi} \ \delta \ t \ t' 
+			\longrightarrow H \ ; \ \iupdate \ \ov{\varphi} \ \delta' \ t \ t'}
+\\[0.5ex]
+	\tag{EvUpdate}
+ 	H[\ \rmutable \ \rho \ ], \ l \mtoa{\rho} C_K \ \ov{v^\circ}^n
+				 \ ; \ \iupdate_{K,i} \ \ov{\varphi} \ \un{\rmutable \ \rho} \ \ l \ u^\circ \\
+	\hspace{10em}
+	  \ \eto \ 	H, \ l \mtoa{\rho} C_K \ v_0 .. u_i^\circ.. v_n
+				 \ ; \ ()
+\\[0.5ex]
+	\tag{EvFail}
+ 	H[\ \rmutable \ \rho \ ], \ l \mtoa{\rho} C_K \ \ov{v^\circ}
+				 \ ; \ \iupdate_{K',i} \ \ov{\varphi} \ \un{\rmutable \ \rho} \ \ l \ u^\circ \\
+	\hspace{12em}
+	  \ \eto \ 	H \ ; \ \trm{fail}
+	\qq\qq\qq K \ne K'
+\\[0.5ex]
+	\ruleI	{EvSuspendW}
+		{H \ ; \ \delta \leadsto \delta'}
+		{H \ ; \ \isuspend \ \ov{\varphi} \ \delta \ t \ t' 
+			\longrightarrow H \ ; \ \isuspend \ \ov{\varphi} \ \delta' \ t \ t'}
+\\[0.5ex]
+	\tag{EvSuspend}
+	\qq \ \ \ 
+	H \ ; \ \isuspend \ \tau \ \tau' \ \sigma \ \un{\rpure \ \sigma} \ (\lambda (x : \tau). \ t) \ v^\circ 
+	 	\ \eto \
+	H \ ; \ t [v^\circ / x]
+\\[1ex]
+	\tag{EvMask}
+	H \ ; \ \kmask \ \delta \ \kin \ t 
+		\ \eto \ H \ ; \ t
+\end{gather*}
+\vspace{-2em}
+\caption{Term Evaluation}
+\label{fig:term-evaluation}
+\end{figure}

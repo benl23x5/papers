@@ -1,0 +1,29 @@
+\begin{figure}[ht!]
+\begin{tabbing}
+MM 	\= M \= Mx \= MMMMMMMMMMMMMMMMMMMMMMMMMM \= MMMMM \kill
+	\> $l$		\> $\to$	\> (store location) 
+	\\
+	\> $\rho$	\> $\to$	\> (region handle) 
+	\\
+	\> $o$		\> ::=		\> $\rho \ 
+						| \ \rconst \ \rho \
+						| \ \rmutable \ \rho$ 
+					\> (property)
+	\\
+	\> $\pi$	\> $::=$	\> $l \
+						| \ () \
+						| \ \Lambda(a : \kappa). t \
+						| \ \lambda(x : \tau). t \
+						| \ \isuspend \ \ov{\varphi} \ \pi \ \pi'$
+					\> (store value)
+	\\
+	\> $\mu$	\> $::=$	\> $C_K \ \ov{\pi}$
+					\> (store object)
+	\\
+	\> $H$		\> $:$		\> $\{ \ l \mtoa{\rho} \mu \ \}$ + $\{ \ o \ \}$
+					\> (store)
+\end{tabbing}		
+\vspace{-1em}
+\caption{Stores and Store Objects}
+\label{fig:dynamic-objects}
+\end{figure}

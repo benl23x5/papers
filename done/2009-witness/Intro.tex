@@ -1,0 +1,49 @@
+
+% -- Intro --------------------------------------------------------------------
+\section{Introduction}
+\label{Introduction}
+
+Suppose we are writing a library that provides a useful data structure such as linked lists. A Haskell-style definition for the list type would be:
+\begin{tabbing}
+MM \= MMMMM \= M \= MMMMM \= MMMM \kill
+	\> $\kdata \ \iList \ a = \iNil \ | \ \iCons \ a \ (\iList \ a)$
+\end{tabbing}
+
+The core language of compilers such as GHC is based around System-F \cite{sulzmann:system-Fc}. Here is the translation of the standard $\imap$ function to this representation, complete with type abstractions and applications:
+
+\begin{tabbing}
+MM \= MMM \= MM \= MMMMM \= MMMM \kill
+	\> $\imap :: \forall a \ b. \ (a \to b) \to \iList \ a \to \iList \ b$ \\
+	\> $\imap = \Lambda a. \ \Lambda b. \ \lambda (f : a \to b). \ \lambda (\ilist : \iList \ a).$ \\
+	\> \> $\kcase \ \ilist \ \kof$ \\
+	\> \> \> $\iNil$		\> $\to \iNil \ b$ \\
+	\> \> \> $\iCons \ x \ \ixs$	\> $\to \iCons \ b \ (f \ x) \ (\imap  \ a \ b \ f \ \ixs)$ 
+\end{tabbing}
+
+Say we went on to define some other useful list functions, and then decided that we need one to destructively insert a new element into the middle of a list. In Haskell, side effects are carefully controlled and we would need to introduce a monad such as ST or IO \cite{launchbury:lazy-functional-state-threads} to encapsulate the effects due to the update. Destructive update is also limited to distinguished types such as $\iSTRef$ and $\iIORef$.  We cannot use our previous list type, so will instead change it to use an $\iIORef$.
+
+\begin{tabbing}
+MM \= MMMMM \= M \= MMMMM \= MMMM \kill
+	\> $\kdata \ \iList \ a = \iNil \ | \ \iCons \ a \ (\iIORef \ (\iList \ a))$
+\end{tabbing}
+
+Unfortunately, as we have changed the structure of our original data type, we can no longer use the previous definition of $\imap$, or any other functions we defined earlier. We must go back and refactor each of these function definitions to use the new type. We must insert calls to $\ireadIORef$ and use monadic sequencing combinators instead of vanilla let and where-expressions. However, doing so introduces explicit data dependencies into the core program. This in turn reduces the compiler's ability to perform optimisations such as deforestation and the full laziness transform \cite{santos:compilation}, which require functions to be written in the ``pure'', non-monadic style. It appears that we need \emph{two} versions of our list structure and its associated functions, an immutable version that can be optimised, and a mutable one that can be updated. 
+
+Variations of this problem are also present in ML and O'Caml. In ML, mutability is restricted to $\iref$ and $\iarray$ types \cite{macqueen:sml}. In O'Caml, record types can have mutable fields, but variant types cannot \cite{leroy:ocaml-3.11}. Similarly to Haskell, in these languages we are forced to insert explicit reference types into the definitions of mutable data structures, which makes them incompatible with the standard immutable ones. This paper shows how to avoid this problem:
+
+
+\begin{itemize}
+\item	We present a System-F style core language that uses region and effect typing to guide program optimisation. Optimisations that depend on purity can be performed on the the pure fragments of the program. 
+\medskip
+
+\item	We use region variables and dependently kinded witnesses to encode mutability polymorphism. This allows arbitrary data structures to be mutable without changing the structure of their value types.
+\medskip
+
+\item	We use call-by-value evaluation as default, but support lazy evaluation via a primitive $\isuspend$ operator. We use witnesses of purity to ensure that only pure function applications can be suspended.
+\end{itemize}
+
+Our goals are similar to those of Benton and Kennedy \cite{benton:monads-effects-transformations}, but as in \cite{sulzmann:system-Fc} we use a System-F based core language instead of a monadic one. Type inference and translation from source to core is discussed in \cite{lippmeier:impure-world}.
+
+
+
+

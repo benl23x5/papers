@@ -1,0 +1,72 @@
+
+% -- Language -----------------------------------------------------------------
+\section{Language}
+
+We are now in a position to formally define our core language and its typing rules. The structure of the language is given in Fig. \ref{fig:core-language}. Most has been described previously, so we only discuss the aspects not covered so far. Firstly, we use $\Diamond$ as the result kind of witness kind constructors, so a constructor such as $\iMutable$ has kind $\iMutable :: \% \to \Diamond$. This says that a witness of kind $\iMutable \ r$ guarantees a property of a region, where $\Diamond$ refers to the guarantee.
+
+We use use $\tau_i$ as binders for value types, $\sigma_i$ as binders for effect types, and $\delta_i$ as binders for type expressions that construct witness types. $\Delta_i$ refers to constructed witnesses of the form $\un{\rho}$, \ $\un{\rconst \ \rho}$, \ $\un{\rmutable \ \rho}$ or $\un{\rpure \ \sigma}$. $\varphi_i$ can refer to any type expression. 
+
+The values in our term language are identified with $v$. Weak values, $v^\circ$, consist of the values as well as suspended function applications $\isuspend \ \ov{\varphi} \ v_1^\circ \ v_2^\circ$. A suspension is only forced when its (strong) value is demanded by using it as the function in an application, the discriminant of a case expression, or as an argument to a primitive operator such as $\iupdate$. Store locations $l_i$ are discussed in \S\ref{Language:DynamicSemantics}. The other aspects of our term language are standard. Recursion can be introduced via \textbf{fix} in the usual way, but we omit it to save space. To simplify the presentation we require the alternatives in a case-expression to be exhaustive.
+
+\input{Language/Terms}
+\input{Language/KindsOfKinds}
+
+\clearpage{}
+\input{Language/KindsOfTypes}
+\vspace{-3em}
+\subsection{Typing Rules}
+In Fig. \ref{fig:kinds-of-kinds} the judgement form $\ksJudge{\Gamma}{\kappa}{\kappa'}$ reads: with type environment $\Gamma$, kind $\kappa$ has kind $\kappa'$. We could have added a super-kind stratum containing $\Diamond$, but inspired by \cite{peyton-jones:henk} we cap the hierarchy in this way to reduce the volume of typing rules. 
+
+In Fig. \ref{fig:kinds-of-types} the judgement form $\kiJudgeGS{\varphi}{\kappa}$ reads: with type environment $\Gamma$ and store typing $\Sigma$, type $\varphi$ has kind $\kappa$. We discuss store typings in \S\ref{Language:Soundness}.
+
+In Fig. \ref{fig:types-of-terms} the judgement form $\tyJudgeGS{t}{\tau}{\sigma}$ reads: with type environment $\Gamma$ and store typing $\Sigma$, term $t$ has type $\tau$ and effect $\sigma$. In TyLetRegion the premise ``$\ov{\delta_i}$ well formed'' refers to the requirement discussed in \S\ref{Witnesses:Constancy-and-Mutability} that the witness introduced by a $\kletregion$ must concern the bound variable $r$. In TyUpdate and TyAlt, the meta-function ctorTypes returns a set containing the types of the data constructors associated with type constructor $T$.
+
+\clearpage{}
+\input{Language/TypesOfTerms}
+
+
+\clearpage{}
+% -- Dynamic Semantics --------------------------------------------------------
+\subsection{Dynamic Semantics}
+\label{Language:DynamicSemantics}
+During evaluation, all updatable data is held in the store (also known as the heap), which is defined in Fig. \ref{fig:dynamic-objects}. The store contains bindings that map abstract store locations to store objects. Each store object consists of a constructor tag $C_K$ and a list of store values $\ov{\pi}$, where each value can be a location, unit value, abstraction or suspension. Each binding is annotated with a region handle $\rho$ that specifies the region that the binding belongs to. Note that store \emph{objects} can be usefully updated, but store \emph{values} can not.
+
+The store also contains \emph{properties} that specify how bindings in the various regions may be used. The properties are $\rho$, $(\rconst \ \rho)$ and $(\rmutable \ \rho)$. The last two indicate whether a binding in that region may be treated as constant, or updated. When used as a property, a region handle $\rho$ indicates that the corresponding region has been created and is ready to have bindings allocated into it. Note that the region handles of store bindings and properties are not underlined because those occurrences are not used as types.
+
+In Fig. \ref{fig:witness-construction} the judgement form $H; \delta \leadsto \delta'$ reads: with store H, witness $\delta$ produces witness $\delta'$. Operationally, properties can be imagined as protection flags on regions of the store --- much like the read, write and execute bits in a hardware page table.  The witness constructors $\iMkConst$ and $\iMkMutable$ test for these properties, producing a type-level artefact showing that the property was set. If we try to evaluate either constructor when the desired property is \emph{not} set, then the evaluation becomes stuck. 
+
+In Fig. \ref{fig:term-evaluation} the judgement form $H ; t \eto H' ; t'$ reads: in heap $H$ term $t$ reduces to a new heap $H'$ and term $t'$. In EvLetRegion the propOf meta-function maps a witness to its associated store property. Also, note that the premise of EvLetRegion is always true, and produces the required witnesses and properties from the given witness constructions $\ov{\delta_i}$.
+\vspace{-1em}
+\input{Language/DynamicObjects}
+
+\vspace{-3em}
+% -- Soundness ----------------------------------------------------------------
+\subsection{Soundness}
+\label{Language:Soundness}
+In the typing rules we use a store typing $\Sigma$ that models the state of the heap as the program evaluates. The store typing contains the type of each store location, along with witnesses to the current set of store properties. We say the store typing \emph{models} the store, and write $\Sigma \models H$, when all members of the store typing correspond to members of the store. Conversely, we say the store is \emph{well typed}, and write $\Sigma \vdash H$ when it contains all the bindings and properties predicted by the store typing. Both the store and store typing grow as the program evaluates, and neither bindings, properties or witnesses are removed once added. 
+
+\input{Language/WitnessConstruction}
+\input{Language/TermEvaluation}
+
+Store bindings can be modified by the $\iupdate$ operator, but the typing rules for update ensure that bindings retain the types predicted by the store typing. The rule TyLoc of Fig. \ref{fig:types-of-terms} and KiHandle, KiConst, KiMutable and KiPurify of Fig. \ref{fig:kinds-of-types} ensure that if a location or witness occurs in the term, then it also occurs in the store typing. Provided the store typing models the store, this also means that the corresponding binding or property is present in the store. From the evaluation rules in Fig. \ref{fig:term-evaluation}, the only term that adds properties to the store is $\kletregion$, and when it does,  it also introduces the corresponding witnesses into the expression. The well-formedness restriction on $\kletregion$ guarantees that a witnesses of mutability and constancy for the same region cannot be created. This ensures that if we have, say, the witness $\un{\rconst \ \rho}$ in the term, then there is \emph{not} a $(\rmutable \ \rho)$ property in the store. This means that bindings in those regions can never be updated, and it is safe to suspend function applications that read them.
+
+Our progress and preservation theorems are stated below. We do not prove these here, but \cite{lippmeier:impure-world} contains a proof for a similar system. The system in this paper supports full algebraic data types, whereas the one in \cite{lippmeier:impure-world} is limited to booleans. Also, here we include a $r \notin \ifv(\tau)$ premise in the TyLetRegion rule, which makes the presentation easier. See \cite{lippmeier:impure-world} for a discussion of this point.
+
+\medskip
+\textbf{Progress}. If $\tyJudge{\emptyset}{\Sigma}{t}{\tau}{\sigma}$ and $\Sigma \models H$ and $\Sigma \vdash H$ and $\trm{nofab}(t)$ then either $t \in \trm{Value}$ or for some $H', t'$ we have ($H ; t \eto H' ; t'$ and $\trm{nofab}(t')$ or $H ; t \eto H' ; \trm{fail}$ ).
+
+\medskip
+\textbf{Preservation}. If $\tyJudgeGS{t}{\tau}{\sigma}$ and $H ; t \eto H' ; t'$ then for some $\Sigma', \sigma'$ we have $\tyJudge{\Gamma}{\Sigma'}{t'}{\tau}{\sigma'}$ and $\Sigma' \supseteq \Sigma$ and $\Sigma' \models H'$ and $\Sigma' \vdash H'$ and $\suJudgeGS{\sigma'}{\sigma}$.
+
+\medskip
+In the Progress Theorem, ``nofab'' is short for ``no fabricated region witnesses'', and refers to the syntactic constraint that $\iMkConst$ and $\iMkMutable$ may only appear in the witness binding of a $\kletregion$ and not elsewhere in the program. We could perhaps recast these two constructors as separate syntactic forms of $\kletregion$, and remove the need for nofab, but we have chosen not to do this because we prefer the simpler syntax. 
+
+In the Preservation Theorem, note that the latent effect of the term reduces as the program progresses. The $\sqsubseteq$ relationship on effects is defined in the obvious way, apart from the following extra rule:
+$$
+	\frac	{ \kiJudgeGS{\delta}{\iPure \ \sigma} }
+		{ \suJudgeGS{\sigma}{\bot} }
+		\ \trm{\ (SubPurify)}
+$$
+This says that if we can construct a witness that a particular effect is pure, then we can treat it as such. This allows us to erase read effects on constant regions during the proof of Preservation. It is needed to show that forcing a suspension does not have a visible effect, and that we can disregard explicitly masked effect terms when entering into the body of a mask-expression.
+
+

@@ -1,0 +1,148 @@
+\begin{figure}[ht!]
+
+\begin{center}
+\fbox{ $\kiJudge{\Gamma}{\Sigma}{\varphi}{\kappa}$ } \\
+\end{center}
+\vspace{-1em}
+\begin{gather*}
+	\begin{aligned}
+			\kiJudge{\Gamma, \ a : \kappa}{\Sigma& }{a}{\kappa}
+			\trm{\ (KiVar)}
+		\\
+			\kiJudge{\Gamma}{\Sigma, \ \un{\rho}& }{\un{\rho}} {\%} 
+			\trm{\ (KiHandle)}
+	\end{aligned}
+	\quad
+	\begin{aligned}
+		\\
+		\ruleAL	{KiBot}
+			{ \kiJudge{\Gamma}{\Sigma}
+				{ \bot }
+				{ \ ! }
+			}
+	\end{aligned}
+\\[1ex]
+	\ruleIL	{KiAll}
+		{ \begin{aligned}
+		  \\
+ 		  \ksJudge
+			{\Gamma}{\kappa_1}{\kappa_1'}
+		  \end{aligned}
+		  \quad
+	  	  \begin{aligned}
+          		a \notin \ifv(\Gamma)
+	  		\\
+	  		\kiJudge
+	  		{\Gamma, \ a : \kappa_1}{\Sigma}
+			{\tau}{\kappa_2}
+  	  	  \end{aligned}
+		}
+		{ \kiJudge
+			{\Gamma}{\Sigma}
+			{ \tyForall{a}{\kappa_1}{\tau} }
+			{ \kappa_2 }
+		}
+	\quad
+	\ruleIL	{KiJoin}
+		{ \begin{aligned}
+		  	\kiJudge{\Gamma}{\Sigma}
+				{ \sigma_1 }
+				{ \ ! }
+		  \\
+		  \kiJudge{\Gamma}{\Sigma}
+		  	{ \sigma_2 }
+			{ \ ! }
+		  \end{aligned}
+		}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \sigma_1 \lor \sigma_2 }
+			{ \ ! }
+		}
+\\[1ex]
+	\ruleI	{KiApp}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \varphi_1 }
+			{ \Pi (a : \kappa_1) . \ \kappa_2 }
+		  \quad
+		  \kiJudge{\Gamma}{\Sigma}
+		  	{ \varphi_2 }
+			{ \kappa_1 }
+	 	}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \varphi_1 \ \varphi_2 }
+			{ \kappa_2 [\varphi_2 / a] }
+		}
+\\[1ex]
+	\ruleA	{KiConst}
+		{ \hspace{-10.6em}
+		  	\kiJudge{\Gamma}{\Sigma, \ \un{ \trm{const} \ \rho}}
+			{ \un {\trm{const} \ \rho} }
+			{ \iConst \ \un{\rho} }
+		}
+\\[1ex]
+	\ruleA	{KiMutable}
+		{ \hspace{-4.2em} 
+			\kiJudge{\Gamma}{\Sigma, \ \un{ \trm{mutable} \ \rho}}
+			{ \un {\trm{mutable} \ \rho} }
+			{ \iMutable \ \un{\rho} }
+		}
+\\[1ex]
+		{ \hspace{-6.8em}
+		  \kiJudge{\Gamma}{\Sigma}
+			{ \un {\rpure \ \bot} }
+			{ \iPure \ \bot }
+		}
+		\tag{KiPure}
+\\[1ex]	
+	\ruleA	{KiPurify}
+		{ \kiJudge{\Gamma}{\Sigma, \ \un {\rconst \ \rho }}
+			{ \un {\rpure \ (\iRead \ \rho)} }
+			{ \iPure \ (\iRead \ \un{\rho}) }
+		}
+\\[1ex]
+	\ruleI	{KiPureJoin}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un {\rpure \ \sigma_1} }
+			{ \iPure \ \sigma_1 }
+		  \\
+		  \kiJudge{\Gamma}{\Sigma}
+		  	{ \un {\rpure \ \sigma_2} }
+			{ \iPure \ \sigma_2 }
+		}
+		{ \kiJudge{\Gamma}{\Sigma}
+			{ \un { \rpure \ (\sigma_1 \lor \sigma_2) } }
+			{ \iPure \ (\sigma_1 \lor \sigma_2) }
+		}
+\end{gather*}
+
+% -- witness constructors
+\begin{tabular}{llllll}
+	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $(\to)$ 		& $:: * \to * \to \ ! \to *$ 
+& 	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\textrm{()}$ 	& $:: *$ 
+\\[0.5ex]
+	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iBool$ 	& $:: \% \to *$ 
+&
+	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iRead$ 	& $:: \% \to \ !$ 
+\\[0.5ex]
+	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkConst$ 	& $:: \Pi (r : \%). \ \iConst \ r$ 
+\qq \ \ 
+	&	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iWrite$ 	& $:: \% \to \ !$ 
+\\[0.5ex]
+	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkMutable$ 	& $:: \Pi (r : \%). \ \iMutable\ r$ 
+&	$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkPure$& $:: \iPure \ \bot$	
+\\[0.5ex]
+\end{tabular}
+
+\begin{tabular}{llll}
+$\Gamma \: \arrowvert \: \Sigma \judgea{T}$ & $\iMkPurify$ 	
+			& $:: \Pi (r : \%). 
+			\ \iConst \ r \rightarrow \ \iPure \ (\iRead \ r)$ 
+\\
+ $\Gamma \: \arrowvert \: \Sigma \judgea{T}$ 
+			& $\iMkPureJoin 	$ 
+			& $:: \Pi (e_1 : \ !). \ \Pi (e_2 : \ !). $ 
+			$\ \iPure \ e_1 \to \iPure \ e_2 \to \ \iPure{(e_1 \lor e_2)}$ \\
+\end{tabular}
+\caption{Kinds of Types}
+\label{fig:kinds-of-types}
+\end{figure}

@@ -1,0 +1,7 @@
+
+\vspace{-0.25em}
+\section{Conclusion and Future Work}
+\label{conclusion}
+We have presented a System-F style intermediate language that supports mutability polymorphism as well as lazy evaluation, and uses dependently kinded witnesses to track the purity of effects and the mutability and constancy of regions. One of the current limitations of our system is that the results of all case alternatives must have the same type. This prevents us from choosing between, say, a mutable and a constant integer. In future work we plan to provide a new region constraint $\iBlocked$ that represents the fact that an object could be in either a mutable or constant region. We would permit such objects to be read, but not updated, and computations that read them could not be suspended. Doing so would likely require introducing a notion of subtyping into the system, so the types of all alternatives could be coerced to a single upper bound. 
+
+The system presented in this paper has been implemented in the prototype Disciplined Disciple Compiler (DDC) which can be obtained from the \texttt{haskell.org} website. 
