@@ -1,0 +1,76 @@
+
+\newcommand{\TODO}[1]   {\emph{\textbf{TODO:}  #1}}
+\newcommand{\ISSUE}[1]  {\emph{\textbf{ISSUE:} #1}}
+\newcommand{\CITE}[1]   {\emph{\textbf{CITE:}  #1}}
+\newcommand{\REF}       {\textbf{REF}}
+
+\newcommand\mi[1]               {\mathit{#1}}
+
+\newcommand\iname               {\mathit{name}}
+\newcommand\itree               {\mathit{tree}}
+\newcommand\iforest             {\mathit{forest}}
+\newcommand\ibranch             {\mathit{branch}}
+\newcommand\igroup              {\mathit{group}}
+\newcommand\ibranchtype         {\mathit{branchtype}}
+\newcommand\ituple              {\mathit{tuple}}
+\newcommand\itupletype          {\mathit{tupletype}}
+\newcommand\iatom               {\mathit{atom}}
+\newcommand\iatomtype           {\mathit{atomtype}}
+\newcommand\iunit               {\mathit{unit}}
+\newcommand\ibool               {\mathit{bool}}
+\newcommand\inat                {\mathit{nat}}
+\newcommand\ifloat              {\mathit{float}}
+
+\newcommand\ktree               {\mathbf{tree}}
+\newcommand\kforest             {\mathbf{forest}}
+\newcommand\kbranch             {\mathbf{branch}}
+\newcommand\kgroup              {\mathbf{group}}
+\newcommand\kbranchtype         {\mathbf{branchtype}}
+\newcommand\ktuple              {\mathbf{tuple}}
+\newcommand\ktupletype          {\mathbf{tupletype}}
+\newcommand\kunit               {\mathbf{unit}}
+\newcommand\kbool               {\mathbf{bool}}
+\newcommand\knat                {\mathbf{nat}}
+\newcommand\kfloat              {\mathbf{float}}
+
+
+
+% -- Make the reversed \vdash using the graphicx package
+\makeatletter
+\providecommand*{\dashv}{%
+  \mathrel{%
+    \mathpalette\@dashv\vdash
+  }%
+}
+\newcommand*{\@dashv}[2]{%
+  \reflectbox{$\m@th#1#2$}%
+}
+\makeatother
+
+
+% -- A type rule.
+\newcommand{\ruleI}[2]
+{
+        \frac   {\displaystyle #1}
+                {\displaystyle #2} \ 
+}
+
+
+\newcommand{\TypeTree}[1]
+{       \vdash ~ #1 ~ \textbf{ok}
+}  
+
+\newcommand{\TypeForest}[1]
+{       \vdash ~ #1 ~ \textbf{ok}
+}  
+
+\newcommand{\TypeBranch}[2]
+{       \vdash ~ #1 ~::~ #2
+}  
+
+\newcommand{\TypeTuple}[2]
+{       \vdash ~ #1 ~::~ #2
+}  
+
+\newcommand{\TypeAtom}[2]
+{       \vdash ~ #1 ~::~ #2 }

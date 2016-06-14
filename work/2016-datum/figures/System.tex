@@ -1,0 +1,53 @@
+%!TEX root = ../Main.tex
+\begin{figure}[!ht]
+
+\begin{tabbing}
+M \= MMMMMM \= Mx \= MMM \kill
+\> $\itree$        \> ::= \> $\ktree~ \ibranch~ \ibranchtype$
+\\
+\> $\iforest$      \> ::= \> $\kforest~ \igroup~ \ibranchtype$
+\\[1ex]
+\> $\ibranch$      \> ::= \> $\kbranch~ \ituple~ \{ \igroup \}$
+\\
+\> $\igroup$       \> ::= \> $\kgroup~ \{ \ibranch \}$
+\\
+\> $\ituple$       \> ::= \> $\ktuple~ \{ \iatom \}$
+\\
+\> $\iatom$        \> ::= \> $\iunit ~|~ \ibool ~|~ \inat ~|~  \ifloat ~|~ ...$
+\\[1ex]
+\> $\ibranchtype$  \> ::= \> $\kbranchtype~ \iname~ \itupletype~ \{ \ibranchtype \}$
+\\
+\> $\itupletype$   \> ::= \> $\ktupletype~  \{ \iatomtype \}$
+\\
+\> $\iatomtype$    \> ::= \> $\kunit ~|~ \kbool ~|~ \knat ~|~ \kfloat ~|~ ...$
+\end{tabbing}
+
+$$
+\ruleI  {    \TypeBranch {branch}{branchtype}}
+        {    \TypeTree   {(\ktree~~ branch~~ branchtype)}}
+~\textrm{(TyTree)}
+$$
+$$
+\ruleI  {\{~ \TypeTree   {(\ktree~~    branch_i~~ branchtype)} ~\}^i}
+        {    \TypeForest {(\kforest~~  (\kgroup~~ \{ branch_i \}^i)~~ branchtype)} }
+~\textrm{(TyForest)}
+$$
+$$
+\ruleI  {    \TypeTuple  {\ituple}{\itupletype}      \quad
+         \{~ \TypeForest { \kforest~~ \igroup_i~~ \ibranchtype_i ~~} ~\}^i
+        }
+        {    \TypeBranch { \kbranch~     \ituple~ \{ \igroup_i \}^i }
+                         { \kbranchtype~ \iname~  \itupletype~ \{ branchtype_i \}^i }
+        }
+~\textrm{(TyBranch)}
+$$
+$$
+\ruleI  {\{~ \TypeAtom   { atom_i }{ atomtype_i } ~\}^i }
+        {    \TypeTuple  { \ktuple~ \{ atom_i \}^i } { \ktupletype~ \{ atomtype_i \}}^i }
+\textrm{(TyTuple)}
+$$      
+
+
+\end{figure}
+
+

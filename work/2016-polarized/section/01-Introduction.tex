@@ -8,7 +8,7 @@ Libraries like Iteratee and Enumerator guarantee that the client programs run in
 \begin{itemize}
 \item Our parallel data flows consist of a bundle of streams, where each stream can be processed in a separate thread. (\S\ref{s:Streams})
 
-\item Our API uses polarised flow endpoints (@Sources@ and @Sinks@) to ensure that programs run in constant space, even when produced flows are consumed by several consumers. (\S\ref{s:Polarity})
+\item Our API uses polarized flow endpoints (@Sources@ and @Sinks@) to ensure that programs run in constant space, even when produced flows are consumed by several consumers. (\S\ref{s:Polarity})
 
 \item We show how to design the core API in a generic fashion so that chunk-at-a-time operators can interoperate smoothly with element-at-a-time operators. (\S\ref{s:Chunked})
 
