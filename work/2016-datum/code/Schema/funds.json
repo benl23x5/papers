@@ -1,0 +1,175 @@
+{ "_comment": "
+    Example managed funds data:
+"
+, "_type": "Store"
+, "dimensions":
+    [   { "_type": "Dimension"
+        , "name": "root"
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "currency_code_size"
+        , "parents": [ "root" ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "currency"
+        , "parents": [ "root", "currency_code_size" ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "code"
+        , "parents": [ "currency" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "instrument"
+        , "parents": [ "root" ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "name"
+        , "parents": [ "instrument" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "char"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "instrument_id"
+        , "parents": [ "instrument" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "char"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "date"
+        , "parents": [ "instrument" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "date"
+                , "data_type": "Date"
+                }
+            ,   { "_type": "Column"
+                , "name": "buy_price"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "sell_price"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "mid_price"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "total_return"
+                , "data_type": "Double"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "managed_fund"
+        , "parents": [ "instrument" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "wholesale"
+                , "data_type": "Bool"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "apir"
+        , "parents": [ "managed_fund" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "char"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "listed"
+        , "parents": [ "instrument" ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "exchange"
+        , "parents": [ "listed" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "char"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "symbol"
+        , "parents": [ "listed" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "char"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "bloomberg"
+        , "parents": [ "listed" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "char"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "date"
+        , "parents": [ "listed" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "date"
+                , "data_type": "Date"
+                }
+            ,   { "_type": "Column"
+                , "name": "high"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "low"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "close"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "volume"
+                , "data_type": "Decimal"
+                }
+            ,   { "_type": "Column"
+                , "name": "value"
+                , "data_type": "Decimal"
+                }
+            ]
+        }
+    ]
+}

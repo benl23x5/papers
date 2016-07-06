@@ -1,0 +1,118 @@
+{ "_comment": "
+    Example array data:
+
+      | A	B
+    ==+========
+    W | 1   5
+    X | 2   6
+    Y | 3   NaN
+    Z | 4   8
+"
+, "_type": "Store"
+, "dimensions":
+    [   { "_type": "Dimension"
+        , "name": "root"
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "commitlog_entry"
+        , "parents": [ "root" ]
+        , "writeable": true
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "value"
+                , "data_type": [ "Char", "Char", "Int" ]
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "named_row"
+        , "parents": [ "root" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "row_label"
+                , "data_type": "Char"
+                }
+            ,   { "_type": "Column"
+                , "name": "A"
+                , "data_type": "Int"
+                }
+            ,   { "_type": "Column"
+                , "name": "B"
+                , "data_type": "Int"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "dense_row"
+        , "parents": [ "root" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "row_label"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "dense_col"
+        , "parents": [ "root" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "col_label"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "dense_cell"
+        , "parents": [ "dense_col", "dense_row" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "value"
+                , "data_type": "Int"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "dense_value"
+        , "parents": [ "dense_cell" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "value"
+                , "data_type": "Int"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "sparse_col"
+        , "parents": [ "root" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "col_label"
+                , "data_type": "Char"
+                }
+            ]
+        }
+
+    ,   { "_type": "Dimension"
+        , "name": "sparse_row"
+        , "parents": [ "sparse_col" ]
+        , "columns":
+            [   { "_type": "Column"
+                , "name": "row_label"
+                , "data_type": "Char"
+                }
+            ,   { "_type": "Column"
+                , "name": "value"
+                , "data_type": "Int"
+                }
+            ]
+        }
+    ]
+}
