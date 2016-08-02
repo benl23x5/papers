@@ -29,7 +29,7 @@ Consuming data from a @Sources@ and producing data to a @Sinks@ is synchronous, 
 
 % ---------------------------------------------------------
 \subsection{Sourcing, Sinking and Draining}
-Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files, as well as @drainP@ which pulls data from a flow source and pushes it to a sink. We elide type class constraints to save space.
+Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which create flow sources and sinks based on a list of files (@Fs@ = files), as well as @drainP@ which pulls data from a flow source and pushes it to a sink in @P@-arallel. We elide type class constraints to save space.
 
 Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the corresponding stream. In @sinkFs@, the @push@ function writes the provided element to the corresponding file, and @eject@ closes it.
 
@@ -266,7 +266,7 @@ In our Repa Flow library we provide only polarity versions that execute without 
 
 % ---------------------------------------------------------
 \subsection{Stream Projection, Funneling, and Fattening}
-So far the operators we have discussed have all performed the same computation each stream in the flow. Here are four basic operators to convert between flows consisting of several streams and \emph{singleton} flows, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
+So far the operators we have discussed have all performed the same computation on each stream in the flow. Here are four basic operators to convert between flows consisting of several streams and \emph{singleton} flows, containing only one stream. The endpoints for singleton flows have the index type set to @()@ which indicates there is only one stream in the flow.
 \begin{code}
 project_i :: i -> Sources i m a -> Sources () m a
 project_o :: i -> Sinks   i m a -> Sinks   () m a
