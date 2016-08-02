@@ -34,7 +34,6 @@ Figure~\ref{f:Draining} gives the definitions of @sourceFs@, @sinkFs@ which crea
 Given the definition of the @Sources@ and @Sinks@ types, writing @sourceFs@ and @sinkFs@ is straightforward. In @sourceFs@ we first open all the provided files, yielding file handles for each one, and the @pull@ function for each stream source reads data from the corresponding file handle. When we reach the end of a file we eject the corresponding stream. In @sinkFs@, the @push@ function writes the provided element to the corresponding file, and @eject@ closes it.
 
 The @drainP@ function takes a bundle of stream @Sources@, a bundle of stream @Sinks@, and drains all the data from each source into the corresponding sink. Importantly, @drainP@ forks a separate thread to drain each stream, making the system data parallel. We use Haskell MVars for communication between threads. After forking the workers, the main thread waits until they are all finished. Now that we have the @drainP@ function, we can write the ``hello world'' of data parallel data flow programming: copy a partitioned data set from one set of files to another:
-
 \begin{code}
  copySetP :: [FilePath] -> [FilePath] -> IO ()
  copySetP srcs dsts
@@ -84,6 +83,7 @@ drainP (Sources i1 ipull) (Sinks i2 opush oeject)
 
 
 % ---------------------------------------------------------
+\vspace{-1em}
 \subsection{Stateful Streams, Branching and Linearity}
 \label{s:Linearity}
 Suppose we wish to copy our files while counting the number of characters copied.
@@ -96,9 +96,9 @@ fold_o :: Ord i => i -> (a -> a -> a) -> a
 \end{code}
 The @map_o@ operator transforms a sink of @b@ things into a sink of @a@ things. The @fold_o@ operator produces a sink for @a@ things, and an @IORef@. The value in the @IORef@ is initialised to the given starting value of type @a@, which is combined with elements pushed to the sink using the worker function of type @(a -> a -> a)@. The first argument of type @i@ is the arity of the result sinks. 
 
+\vspace{-0.5ex}
 Besides @map_o@ and @fold_o@ we also need an operator to branch the flow so that the same data can be passed to our counting operators as well as written back to the file system. 
 
-\eject
 The branching operator we use is as follows:
 
 \begin{code}
@@ -125,7 +125,6 @@ copyCountP srcs dsts
 
 This function runs in constant space, using a single pass over the input data, which is the behaviour we wanted. Note that in the definition there is only a single occurrence of each of the variables bound to sources and sinks: @ss@, @sk1@, @sk2@. Each source and sink is used linearly. Our program expresses a data flow graph where the functions @sourceFs@, @sinkFs@, @fold_o@, @map_o@ and @dup_ooo@ create nodes, and the use-def relation of variables defines the edges.
 
-\eject
 Linearity is an important point. Suppose we instead tried to compute our result in two separate stages, one to copy the files to their new locations and one to compute the count:
 \begin{code}
 badCopyCount :: [FilePath] -> [FilePath] -> IO Int
@@ -145,6 +144,7 @@ This cannot work. The @Sinks@ endpoint created by @sourceFs@ is a stateful objec
 \subsection{Polarity and buffering}
 \label{s:Polarity}
 Our @dup_ooo@ operator from the previous section branches a flow by taking two existing sinks and producing a new one. The @_ooo@ suffix stands for ``output, output, output'', referring to the three sinks. It turns out that the converse @dup_iii@ operator is not implementable without requiring unbounded buffering. Such an operator would have the following type:
+\vspace{-0.5ex}
 \begin{code}
  dup_iii :: (Ord i, Monad m)
          =>  Sources i m a 
