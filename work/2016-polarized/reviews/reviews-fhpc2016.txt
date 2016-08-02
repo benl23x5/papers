@@ -1,0 +1,86 @@
+----------------------- REVIEW 1 ---------------------
+PAPER: 3
+TITLE: Polarised Data Parallel Data Flow
+AUTHORS: Ben Lippmeier, Fil Mackay and Amos Robinson
+
+OVERALL EVALUATION: 2 (accept)
+
+----------- OVERALL EVALUATION -----------
+This paper proposes an API design for stream processing libraries where a client program runs in constant space, i.e., without buffering. The proposed API uses polarized flow ends points, Sources and Sinks, so that a user program can deal with multiple sources and sinks without buffering. The authors carefully study duplication/fold operators based on their polarities; some polarities need buffering and the others do not. E.g., duplication of a single source to two sources needs buffering because two consumers of the duplication are not necessarily synchronized, so the proposed API does not provide this duplication. The API is designed based on CPS so that a user program can enjoy automatic fusion optimization. The resulting fused program is a nested loop that reads the input data from the source files, processes it, and writes the results immediately without blocking.
+
+This paper is well-written, solid, and relevant to FHPC. The proposed design of APIs for stream processing libraries is reasonable and looks promising. Thus, the reviewer thinks that this paper should be accepted.
+
+The only weak point of this paper is that it provides no experiment results probably due to the space limitation. The reviewer hopes to see performance figures in the following publication.
+
+
+----------------------- REVIEW 2 ---------------------
+PAPER: 3
+TITLE: Polarised Data Parallel Data Flow
+AUTHORS: Ben Lippmeier, Fil Mackay and Amos Robinson
+
+OVERALL EVALUATION: 2 (accept)
+
+----------- OVERALL EVALUATION -----------
+This is an interesting paper about a library called Repa Flow for writing data parallel data flow programs that get fused by GHC without any custom fusing code (as was used in a recent version of Repa). The library is said (in the Related Work section) to be built as a new layer on top of Repa, but I was unable to really understand that link from reading the paper or looking at the code supplied as supplementary material.
+
+The library uses flow endpoints called Sources and Sinks to constrain the user to only write code that can be run in constant space (even when produced flows are consumed by several consumers). The whole thing has a bit the feeling of a relational programming language!
+
+The paper carefully explains the ideas in the implementation and how key functions are implemented. But what I have difficulty getting from the paper is what it is like to program with these functions. I would have really liked to see a slightly larger example. (Later, I saw that there was an example in the supplementary material, but if it was mentioned in the paper, I failed to notice it.) I realise that the page limit is constraining, but I think it would be worthwhile to shrink some parts in order to get in a description of a more realistic example (perhaps just pointing to the code) with some indication of performance.
+Having played with circuit description in this kind of style, my main worry is that it is too painful for the user ...
+I found a short tutorial on getting started with Repa-flow on the Repa github repo, so adding an example should not be too hard. It would also be interesting to get more concrete information about how the library is used in the companies mentioned as affiliations by the authors. The text says that the approach is used at Vertigo. How??? And how does it perform??
+Also, I bet there are ways to defeat the fusion. If you know of them, please mention them, as this can be very enlightening.
+
+Despite these questions, I think this is exactly the kind of paper that we want at FHPC. I will advocate for its acceptance, also taking into account that the first author is a PC member (and should, according to the call for papers be reviewed to a higher standard). I would be keen, however, for the authors to tell us a bit more about the link to practical use at the medium scale that they discuss as the sweet spot that they are going after.
+
+
+Comments:
+
+The Soures and Sinks data types treat the eject function differently. It is part of the pull function in Sources, but separate in Sinks. I had to stop and think about this when reading the paper. I think it would be good to explain why this choice was made (or was necessary).
+
+The paper presents a slightly abstract view of the library. For example, type class constraints are omitted to save space. I want to see them, at least once!
+
+There seems to be some assumed meaning for suffices F and P (and S). Explain.
+
+p 3
+
+It would be helpful to reorder the various dup pictures in Figure 2, so that it is easier to find the first two that
+are mentioned in the text (dup_iii and dup_ioi). Also, it looks to me as though dup_oio is incorrectly drawn.
+(I printed the paper in black and white, so the colouring was lost on me and I didn't check it.)
+
+I think that  With dup_ioi   should be  With dup_iooi   in the text below the type of dup_iooi
+
+p 4
+
+computation each stream -> computation on each stream
+
+p 6
+
+websides -> websites
+
+I think Lucy should be referred to as Lucy-n   (being a pun on Lucien).
+
+
+----------------------- REVIEW 3 ---------------------
+PAPER: 3
+TITLE: Polarised Data Parallel Data Flow
+AUTHORS: Ben Lippmeier, Fil Mackay and Amos Robinson
+
+OVERALL EVALUATION: 0 (borderline paper)
+
+----------- OVERALL EVALUATION -----------
+The paper presents an approach for writing data parallel dataflow programs 
+running in constant space. This is guaranteed by observing the polarity of some 
+binary stream operators that, in some combination, can guarantee to run in 
+constant space.
+
+Authors provide a detailed explanation about their approach but it lacks of 
+experiments. It would be necessary, for a high-performance workshop. Since it 
+is already implemented into the Repa Flow Haskell library, authors could 
+provide some experiments and evaluations providing that the approach is correct 
+and comparable with already existent libraries.
+As a remark, authors could provide a quantified definition for "medium data". 
+Furthermore, authors consider stream as arrays, so bounded data. Streams 
+usually are unbounded data. Authors should specify this aspect, since there is 
+no reference to unbounded data.
+In sec. 2.4, the map_o function seems to have a typo on a->b, maybe authors 
+would say (b->a).
