@@ -179,7 +179,7 @@ We can extend @dup_iooi@ to work with any number of argument sinks, for example:
 
 With @dup_ioi@ when we pull from the result source the operator pulls from its argument source and pushes the same data to its argument sinks. 
 
-Figure~\ref{f:Polarity} shows the possible \emph{polarity versions} for the flow duplication operator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the versions in red would require unbounded buffering, while the black ones require no buffering.
+Figure~\ref{f:Polarity} shows the possible \emph{polarity versions} for the flow duplication operator. Sources are indicated with a $\bullet$ and sinks with a $\circ$. We use the mnemonic that the filled $\bullet$ can always produce data (being a source) while the empty $\circ$ can always accept data (being a sink). In the figure the versions marked with a @B@ (in red) would require unbounded @B@-uffering, while the black ones require no buffering.
 
 \begin{figure}
 \includegraphics[scale=0.7]{figures/polarity.pdf}
