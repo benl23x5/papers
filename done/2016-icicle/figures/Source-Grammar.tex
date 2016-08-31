@@ -1,0 +1,47 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+
+\begin{tabbing}
+MMMM \= MM \= MMMMMMMMMMM \= MM \= \kill
+$\mi{e}$
+\GrammarDef $x$
+\> $|$ \> $v$
+\GrammarAlt $e~e$
+\> $|$ \> $\lambda{}x~:~\tau.~e$
+
+\\
+\GrammarAlt $@when@~e~e$
+\> $|$ \> $@sample@~e~e$
+\GrammarAlt $@mapS@~e~e$
+\> $|$ \> $@zipS@~e~e$
+\GrammarAlt $@mapF@~e~e$
+\> $|$ \> $@zipF@~e~e$
+\\
+\GrammarAlt $@let@~\mi{Let}~@in@~e$
+\\
+\GrammarAlt $\langle e,~ e \rangle ~|~ \langle\rangle$
+\\
+\\
+
+$\mi{Let}$
+\GrammarDef $x~=~e$
+\GrammarAlt $@folds@~\{~x_i~=~e_i,~e_i~\}_i$
+\\
+\\
+
+$\mi{v}$
+\GrammarDef $\NN ~|~ \BB ~|~ [v]$
+\GrammarAlt $(v,~v) ~|~ \bot$
+\\
+\\
+
+
+$\mi{Program}$
+\GrammarDef @inputs@~$\{ x_i~:~@Stream@~c_i~\tau_i \}_i~@in@~\mi{e}$ \\
+\end{tabbing}
+
+\caption{Grammar for Icicle Source}
+\label{fig:source:grammar}
+\end{figure}
+

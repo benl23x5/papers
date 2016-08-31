@@ -1,0 +1,16 @@
+%!TEX root = ../Main.tex
+\section{Related work}
+\label{s:Related}
+\subsection{Data flow languages}
+
+The closest related work are synchronous data flow languages such as {\sc Lustre}, Icicle programs are restricted to those that can be computed in bounded memory.
+{\sc Lustre}\cite{halbwachs1991synchronous} achieves this in three main ways:
+
+\begin{enumerate}
+\item They allow only restricted set of primitives such as @when@ for filtering, @pre@ for a single element buffer, and so on.
+\item Cycles in the graph must contain at least one @pre@, to break the dependency loop.
+\item Operators such as addition can only be applied to input streams with the same clock or rate; an expression like @(X when C)@ @+@ @(Y when (not C))@ would require an unbounded buffer\CITE{Lustre clock stuff}.
+\end{enumerate}
+
+In summary, while our language is quite similar to existing synchronous data flow languages, the extra restrictions we impose allow us to use a simpler type system.
+

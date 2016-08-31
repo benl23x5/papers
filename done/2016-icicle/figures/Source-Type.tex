@@ -1,0 +1,265 @@
+%!TEX root = ../Main.tex
+
+\begin{figure*}
+
+\begin{tabbing}
+MM \= MM \= \kill
+$\mi{Kind}$
+\GrammarDef $@Data@~|~@Clock@~|~@Flow@$ \\
+
+T
+\GrammarDef $x~|~\NN~|~\BB~|~@()@
+    ~|~ @List@~T
+    ~|~ T~\to~T
+    ~|~ (T,T)$
+\GrammarAlt $@Stream@~T~T
+    ~|~ @Fold@~T$
+    \\
+\end{tabbing}
+
+\caption{Types and kinds}
+\label{fig:source:type:types}
+\end{figure*}
+
+
+\begin{figure*}
+
+$$
+\boxed{\TypeWf{\Delta}{\tau}{\mi{Kind}}}
+$$
+
+$$
+\ruleIN
+{
+    x~:_k~k~\in~\Delta
+}
+{
+    \TypeWf{\Delta}{x}{k}
+}{TVar}
+\ruleAx
+{
+    \TypeWf{\Delta}{\NN}{@Data@}
+}{TNat}
+\ruleAx
+{
+    \TypeWf{\Delta}{\BB}{@Data@}
+}{TBool}
+\ruleAx
+{
+    \TypeWf{\Delta}{@()@}{@Data@}
+}{TUnit}
+$$
+
+$$
+\ruleIN
+{
+    \TypeWf{\Delta}{\tau}{@Data@}
+}
+{
+    \TypeWf{\Delta}{@List@~\tau}{@Data@}
+}{TList}
+\ruleIN
+{
+    \TypeWf{\Delta}{\tau_1}{k_1}
+    \quad
+    \TypeWf{\Delta}{\tau_2}{k_2}
+}
+{
+    \TypeWf{\Delta}{\tau_1~\to~\tau_2}{k_2}
+}{TFun}
+$$
+
+$$
+\ruleIN
+{
+    \TypeWf{\Delta}{c}{@Clock@}
+    \quad
+    \TypeWf{\Delta}{\tau}{@Data@}
+}
+{
+    \TypeWf{\Delta}{@Stream@~c~\tau}{@Flow@}
+}{TStream}
+\ruleIN
+{
+    \TypeWf{\Delta}{\tau}{@Data@}
+}
+{
+    \TypeWf{\Delta}{@Fold@~\tau}{@Flow@}
+}{TFold}
+$$
+
+
+
+\caption{Kinds of types}
+\label{fig:source:type:kinds}
+\end{figure*}
+
+
+\begin{figure*}
+
+$$
+\boxed{\Typecheck{\Delta}{\Gamma}{e}{T}}
+$$
+
+
+$$
+\ruleIN
+{
+    (x~:~\tau)~\in~\Gamma
+}
+{ 
+    \Typecheck{\Delta}{\Gamma}{x}{\tau}
+}{TcVar}
+\ruleIN
+{
+    v~:~\tau
+}
+{ 
+    \Typecheck{\Delta}{\Gamma}{v}{\tau}
+}{TcValue}
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{\tau_1~\to~\tau_2}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{\tau_1}
+}
+{ 
+    \Typecheck{\Delta}{\Gamma}{e_1~e_2}{\tau_2}
+}{TcApp}
+$$
+
+$$
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma,~x~:~\tau}{e}{\tau'}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{\lambda{}x~:~\tau.~e}{\tau~\to~\tau'}
+}{TcLam}
+$$
+
+$$
+\ruleAx
+{
+    \Typecheck{\Delta}{\Gamma}{\langle \rangle}{@Stream@~\langle\rangle~\tau}
+}{TcStrm1}
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{\tau}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Stream@~c~\tau}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{\langle e_1,~e_2 \rangle}{@Stream@~\langle @T@,~c \rangle~\tau}
+}{TcStrm2}
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Stream@~c~\tau}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{\langle \bot,~e_2 \rangle}{@Stream@~\langle @F@,~c \rangle~\tau}
+}{TcStrm3}
+$$
+
+$$
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{@Stream@~c~\tau}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Fold@~\tau}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@when@~e_1~e_2}{@Fold@~\tau}
+}{TcWhen}
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{@Stream@~c~\tau'}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Fold@~\tau}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@sample@~e_1~e_2}{@Stream@~c~\tau}
+}{TcSample}
+$$
+
+$$
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{\tau_1~\to~\tau_2}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Stream@~c~\tau_1}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@mapS@~e_1~e_2}{@Stream@~c~\tau_2}
+}{TcMapS}
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{@Stream@~c~\tau_1}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Stream@~c~\tau_2}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@zipS@~e_1~e_2}{@Stream@~c~(\tau_1,\tau_2)}
+}{TcZipS}
+$$
+
+$$
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{\tau_1~\to~\tau_2}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Fold@~\tau_1}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@mapF@~e_1~e_2}{@Fold@~\tau_2}
+}{TcMapF}
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{@Fold@~\tau_1}
+    \quad
+    \Typecheck{\Delta}{\Gamma}{e_2}{@Fold@~\tau_2}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@zipF@~e_1~e_2}{@Fold@~(\tau_1,\tau_2)}
+}{TcZipF}
+$$
+
+$$
+\ruleIN
+{
+    \Typecheck{\Delta}{\Gamma}{e_1}{\tau_1}
+    \quad
+    \Typecheck{\Delta}{\Gamma,~x~:~\tau_1}{e_2}{\tau_2}
+}
+{
+    \Typecheck{\Delta}{\Gamma}{@let@~x~=~e_1~@in@~e_2}{\tau_2}
+}{TcLet}
+$$
+
+$$
+\ruleIN
+{
+    \Gamma'~=~\Gamma,~\{~x_i~:~@Fold@~\tau_i~\}_i
+    \quad
+    \{
+    \Typecheck{\Delta}{\Gamma}{e_{z_i}}{\tau_i}
+    \}_i
+    \quad
+    \{
+    \Typecheck{\Delta}{\Gamma'}{e_{k_i}}{@Fold@~\tau_i}
+    \}_i
+    \quad
+    \Typecheck{\Delta}{\Gamma'}{e}{\tau}
+}
+{
+    \Typecheck{\Delta}{\Gamma}
+        {@let@~@folds@~\{~x_i~=~e_{z_i}~@then@~e_{k_i}~\}_i~@in@~e}
+        {\tau}
+}{TcLetFolds}
+$$
+
+
+\caption{Types of expressions}
+\label{fig:source:type:exp}
+\end{figure*}
+

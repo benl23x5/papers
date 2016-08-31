@@ -1,0 +1,33 @@
+%!TEX root = ../Main.tex
+
+\begin{figure*}
+
+$$
+\boxed{\CoreComp{e}{[Bind]}{[Op]}{x}}
+$$
+
+$$
+\ruleAx
+{
+    \CoreComp{v}{\emptyset}{@let@~x'~=~v}{x'}
+}{CVal}
+\ruleAx
+{
+    \CoreComp{x}{\emptyset}{\emptyset}{x}
+}{CVar}
+\ruleIN
+{
+    \CoreComp{e_1}{b_1}{o_1}{x_1}
+    \quad
+    \CoreComp{e_2}{b_2}{o_2}{x_2}
+}{
+    \CoreComp{e_1~e_2}{b_1;b_2}{o_1;o_2;~@let@~x'~=~x_1~x_2}{x'}
+}{CApp}
+$$
+
+
+\caption{Conversion to Core}
+\label{fig:core:compile}
+\end{figure*}
+
+

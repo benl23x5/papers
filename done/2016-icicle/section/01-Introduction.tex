@@ -1,0 +1,61 @@
+%!TEX root = ../Main.tex
+\section{Introduction}
+\label{s:Introduction}
+
+For queries over a large amount of data, care must be taken to reduce the number of iterations over the input data.
+When performing multiple queries, it is important to limit the amount of duplicate work and iterations.
+
+For example, suppose we have a table called @stocks@ with a price for each company, for each day.
+Computing the sum and mean over all companies and all time is quite simple in SQL:
+\begin{code}
+SELECT SUM(price)
+FROM stocks;
+
+SELECT SUM(price) / COUNT(price)
+FROM stocks;
+\end{code}
+
+It is also easy to express a query which computes both at once:
+\begin{code}
+SELECT SUM(price)
+     , SUM(price) / COUNT(price)
+FROM stocks;
+\end{code}
+
+Suppose we also wish to compute the mean of each company:
+\begin{code}
+SELECT company
+     , SUM(price) / COUNT(price)
+FROM stocks
+GROUP BY company;
+\end{code}
+
+Now, it becomes less obvious how to express both in a single query.
+One can use a nested query which may imply another iteration, or windowing functions and partition, but at this stage the resemblance to the original queries starts to diminish.
+\begin{code}
+SELECT company
+     , SUM(price) / COUNT(price)
+     , (SELECT SUM(price) / COUNT(price) FROM stocks)
+FROM stocks
+GROUP BY company;
+
+SELECT company
+     , SUM(price) / COUNT(price) OVER (PARTITION BY company)
+     , SUM(price) / COUNT(price) OVER (PARTITION BY 1)
+FROM stocks;
+\end{code}
+
+Even innocent-seeming features such as WHERE clauses (filters) require non-trivial rewriting to express as a single query.
+
+\begin{code}
+SELECT SUM(price) / COUNT(price)
+FROM stocks
+WHERE price > 0
+GROUP BY company;
+\end{code}
+
+
+We now introduce Icicle, a streaming query language for fusing multiple queries (horizontal fusion).
+By carefully limiting Icicle queries and supporting no sorting, subqueries or joins, we are able to merge all queries on the same input data, and reduce duplicate computation.
+
+
