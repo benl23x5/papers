@@ -77,12 +77,6 @@ isXMacro xx
 type Subst = [(Var, Exp)]
 
 
--- | Apply a function to the second components of a list of tuples.
-mapSnd :: (a -> b) -> [(x, a)] -> [(x, b)]
-mapSnd f xx
- = [(x, f a) | (x, a) <- xx]
-
-
 -- | Apply a simultaneous subsitution to the given expression.
 --   Look 'ma, no alpha-conversion.
 subst :: Subst -> Exp -> Exp

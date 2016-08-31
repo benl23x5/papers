@@ -112,8 +112,6 @@ example_fold_o
         putStrLn ("Count seq: " ++ show valS)
 
 
-
-
 -- Example which fuses across chunks.
 
 -- Compile with the following options to get GHC to fuse this example.

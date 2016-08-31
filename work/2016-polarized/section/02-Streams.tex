@@ -141,7 +141,7 @@ This cannot work. The @Sinks@ endpoint created by @sourceFs@ is a stateful objec
 
 
 % ---------------------------------------------------------
-\subsection{Polarity and buffering}
+\subsection{Polarity and Buffering}
 \label{s:Polarity}
 Our @dup_ooo@ operator from the previous section branches a flow by taking two existing sinks and producing a new one. The @_ooo@ suffix stands for ``output, output, output'', referring to the three sinks. It turns out that the converse @dup_iii@ operator is not implementable without requiring unbounded buffering. Such an operator would have the following type:
 \vspace{-0.5ex}

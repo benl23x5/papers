@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns, NoMonomorphismRestriction #-}
-
 module Generic where
 import System.IO
 import Control.Concurrent
