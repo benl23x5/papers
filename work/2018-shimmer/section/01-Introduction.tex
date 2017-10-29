@@ -1,0 +1,55 @@
+%!TEX root = ../Main.tex
+\section{Introduction}
+How many times did you recompile your program last week? Given that a compiler is essentially a pure function from @String@ to @String@, why did you need to re-compute the result? In theory it should have been possible to reuse the previously computed results of such computations, but in practice this often doesn't happen.
+
+Simple memoization techniques are able to reuse results from simple functions, like the humble @fib@:
+%
+\begin{code}
+  fib (n: Nat): Nat
+   = if (n < 2) then n
+                else fib (n - 1) + fib (n - 2)
+\end{code}
+%
+If we (re)compute the value of each recursive call, then this function will run in $O(2^n)$ time. However, if during computation we incrementally build a table of results mapping @n@ to the result of @fib n@, and reuse these results when we can, then it will run in $O(n)$ time. Consider instead the job of a compiler hacker, who typically has a function like:
+%
+\begin{code}
+ compile (source: Text): Text
+  = toObject . optimise . toCore . typeCheck . parse
+\end{code}
+%
+This is not a cute recursive function. Instead of reusing the result of self calls within a single run of the program, we instead want to construct a persistent cache in the file system and reuse it between runs. We must also ensure that the definition of @compile@ does not change in a way that renders the table invalid. If only the type checker has been hacked upon then every source file in the base library should not need to be re-parsed after this change.
+
+\eject
+Suppose instead the programmer is financial analyst and the programs being recomputed look like this:
+%
+\begin{code}
+  summarize (param: Nat) (prices: Array Nat): Nat
+   = fold analysis start prices
+   where analysis :: Nat -> State -> State
+         analysis = ...
+         start    :: Nat -> State
+         state    = ... param ...
+\end{code}
+%
+In this case, between runs of the program the prices may or may not change, and the analysis function may or may not change, and the source file contains 20 different functions like @summarize@. In these latter two examples we desire to:
+
+\begin{enumerate}
+\item remember results between multiple runs of the program;
+\item allow parts of the program to change between runs, without forcing recomputation of unaffected values;
+\item avoid adding copies of potentially large data structures like @prices@ to the memo table;
+\item not waste time writing results to disk when it would have been cheaper to recompute them;
+\item not run out of disk space.
+\end{enumerate}
+
+We classify this task as \emph{deep memoization}, where ``deep'' refers to both the length of time results are retained (multiple program runs) and the required knowledge of program structure. This is in contrast with \emph{shallow memoization} where results are not persisted between runs of the program, and the entire memo table can be discarded when the program is changed. We make the following contributions:
+
+\begin{enumerate}
+\item core calculus including primitive memoization operators where programmer hints what should be memoized, but the runtime system decides whether to actually save the result.
+
+\item We demonstrate that cryptographic hashing techniques are \emph{in practice} sufficient to produce unique identifiers for every possible description of both a problem and solution.
+
+\item Runtime system support for computing hashes of expressions to be memoized.
+
+\end{enumerate}
+
+This work is embodied in the Shimmer language, whose implementation is available from @http://github.com/DDCSF/shimmer@

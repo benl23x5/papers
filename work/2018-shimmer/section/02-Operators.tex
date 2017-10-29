@@ -1,0 +1,34 @@
+%!TEX root = ../Main.tex
+\clearpage{}
+\section{Operators}
+
+\subsection{Operators}
+\begin{itemize}
+\item   Simple example showing use of @#memo@ primitive, also mention @#memo-store@, @#memo-load@.
+\item   Memoization should be under user control to indicate what might be profitably memoized, similarly to the use of the @par@ combinators in Haskell.
+\item   The @memo#@ operators needs to work with \emph{all} expressions, not just first order values, as we want to describe the entire computation, not just build a table with the same name as a functino.
+\item   User is responsible for normalizing program to ensure that the memo table is not full of noise. Issues with if-then-else branches.
+\item   A key use case is memoizing compiler stages, so need to be able to represent abstract syntax with binding. Compiler cannot just use unique names for binders because tiny changes to the input program will change the internal names and thus the hashes. Want to name functions after their hash, and normalize names before hashing.
+\item   If we name functions after their hash, what to do about recursive groups of binders.
+\item   How to efficiently compute hashes at runtime, and how to avoid re-hashing the same values if multiple computations are being memoized. We want runtime system suport for hashing. Runtime attaches hashes to objects in the heap graph, and re-uses them if possible. This needs to work for functional values as well.
+
+\end{itemize}
+
+
+From Selective Memoization.
+\begin{code}
+f x y z
+ = let x' = x > 0 in
+   memo# (if x' then fy y else fz z)
+\end{code}
+
+
+
+\subsection{Representation}
+
+\begin{itemize}
+\item   Need a representation for the compuation to evaluate, along with the result value.
+\item   Needs to represent arbitrary programs. Lambda calculus is a clear canditate,
+        but don't want to be so naieve as to Church encode all values. In particular, realistic programs often use big arrays of floating point numbers, and Church encoding them isn't going to work. There's also the usual question of what to do about variable binding and substitution.
+
+\end{itemize}
