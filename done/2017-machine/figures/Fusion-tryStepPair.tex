@@ -1,0 +1,41 @@
+%!TEX root = ../Main.tex
+
+\begin{figure}
+\begin{tabbing}
+\ti{tryStepPair}\=$~\to~$\=M\kill
+
+$\ti{tryStepPair} ~:~ \ChanTypeMap$ \\
+\> $\to$ \> $\LabelF \to \Instr \to \LabelF \to \Instr$ \\
+\> $\to$ \> $\Maybe~\Instr$ \\
+
+M \= $~|~(@pull@~\_~\_~\_ \gets i_p')~$ \= $\to$ \= $\Just (\ti{swaplabels}~i_q')~$ \= M \=\kill
+$\ti{tryStepPair} ~\cs~l_p~i_p~l_q~i_q~=$ \\
+\> $@match@~ (\ti{tryStep}~\cs~l_p~i_p~l_q,~\ti{tryStep}~\cs~l_q~i_q~l_p) ~@with@$ \\
+\> $(\Just i_p',~\Just i_q')$ \\
+
+\> @ @$|~@jump@~\_ \gets i_p'$ \> $\to$ \> $\Just i_p'$
+\> \note{PreferJump1} \\[0.5ex]
+
+\> @ @$|~@jump@~\_ \gets i_q'$ \> $\to$ \> $\Just (\ti{swaplabels}~i_q')$
+\> \note{PreferJump2} \\[0.5ex]
+
+\> @ @$|~@pull@~\_~\_~\_ \gets i_q'$ \> $\to$ \> $\Just i_p'$
+\> \note{DeferPull1} \\[0.5ex]
+
+\> @ @$|~@pull@~\_~\_~\_ \gets i_p'$ \> $\to$ \> $\Just (\ti{swaplabels}~i_q')$
+\> \note{DeferPull2} \\[0.5ex]
+
+\> $(\Just i_p',~\_)$ \> $\to$ \> $\Just i_p'$
+\> \note{Run1} \\[0.5ex]
+
+\> $(\_, ~\Just i_q')$ \> $\to$ \> $\Just (\ti{swaplabels}~i_q')$
+\> \note{Run2} \\[0.5ex]
+
+\> $(\Nothing, ~\Nothing)$ \> $\to$ \> $\Nothing$
+\> \note{Deadlock}
+\end{tabbing}
+\caption{Fusion step coordination for a pair of processes.}
+% Statically compute the instruction to perform at a particular fused label. Try to execute either process, preferring jumps and other instructions over pulling, as pulling can block while other instructions may perform ``useful work'' without blocking. If neither machine can execute, fusion fails.
+\label{fig:Fusion:Def:StepPair}
+\end{figure}
+

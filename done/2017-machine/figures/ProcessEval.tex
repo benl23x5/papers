@@ -1,0 +1,138 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\begin{figure*}
+\begin{minipage}[t]{1\textwidth}
+
+$$
+  \boxed{
+    \ProcBlockShake
+      {\Instr}
+      {\ChannelStates}
+      {\Heap}
+      {\Action}
+      {\Label}
+      {\ChannelStates}
+      {\Updates}
+  }
+$$
+
+$$
+\ruleIN{
+  is[c] = @pending@~v
+}{
+  \ProcBlockShake
+        {@pull@~c~x~(l,us)}
+        {is}
+        {bs}
+        {\cdot}
+        {l}
+        {is[c \mapsto @have@]}
+        {(us, x = v)}
+}{Pull}
+%
+\quad
+%
+\ruleIN{
+  \ExpEval{bs}{e}{v}
+}{
+  \ProcBlockShake
+        {@push@~c~e~(l,us)}
+        {is}
+        {bs}
+        {\Push~c~v}
+        {l}
+        {is}
+        {us}
+}{Push}
+$$
+
+$$
+\ruleIN{
+  is[c] = @have@
+}{
+  \ProcBlockShake
+        {@drop@~c~(l,us)}
+        {is}
+        {bs}
+        {\cdot}
+        {l}
+        {is[c \mapsto @none@]}
+        {us}
+}{Drop}
+\ruleIN{
+}{
+  \ProcBlockShake
+        {@jump@~(l,us)}
+        {is}
+        {bs}
+        {\cdot}
+        {l}
+        {is}
+        {us}
+}{Jump}
+$$
+
+$$
+\ruleIN{
+  \ExpEval{bs}{e}{@True@}
+}{
+  \ProcBlockShake
+        {@case@~e~(l_t,us_t)~(l_f,us_f)}
+        {is}
+        {bs}
+        {\cdot}
+        {l_t}
+        {is}
+        {us_t}
+}{CaseT}
+\ruleIN{
+  \ExpEval{bs}{e}{@False@}
+}{
+  \ProcBlockShake
+        {@case@~e~(l_t,us_t)~(l_f,us_f)}
+        {is}
+        {bs}
+        {\cdot}
+        {l_f}
+        {is}
+        {us_f}
+}{CaseF}
+$$
+
+\vspace{2em}
+
+% ----------------
+$$
+  \boxed{\ProcShake{\Proc}{\Action}{\Proc}}
+$$
+$$
+\ruleIN{
+  \ProcBlockShake
+    {p[@instrs@][p[@label@]]} 
+    {p[@ins@]}
+    {p[@heap@]}
+    {a}
+    {l}
+    {is}
+    {us}
+  \quad
+    \ExpEval{p[@heap@]}{us}{bs}
+}{
+  \ProcShake
+        {p}
+        {a}
+        {p~[    @label@~ \mapsto ~l
+           , ~~ @heap@~  \mapsto (p[@heap@] \lhd bs)
+           , ~~ @ins@~   \mapsto ~is]}
+}{Advance}
+$$
+
+
+\end{minipage}
+\caption{Advancing processes}
+
+% Evaluation: shaking allows proceses to take a step from one label to another as well as produce an output message. If the message is a push, the value is injected to all other processes in the network; otherwise it is an internal step.}
+\label{fig:Process:Eval:Shake}
+\end{figure*}
+

@@ -1,0 +1,158 @@
+%!TEX root = ../Main.tex
+
+
+\begin{figure*}
+\begin{tabbing}
+M \= M \= MMMMMMMMMMMMMMMMMM \= @Just (push c e @ \= MMMMMMMMMMMMMMMMMMMMMMMMM \= \kill
+$\ti{tryStep} ~:~ \ChanTypeMap \to \LabelF \to \Instr \to \LabelF \to \Maybe~\Instr$ \\
+$\ti{tryStep} ~\cs~(l_p,s_p)~i_p~(l_q,s_q)~=~@match@~i_p~@with@$ \\
+
+\> $@jump@~(l',u')$ 
+\> \> $\to~\Just (@jump@$ \> $
+      \nextStep
+        {l'}{s_p}
+        {l_q}{s_q}
+        {u'})
+      $ 
+\> \note{LocalJump}
+\\[1ex]
+
+\> $@case@~e~(l'_t,u'_t)~(l'_f,u'_f)$
+\> \> $\to~\Just (@case@~e$ \> $
+      \nextStep
+        {l'_t}{s_p}
+        {l_q}{s_q}
+        {u'_t}
+      ~
+      \nextStep
+        {l'_f}{s_p}
+        {l_q}{s_q}
+        {u'_f})
+      $ 
+\> \note{LocalCase}
+\\[1ex]
+
+\> $@push@~c~e~(l',u')$ \\
+\> \> $~|~\cs[c]=@out1@$ 
+\> $\to~\Just (@push@~c~e$ \> $
+      \nextStep
+        {l'}
+          {s_p}
+        {l_q}
+          {s_q}
+        {u'})
+      $ 
+\> \note{LocalPush}\\
+
+\> \> $~|~\cs[c]=@in1out1@ ~\wedge~ s_q[c]=@none@_F$ 
+\> $\to~\Just (@push@~c~e$ \> $
+      \nextStep
+        {l'}
+          {s_p}
+        {l_q}
+          {\HeapUpdateOne{c}{@pending@_F}{s_q}}
+        {\HeapUpdateOne{@chan@~c}{e}{u'}})
+      $
+\> \note{SharedPush}
+\\[1ex]
+
+
+\> $@pull@~c~x~(l',u')$ \\
+\> \> $~|~\cs[c]=@in1@$ 
+\> $\to~\Just (@pull@~c~x$ \> $
+      \nextStep
+        {l'}{s_p}
+        {l_q}{s_q}
+        {u'})
+    $ 
+\> \note{LocalPull}
+\\[1ex]
+
+\> \> $~|~(\cs[c]=@in2@ \vee \cs[c]=@in1out1@) ~\wedge~ s_p[c]=@pending@_F$ \\
+\> \> $\to~\Just (@jump@~
+      \nextStep
+        {l'}
+          {\HeapUpdateOne{c}{@have@_F}{s_p}}
+        {l_q}
+          {s_q}
+        {\HeapUpdateOne{x}{@chan@~c}{u'}})
+        $ 
+\> \> \> \note{SharedPull} 
+\\[1ex]
+
+\> \> $~|~\cs[c]=@in2@ ~\wedge~ s_p[c]=@none@_F ~\wedge~ s_q[c]=@none@_F$ \\
+\> \> $\to~\Just (@pull@~c~(@chan@~c)~
+      \nextStep
+        {l_p}
+          {\HeapUpdateOne{c}{@pending@_F}{s_p}}
+        {l_q}
+          {\HeapUpdateOne{c}{@pending@_F}{s_q}}
+        {[]})
+  $
+\> \> \> \note{SharedPullInject}
+\\[1ex]
+
+\> $@drop@~c~(l',u')$ \\
+\> \> $~|~\cs[c]=@in1@$
+\> \hspace{5em} $\to~\Just (@drop@~c$
+\> \hspace{5em} $
+      \nextStep
+        {l'}
+          {s_p}
+        {l_q}
+          {s_q}
+        {u'})
+      $
+\> \note{LocalDrop} \\
+
+\> \> $~|~\cs[c]=@in1out1@$
+\> \hspace{5em} $\to~\Just (@jump@$
+\> \hspace{5em} $
+      \nextStep
+        {l'}
+          {\HeapUpdateOne{c}{@none@_F}{s_p}}
+        {l_q}
+          {s_q}
+        {u'})
+      $
+\> \note{ConnectedDrop}\\
+
+\> \> $~|~\cs[c]=@in2@ ~\wedge~ (s_q[c]=@have@_F \vee s_q[c]=@pending@_F)$ 
+\> \hspace{5em} $\to~\Just (@jump@$
+\> \hspace{5em} $
+      \nextStep
+        {l'}
+          {\HeapUpdateOne{c}{@none@_F}{s_p}}
+        {l_q}
+          {s_q}
+        {u'})
+      $
+\> \note{SharedDropOne}\\
+
+
+
+\> \> $~|~\cs[c]=@in2@ ~\wedge~ s_q[c]=@none@_F$
+\> \hspace{5em} $\to~\Just (@drop@~c$
+\> \hspace{5em} $
+      \nextStep
+        {l'}
+          {\HeapUpdateOne{c}{@none@_F}{s_p}}
+        {l_q}
+          {s_q}
+        {u'})
+      $
+\> \note{SharedDropBoth}\\[1ex]
+
+% \> @otherwise@ \>
+\> $\_$ \> $~|~ @otherwise@ $
+\> \hspace{5em} $\to ~ \Nothing$
+\> \> \note{Blocked}
+
+\end{tabbing}
+
+\caption{Fusion step for a single process of the pair.} 
+
+% Given the state of both processes, compute the instruction this process can perform. This is analogous to statically evaluating the pair of processes. If this process cannot execute, the other process may still be able to.
+\label{fig:Fusion:Def:Step}
+\end{figure*}
+

@@ -1,0 +1,44 @@
+%!TEX root = ../Main.tex
+\section{Introduction}
+\label{s:Introduction}
+
+Suppose we have two input streams of numeric identifiers, and wish to perform some analysis on them. The identifiers from both streams are sorted, but may include duplicates. We wish to produce an output stream of unique identifiers from the first input stream, as well as produce the unique union of both streams. Here is how we might write the source code, where @S@ is for @S@-tream.
+\begin{code}
+  uniquesUnion : S Nat -> S Nat -> (S Nat, S Nat)
+  uniquesUnion sIn1 sIn2
+   = let  sUnique = group sIn1
+          sMerged = merge sIn1 sIn2
+          sUnion  = group sMerged
+     in   (sUnique, sUnion)
+\end{code}
+
+The @group@ operator detects groups of consecutive identical elements and emits a single representative, while @merge@ combines two sorted streams so that the output remains sorted. This example has a few interesting properties. Firstly, the data-access pattern of @merge@ is \emph{value-dependent}, meaning that the order in which @merge@ pulls values from @sIn1@ and @sIn2@ depends on the values themselves.
+%: at each step, @merge@ must compare the values from both streams, and choose the stream with the smaller value to pull from.
+
+Secondly, although @sIn1@ occurs twice in the program, at runtime we only want to handle its elements once. To achieve this, the compiled program must coordinate between the two uses of @sIn1@, so that a new value is read only when both @group@ and @merge@ are ready to receive it. Finally, as the stream length is unbounded, we cannot buffer arbitrarily many elements, or we risk running out of memory.
+
+% To implement this program we might write each operator as its own concurrent process, sending stream elements over inter-process channels.
+To implement this we might translate each operator into its own process in a concurrent network. This could be easy or hard, depending on the available language features for concurrency. However, the \emph{performance tuning} of such a system, such as using back-pressure to prevent buffers from being overrun, or how to chunk stream data to amortize communication overhead, is invariably a headache.
+
+Instead, we would prefer to use \emph{stream fusion}, which is a program transformation that takes the implied dataflow network and produces a simple sequential loop that does not require extra process-control abstractions or unbounded buffering. Sadly, existing stream fusion transformations cannot handle our example.
+
+As observed by \citet{kay2009you}, both pull and push fusion have fundamental limitations. Pull systems such as short-cut stream fusion~\cite{coutts2007stream} cannot handle cases where a stream is used by multiple consumers. We refer to this situation as a \mbox{\emph{split} --- in } our example the input stream @sIn1@ is split into both the @group@ and @merge@ consumers. Push systems such as foldr/build fusion~\cite{gill1993short} cannot fuse our example either, because they do not support operators with multiple inputs. We refer to this as a \emph{join} --- in our example the @merge@ operator expresses a join. Some systems support both: data flow inspired array fusion using series expressions~\cite{lippmeier2013data} allows both splits and joins but only for a limited, predefined set of operators. More recent work on polarized data flow fusion~\cite{lippmeier2016polarized} \emph{is} able to fuse our example, but requires the program to be rewritten to use explicitly polarized stream types.
+
+In this paper we present Machine Fusion, a new approach. Each operator is expressed as a sequential imperative program which \emph{pulls} from input streams, and \emph{pushes} to output streams. We view each operator as a process in a concurrent process network. Our fusion transform then \emph{sequentializes} the concurrent process network into a single process, by choosing a particular interleaving of the operator code that requires no unbounded intermediate buffers. When fusion succeeds we know it has worked. There is no need to inspect the compiled code to debug poor performance, which is a common problem in systems based on general purpose transformations \cite{lippmeier2012:guiding}.
+
+In summary, we make the following contributions:
+\begin{itemize}
+\item a process calculus for infinite streaming programs (\S\ref{s:Processes});
+\item a fusion algorithm, the first to support splits and joins (\S\ref{s:Fusion});
+\item benchmarks showing significant performance gains (\S\ref{s:Evaluation});
+\item proof of soundness for the fusion algorithm in Coq (\S\ref{s:Proofs}).
+\end{itemize}
+
+Our fusion transform for infinite stream programs also serves as the basis for an \emph{array} fusion system, using a natural extension to finite streams. We discuss this extension in \S\ref{s:Finite}.
+
+
+% BL: This is now discussed in S2.5 Breaking It Down.
+% We might instead define a uniform sequential interface for data sources, with a single `pull' function that provides the next value in each stream. Each operator could be given this interface, so that values from each stream are computed on demand. This approach is commonly taken in database systems \cite{Graefe:Volcano}. However, this `pull' model does not support operators with multiple outputs, such as our example, at least not without unbounded buffering. Suppose a consumer pulls many elements from the @sUnique@ output stream. In order to perform the @group@ operation, the implementation needs to pull the corresponding source elements from the @sIn1@ input stream \emph{as well} as buffering an arbitrary number of them. It needs to buffer these elements because they are also needed to perform the @merge@ operation. When a consumer finally pulls from @sUnion@ we will be able to drain the buffer of @sIn1@ elements, but not before.
+
+% TODO: move to related work.
+% The polyhedral array fusion model~\cite{feautrier2011polyhedron} is used for loop transformations in imperative programs, but is based around affine loops, which makes it difficult to support value-dependent operators  such as @group@ and @merge@.

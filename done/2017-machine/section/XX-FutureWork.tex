@@ -1,0 +1,53 @@
+%!TEX root = ../Main.tex
+
+% -----------------------------------------------------------------------------
+\section{Future work}
+\label{s:FutureWork}
+
+%%% AR: Can we fit a few sentences here just to conclude, say we've described a fusion algorithm, with promising future work too
+
+\subsection{Case analysis}
+\label{s:FullyAbstractCase}
+
+The fusion algorithm treats all @case@ conditions as fully abstract by exploring all possible combinations for both processes.
+This can cause issues for processes that dynamically require only a bounded buffer, but the fusion algorithm statically tries every combination and wrongly asserts that unbounded buffering is required.
+
+For example, if two processes have the same case condition (@x > 0@), the fusion algorithm generates all four possibilities, including contradictory ones where one process is true and the other is false.
+If any require an unbounded buffer, the fusion algorithm fails.
+
+One solution may be to cull contradictory states so that if it is statically known that a state is unreachable, it does not matter if it requires unbounded buffers.
+It may be possible to achieve this with relatively little change to the fusion algorithm itself, by having it emit a failure instruction rather than failing to produce a process.
+A separate postprocessing step could then remove statically unreachable process states.
+After postprocessing, if any failure instructions are reachable, fusion fails as before.
+
+
+
+
+% -----------------------------------------------------------------------------
+% \subsection{Non-determinism and fusion order}
+% \label{s:FusionOrder}
+% The main fusion algorithm here works on pairs of processes.
+% When there are more than two processes, there are multiple orders in which the pairs of processes can be fused. The order in which pairs of processes are fused does not affect the output values, but it does affect the access pattern: the order in which outputs are produced and inputs read. Importantly, the access pattern also affects whether fusion succeeds or fails to produce a process. In other words, while evaluating multiple processes is non-deterministic, the act of fusing two processes \emph{commits} to a particular deterministic interleaving of the two processes. The simplest example of this has two input streams, a function applied to both, then zipped together. 
+% \begin{code}
+% zipMap as bs =
+%   let as' = map (+1) as
+%       bs' = map (+1) bs
+%       abs = zip as' bs'
+%   in  abs
+% \end{code}
+% There are three combinators here, so after converting each combinator to its process there are three orders we can fuse. The two main options are to fuse the two maps together and then add the zip, or to fuse the zip with one of the maps, then add the other map. If we start by fusing the zip with one of its maps, the zip ensures that its inputs are produced in lock-step pairs, and then adding the other map will succeed. However if we try to fuse the two maps together, there are many possible interleavings: the fused program could read all of @as'@ first; it could read all of @bs'@ first; it read the two in lock-step pairs; or any combination of these. When the zip is added, fusion will fail if the wrong interleaving was chosen.
+
+% The example above can be solved by fusing connected processes first, but it is possible to construct a connected process that still relies on the order of fusion.
+% 
+% \begin{code}
+% zipApps as bs cs =
+%   let as' = as ++ bs
+%       bs' = as ++ cs
+%       abs = zip as' bs'
+%   in  abs
+% \end{code}
+
+% \subsection{Non-determinism and fusion order}
+% \label{s:Future:FusionOrder}
+% Our current solution to this is to try all permutations of fusing processes and use the first one that succeeds. A more principled solution may be to allow non-determinism in a single process by adding a non-deterministic choice instruction. Then when fusing two processes together, if both processes are pulling from unrelated streams, the result would be a non-deterministic choice between pulling from the first process and executing the first, or pulling from the second process and executing the second. In this way we could defer committing to a particular evaluation order until the required order is known. This may produce larger intermediate programs, but the same deterministic program could be extracted at the end.
+

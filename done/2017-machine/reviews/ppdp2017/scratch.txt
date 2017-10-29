@@ -1,0 +1,56 @@
+
+Thankyou for the reminder of Filter Fusion [1]. We were aware of this work
+but had not mentioned it in the current paper as our focus was on handling
+dataflow graphs with arbitrary splits and joins. As stated in the initial
+paragraph of [1] "Filters [of filter fusion] read data from a single source
+and write data to a single destination." The algorithm in [1] is based around
+the assumption that the network to be fused is a linear pipeline, and all
+the examples have this property. In contrast, our system handles the more
+general case where the dataflow graph contains arbitrary splits and joins.
+
+The main difference between Machine Fusion and Filter Fusion is that the
+former interleaves individual instructions from the various producers and
+consumers rather than larger blocks of instructions at a time. The
+operational semantics that we provide in S3 formalizes how non-determinism
+in the instruction order allows  Machine Fusion to search for an interleaving
+that does not require unbounded buffering. Fine grained interleaving of
+instructions is needed when multiple producers feed into a single consumer
+as the code for the consumer may need to accept an element from one particular
+producer before another. This aspect of Machine Fusion is described in S4.1.
+
+With that said we agree that Machine Fusion and Filter Fusion have
+similarities and would be happy to clarify the difference in the related
+work section of our paper.
+
+[1] Filter Fusion. Todd A. Proebsting and Scott A. Watterson. POPL'96
+
+
+
+As stated in S4.1, in our system "For fusion of pipelines of standard
+combinators such as map, fold, filter, scan and so on, fusion always
+succeeds." This property arises naturally from the structure of our system.
+For general dataflow networks our safe characterisation is simply "if the
+process network cannot deadlock then fusion always succeeds". The analysis
+of whether the network *can* actually deadlock is really up to the user,
+as we provide a language where they can write arbitrary processes.
+We can highlight this characterization in the final version of the paper.
+
+
+As with Kahn Process Networks, all communication is via blocking reads,
+so the overall computation is deterministic (S3.1). This makes it possible
+to reason about evaluation of a single process in isolation, and apply that
+reasoning to an entire network.
+
+
+This is an artefact of our encoding in Coq. The described fusion algorithm
+invents fresh labels during a fixpoint computation and it's hard to convice
+Coq that this terminates. (The upper bound is the product of number of states
+in each machine and the number of channels and channel states)
+
+Instead, we define the label type as either a valid label (LX) from each
+process, or invalid (L'INVALID). If fusion fails the result code jumps to
+the invalid label. This allows us to define a total function from label
+to instruction instead of really computing the fixpoint. The soundness theorem
+states that if the result process reaches a valid label then you have a valid
+evaluation of the unfused processes.
+

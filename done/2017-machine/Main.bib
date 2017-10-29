@@ -1,0 +1,460 @@
+% A ------------------
+
+@inproceedings{ankner2013edsl,
+  title={An EDSL approach to high performance Haskell programming},
+  author={Ankner, Johan and Svenningsson, Josef David},
+  booktitle={ACM SIGPLAN Notices},
+  year={2013}
+}
+
+% B ------------------
+
+% Dataflow
+% Synchrony is described as ``time advances in lockstep with one or more clocks''
+% Formal definition of synchrony - somewhat hard to follow.
+%
+% - Lustre: declarative causal synchronous.
+%
+% - Esterel: imperative, nested, concurrent; each thread synchronised to a single global clock.
+%     Threads communicate only through signals, but signals are not buffered or persistent:
+%     after sending a signal, the value is kept for the next reaction but cleared after that.
+%     Supports `preemptive statements' which allow presence of a signal to interrupt a loop.
+%     Allegedly functional, but I don't see that.
+%     Uses a causality analysis to rule out deadlocks.
+%     These are very different to Kahn process networks, as messages disappear across iterations.
+%
+% - Signal: close to Lustre but multiclock.
+%     Seems to have a better story than Lustre about checking clocks by abstracting them.
+%     Allegedly,
+%     ``Signal allows to mix reactive communication (offered by environment) and proactive communication (demanded by program)''
+%     but there are no examples of this here.
+%
+% The actual `highlights of the last 12 years' are fairly boring, just commercial stuff, Lustre supporting arrays, new ways of compiling Esterel.
+% Nothing new in terms of expressivity.
+@article{benveniste2003synchronous,
+  title={The synchronous languages 12 years later},
+  author={Benveniste, Albert and Caspi, Paul and Edwards, Stephen A and Halbwachs, Nicolas and Le Guernic, Paul and De Simone, Robert},
+  journal={Proceedings of the IEEE},
+  year={2003},
+}
+
+% Streaming
+@inproceedings{bernardy2015duality,
+  author    = {Jean-Philippe Bernardy and Josef Svenningsson},
+  title     = {On the Duality of Streams
+               How Can Linear Types Help to Solve the Lazy {IO} Problem?},
+  booktitle = {IFL},
+  year      = {2015}
+}
+
+
+% Parameterized
+@article{bhattacharya2001parameterized,
+  title={Parameterized dataflow modeling for DSP systems},
+  author={Bhattacharya, Bishnupriya and Bhattacharyya, Shuvra S},
+  journal={IEEE Transactions on Signal Processing},
+  year={2001}
+}
+
+% Scheduling is undecidable in general
+% Boolean dataflow
+% It's all about taking a graph that contains irregular/not-synchronous actors, and putting
+% these irregular subgraphs into clusters so that, viewed externally, they are regular (1 in 1 out).
+% So looking at an if implemented as something like
+% (switch P; (T | F); select)
+% the T and the F aren't regular, but the whole thing taken together forms a regular graph.
+% But you're using a more expressive language - switches and selects and madness - when
+% you really want to restrict these to only be used in structured ways.
+@inproceedings{buck1993scheduling,
+  title={Scheduling dynamic dataflow graphs with bounded memory using the token flow model},
+  author={Buck, Joseph Tobin and Lee, Edward A},
+  booktitle={ICASSP},
+  year={1993},
+}
+
+% Integer dataflow
+% Clustering to find control structure: tries to recover structures like ifs, cases and loops
+% from the dataflow graph.
+% Extends previous (buck1993scheduling) with loops that repeat some number of times, and multi-way ifs
+% Very rigid and only supports limited control flow structures.
+% Unclear how a merge or append would be clustered by this system.
+@inproceedings{buck1994static,
+  title={Static scheduling and code generation from dynamic dataflow graphs with integer-valued control streams},
+  author={Buck, Joseph T},
+  booktitle={ACSSC},
+  year={1994},
+}
+
+% Good comparison of different kinds of dataflow networks.
+% Boolean dataflow (BDF) extends SDF with some sort of control flow,
+% and integer dataflow extends BDF with integers.
+% Boundedness and liveness for BDF and IDF are undecidable, but
+% static analysis can be done for many `practical problems'.
+% Deals with dynamic scheduling, with some static schedules for particular cases
+@phdthesis{bouakaz2013real,
+  title={Real-time scheduling of dataflow graphs},
+  author={Bouakaz, Adnan},
+  year={2013},
+  school={Universit{\'e} Rennes 1}
+}
+
+
+% C ------------------
+
+% Pull and push arrays in Obsidian
+% Here the distinction is made for the purpose of code generation for GPUs rather than fusion, as operations like append on pull arrays require conditionals inside the loop, whereas using push arrays moves these conditionals outside the loop.
+@inproceedings{claessen2012expressive,
+  author    = {Koen Claessen and
+               Mary Sheeran and
+               Joel Svensson},
+  title     = {Expressive array constructs in an embedded {GPU} kernel programming
+               language},
+  booktitle = {DAMP},
+  year      = {2012},
+}
+
+
+% Stream fusion paper, uses pull streams, relies on inlining, cannot do splits
+@inproceedings{coutts2007stream,
+  title={Stream fusion: From lists to streams to nothing at all},
+  author={Coutts, Duncan and Leshchinskiy, Roman and Stewart, Don},
+  booktitle={SIGPLAN},
+  year={2007},
+}
+
+
+@inproceedings{caspi1996:kahn,
+  author    = {Paul Caspi and
+               Marc Pouzet},
+  title     = {Synchronous Kahn Networks},
+  booktitle = {ICFP: International Conference on Functional Programming},
+  year      = {1996}
+}
+
+
+
+% D ------------------
+
+@inproceedings{downen2016sequent,
+  title={Sequent calculus as a compiler intermediate language},
+  author={Downen, Paul and Maurer, Luke and Ariola, Zena M and Jones, Simon Peyton},
+  booktitle={ICFP},
+  year={2016}
+}
+
+% F ------------------
+
+% Textbook explanation of polyhedral
+@incollection{feautrier2011polyhedron,
+  title={Polyhedron model},
+  author={Feautrier, Paul and Lengauer, Christian},
+  booktitle={Encyclopedia of Parallel Computing},
+  year={2011},
+}
+
+% Similar work on fusing KPNs but requires a separate schedule to be specified.
+% Also uses synchronised product, so unable to fuse cases like (zip xs ys; zip ys xs)
+@inproceedings{fradet2004network,
+  title={Network fusion},
+  author={Fradet, Pascal and Ha, St{\'e}phane Hong Tuan},
+  booktitle={APLAS},
+  year={2004},
+}
+
+%
+@inproceedings{fradet2012spdf,
+  title={SPDF: A schedulable parametric data-flow MoC},
+  author={Fradet, Pascal and Girault, Alain and Poplavko, Peter},
+  booktitle={DATE},
+  year={2012},
+}
+% G ------------------
+
+% Dynamic scheduling of KPNs across multiple threads.
+% Dynamically increase size of FIFO buffers as required.
+% Notes that Parks' scheduling algorithm is incorrect in presence of local deadlocks - does not guarantee fairness
+@incollection{geilen2003requirements,
+  title={Requirements on the execution of Kahn process networks},
+  author={Geilen, Marc and Basten, Twan},
+  booktitle={Programming languages and systems},
+  year={2003},
+}
+
+% Original short-cut fusion paper using foldr/build
+% Actually push-based, but inlining is inherently pull-based so ends up with worst of both.
+@inproceedings{gill1993short,
+  title={A short cut to deforestation},
+  author={Gill, Andrew and Launchbury, John and Peyton Jones, Simon L},
+  booktitle={FPCA},
+  year={1993},
+}
+
+
+@article{Graefe:Volcano,
+  author    = {Goetz Graefe},
+  title     = {Volcano - An Extensible and Parallel Query Evaluation System},
+  journal   = {TKDE},
+  volume    = {6},
+  number    = {1},
+  year      = {1994}
+}
+
+
+% H ------------------
+
+% Dataflow language: causal analysis, clock calculus, synchronous.
+% Uses more or less syntactic equality to check equivalence of clocks.
+@article{halbwachs1991synchronous,
+  title={The synchronous data flow programming language LUSTRE},
+  author={Halbwachs, Nicholas and Caspi, Paul and Raymond, Pascal and Pilaud, Daniel},
+  journal={IEEE},
+  year={1991},
+}
+
+% J ------------------
+
+@article{johnston2004advances,
+  title={Advances in dataflow programming languages},
+  author={Johnston, Wesley M and Hanna, JR and Millar, Richard J},
+  journal={CSUR},
+  year={2004},
+}
+
+% K ------------------
+
+% The Kahn process network paper
+@article{kahn1976coroutines,
+  title={Coroutines and networks of parallel processes},
+  author={Kahn, Gilles and MacQueen, David and others},
+  year={1976}
+}
+
+% Describes fundamental difference between push and pull
+@inproceedings{kay2009you,
+  title={You pull, I'll push: on the polarity of pipelines},
+  author={Kay, Michael},
+  booktitle={Balisage},
+  year={2009}
+}
+
+% Original iteratees paper? Not sure
+@inproceedings{kiselyov2012iteratees,
+  title={Iteratees},
+  author={Kiselyov, Oleg},
+  booktitle={FLOPS},
+  year={2012},
+}
+
+% Pull-based stream fusion with staged computation.
+% Uses staged computation to ensure that inlining happens, but this causes duplication of work.
+@inproceedings{kiselyov2016stream,
+ author = {Kiselyov, Oleg and Biboudis, Aggelos and Palladinos, Nick and Smaragdakis, Yannis},
+ title = {Stream Fusion, to Completeness},
+ booktitle = {POPL},
+ year = {2017}
+}
+
+% A push-based database query thing. Running example is split, but does not deal with joins.
+@article{klonatos2014building,
+  title={Building efficient query engines in a high-level language},
+  author={Klonatos, Yannis and Koch, Christoph and Rompf, Tiark and Chafi, Hassan},
+  journal={PVLDB},
+  year={2014},
+}
+
+% L ------------------
+
+% SIGNAL synchronous dataflow language
+% Polychrony: circuits/systems with many different clock rates.
+% Allows local/internal oversampling, that are not observable from outside.
+% Builds a hierarchical representation of clocks as a forest of trees,
+% where x is placed under y iff x < y, ie x is a downsampling of y.
+% In this case a merge would have
+%   x < (merge x y)
+% and
+%   y < (merge x y)
+% so it is not obvious whether this is supported.
+%
+% A simpler example for synchronous languages would be round-robin pulling from two inputs - not zipping, because that would enforce the same clock, but for round robin they could have clocks with the same period but a little delay between them.
+% 
+@article{le2003polychrony,
+  title={Polychrony for system design},
+  author={Le Guernic, Paul and Talpin, Jean-Pierre and Le Lann, Jean-Christophe},
+  journal={Journal of Circuits, Systems, and Computers},
+  year={2003},
+}
+
+@inproceedings{lippmeier2012:guiding,
+  author    = {Ben Lippmeier and
+               Manuel M. T. Chakravarty and
+               Gabriele Keller and
+               Simon L. Peyton Jones},
+  title     = {Guiding parallel array fusion with indexed types},
+  booktitle = {Haskell},
+  year      = {2012},
+}
+
+
+@inproceedings{lippmeier2013data,
+  title={Data flow fusion with series expressions in Haskell},
+  author={Lippmeier, Ben and Chakravarty, Manuel MT and Keller, Gabriele and Robinson, Amos},
+  booktitle={SIGPLAN},
+  year={2013},
+}
+
+@inproceedings{lippmeier2016polarized,
+  title={Polarized data parallel data flow},
+  author={Lippmeier, Ben and Mackay, Fil and Robinson, Amos},
+  booktitle={FHPC},
+  year={2016},
+}
+
+% M ------------------
+
+% Synchronous dataflow does not allow value-dependent access patterns or appends or....
+% Lucy extends this with a boolean clock calculus, but only allows periodic (repeating) clocks with a constant prefix - this cannot express append, merge or filter
+@inproceedings{mandel2010lucy,
+  title={Lucy-n: a n-synchronous extension of Lustre},
+  author={Mandel, Louis and Plateau, Florence and Pouzet, Marc},
+  booktitle={MPC},
+  year={2010},
+}
+
+% P ------------------
+
+% Dynamic scheduling with bounded queues, just increase the size of the queue when a deadlock occurs
+@phdthesis{parks1995bounded,
+  title={Bounded scheduling of process networks},
+  author={Parks, Thomas M},
+  year={1995},
+  school={University of California. Berkeley, California}
+}
+
+@inproceedings{proebsting1996filter,
+  title={Filter fusion},
+  author={Proebsting, Todd A and Watterson, Scott A},
+  booktitle={POPL},
+  year={1996},
+}
+
+% R ------------------
+
+% S ------------------
+
+@InProceedings{soule2013dynamic,
+  title     = "Dynamic Expressivity with Static Optimization for Streaming Languages",
+  author    = "Robert Soule and Michael I. Gordon and Saman Amarasinghe and Robert Grimm and Martin Hirzel",
+  booktitle = "DEBS",
+  year      = "2013",
+}
+
+@article{stephens1997survey,
+  title={A survey of stream processing},
+  author={Stephens, Robert},
+  journal={Acta Informatica},
+  year={1997},
+}
+
+% Scenario-aware dataflow (SADF)
+% Somehow use a separate finite state machine, which can control the rates of dataflows.
+% Apparently more expressive/succinct than boolean dataflow (BDF) but also easier to analyze.
+% (No comparison to IDF)
+% `General SADF' must fall back to runtime scheduling, but some FSM-SADF can be done statically.
+% Most analyses are about worst-case, average case runtimes and stuff.
+% In FSM-SADF, however, the currently executing scenario can only be switched in between iterations of the whole graph.
+% So after the whole graph executes one scenario, the FSM is used to find the next scenario to execute.
+% This means that the currently executing scenario cannot depend on values read during the current scenario - which rules out paritioning, for example, because the choice of whether to emit on the true or false branch cannot be made until after the value has been emitted.
+% It is possible to indirectly encode this by storing the value to emit in a buffer, and deferring the emit until next scenario - however this loses locality benefits of fusion.
+
+@inproceedings{stuijk2011scenario,
+  title={Scenario-aware dataflow: Modeling, analysis and implementation of dynamic applications},
+  author={Stuijk, Sander and Geilen, Marc and Theelen, Bart and Basten, Twan},
+  booktitle={SAMOS},
+  year={2011},
+}
+
+% Push-based: supports zips, explains that gill1993short doesn't
+@inproceedings{svenningsson2002shortcut,
+  title={Shortcut fusion for accumulating parameters \& zip-like functions},
+  author={Svenningsson, Josef},
+  booktitle={SIGPLAN},
+  year={2002},
+}
+
+% Support both pull and push arrays.
+% Rather than supporting arbitrary push arrays, they allow a limited set of combinators which can be easily implemented on push arrays (including those that can't be easily implemented as pull, for example append).
+@inproceedings{svensson2014defunctionalizing,
+  title={Defunctionalizing push arrays},
+  author={Svensson, Bo Joel and Svenningsson, Josef},
+  booktitle={FHPC},
+  year={2014},
+}
+
+% T ------------------
+
+% Regular/synchronous dataflow, ie statically known rates.
+% Only allows limited splits and joins: round robin and duplication for splits, round robin and combination for joins. 
+% Does not support fully general graphs - instead using combinators to introduce a (split/join) and a combinator for a feedback loop.
+@inproceedings{thies2002streamit,
+  title={StreamIt: A language for streaming applications},
+  author={Thies, William and Karczmarek, Michal and Amarasinghe, Saman},
+  booktitle={Compiler Construction},
+  year={2002},
+}
+
+@inproceedings{turjan2002compile,
+  title={A compile time based approach for solving out-of-order communication in Kahn Process Networks},
+  author={Turjan, Alexandru and Kienhuis, Bart and Deprettere, Ed},
+  booktitle={ASAP},
+  year={2002},
+}
+
+% U ------------------
+
+% V ------------------
+
+% SADF / FSM-SADF
+% The focus is more about analysing worst-case execution time in order to ensure real time deadlines can be met.
+% Much easier and better explanation than stuijk2011scenario
+@inproceedings{van2015scenario,
+  title={A scenario-aware dataflow programming model},
+  author={Van Kampenhout, Reinier and Stuijk, Sander and Goossens, Kees},
+  booktitle={DSD},
+  year={2015},
+}
+
+% W ------------------
+% X ------------------
+% Y ------------------
+% Z ------------------
+
+% Misc ------------------------
+
+@misc{hackage:conduit,
+  author = {Michael Snoyman},
+  year   = {2011},
+  title   = {\url{http://hackage.haskell.org/package/conduit}}
+}
+
+
+@misc{hackage:enumerator,
+  author = {John Millikin and Mikhail Vorozhtsov},
+  year   = {2011},
+  title  = {\url{http://hackage.haskell.org/package/enumerator}}
+}
+
+
+@misc{hackage:machines,
+  author = {Edward Kmett and R\'{u}nar Bjarnason and Josh Cough},
+  year   = {2012},
+  title  = {\url{http://hackage.haskell.org/package/machines}}
+}
+
+
+@misc{hackage:pipes,
+  author = {Gabriel Gonzalez},
+  year   = {2012},
+  title  = {\url{http://hackage.haskell.org/package/pipes}}
+}
+
+

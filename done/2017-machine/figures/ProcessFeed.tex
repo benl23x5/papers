@@ -1,0 +1,134 @@
+%!TEX root = ../Main.tex
+
+\begin{figure*}
+\begin{minipage}[t]{1\textwidth}
+
+% ---------------------------------------------------------
+$$
+  \boxed{\ProcsShake{\sgl{\Proc}}{\Action}{\sgl{\Proc}}}
+$$
+
+$$
+\ruleIN{
+  \ProcShake{p_i}{\cdot}{p'_i}
+}{
+  \ProcsShake{
+    \sgl{p_0 \ldots p_i \ldots p_n}
+  }{\cdot}{
+    \sgl{p_0 \ldots p'_i \ldots p_n}
+  }
+}{ProcessesInternal}
+%
+\quad
+%
+\ruleIN{
+  \ProcShake{p_i}{\Push~c~v}{p'_i}
+  \quad
+  \forall j~|~j \neq i.~
+  \ProcInject{p_j}{c}{v}{p'_j}
+}{
+  \ProcsShake{
+    \sgl{p_0 \ldots p_i \ldots p_n}
+  }{\Push~c~v}{
+    \sgl{p'_0 \ldots p'_i \ldots p'_n}
+  }
+}{ProcessesPush}
+$$
+
+
+% ---------------------------------------------------------
+\vspace{1em}
+
+\newcommand\vs {\ti{vs}}
+\newcommand\accs {\ti{accs}}
+\newcommand\network {\ti{ps}}
+
+$$
+  \boxed{
+    \ProcsFeed
+      {(\Chan \mapsto \overline{Value})~}
+      {\sgl{\Proc}}
+      {(\Chan \mapsto \overline{Value})~}
+      {\sgl{\Proc}}
+  }
+$$
+$$
+\ruleIN{
+  \ProcsShake
+    {ps}
+    {\cdot}
+    {ps'}
+}{
+  \ProcsFeed
+    {cvs}
+    {ps}
+    {cvs}
+    {ps'}
+}{FeedInternal}
+%
+\quad
+%
+\ruleIN{
+  \ProcsShake
+    {ps}
+    {\Push~c~v}
+    {ps'}
+}{
+  \ProcsFeed
+    {cvs}
+    {ps}
+    {cvs[c \mapsto (cvs[c] \listappend v)]}
+    {ps'}
+}{FeedPush}
+$$
+
+
+% $$
+% \ruleIN{
+%   (\forall p \in \network.~c \not\in @outs@~p)
+% \quad
+%   \ProcsFeed
+%     {c=\vs, \accs}
+%     {\network}
+%     {\accs'}
+%     {\network'}
+% \quad
+%   \ProcsInject
+%     {\network'}
+%     {c}{v}
+%     {\network''}
+% }{
+%   \ProcsFeed
+%     {c=\vs \listappend [v], \accs}
+%     {\network}
+%     {c=\vs \listappend [v], \accs'}
+%     {\network''}
+% }{FeedExternal}
+% $$
+
+
+$$
+\ruleIN{
+  (\forall p \in \network.~c \not\in p[@outs@])
+\quad
+  \ProcsInject
+    {ps}
+    {c}
+    {v}
+    {ps'}
+}{
+  \ProcsFeed
+    {cvs[c \mapsto ([v] \listappend vs)]}
+    {ps}
+    {cvs[c \mapsto vs~]}
+    {ps'}
+}{FeedExternal}
+$$
+
+
+
+\end{minipage}
+\caption{Feeding Process Networks}
+\label{fig:Process:Eval:Feed}
+\end{figure*}
+
