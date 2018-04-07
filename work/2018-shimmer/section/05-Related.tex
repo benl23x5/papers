@@ -1,0 +1,27 @@
+%!TEX root = ../Main.tex
+\eject{}
+\section{Related Work}
+
+\begin{itemize}
+\item Sheard \cite{Sheard:2001:MetaProgramming} general taxonomy of meta programming systems.
+
+\item Grundy \cite{Grundy:2006:reFLect} reFLect language has intensional analysis with quote and antiquote.
+
+\item Acar \cite{Acar:2003:SelectiveMemoization} modal type system to help programmer specify the dependencies of a particular expression. With traditional memoization system builds a table mapping function arguments to result value. In many cases this is too naieve as memoized value does not depend on full range of values. Classic example is:
+
+\begin{code}
+f x y z = if x > 0 then fy y else fx z
+\end{code}
+
+Memo table entry for @f 7 11 20@ should match @f 7 11 30@, as in the first branch the value of the @z@ parameter is ignored. In Discus we rely on the programmer to insert the @memo#@ prim at appopriate places, indicating we want to memoize the result of applying @fy@ and @fx@ to their arguments, rather than memoizing @f@ for every call patteren.
+\begin{code}
+f x y z = if x > 0 then memo# (box fy y) else memo# (box fx z)
+\end{code}
+
+System of Acar type system ensures that memo tables are only build on values of indexable types. With our system all types are indexable as we can compute hashes for every value. Acar's system has the property that two values are equal if and only their indices are equal. In our system we use cryptographic hashes for the indexes, so this property is true in practice, but not in strict theory.
+
+System of Acar disposes of memo tables when memoized function goes out of scope. We specifically don't do this because we want the memo table to survive runs of the program.
+
+\item Appel \cite{Appel:1993:HashConsingGarbageCollection} Hash Consing Garbage Collection. Hash consing process runs on live data after each GC cycle.
+
+\end{itemize}
